@@ -1,0 +1,9 @@
+FROM golang:1.12-alpine3.10
+RUN apk add --no-cache git
+RUN go get github.com/dvyukov/go-fuzz/...
+ADD . $GOPATH/src/github.com/FiloSottile/age/
+WORKDIR $GOPATH/src/github.com/FiloSottile/age
+RUN GO111MODULE=on go mod vendor
+RUN go-fuzz-build ./internal/format
+VOLUME /workdir
+ENTRYPOINT ["go-fuzz", "-workdir", "/workdir", "-bin", "format-fuzz.zip"]
