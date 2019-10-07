@@ -160,6 +160,28 @@ func NewSSHEd25519Recipient(pk ssh.PublicKey) (*SSHEd25519Recipient, error) {
 	return r, nil
 }
 
+func ParseSSHRecipient(s string) (Recipient, error) {
+	pubKey, _, _, _, err := ssh.ParseAuthorizedKey([]byte(s))
+	if err != nil {
+		return nil, fmt.Errorf("malformed SSH recipient: %q: %v", s, err)
+	}
+
+	var r Recipient
+	switch t := pubKey.Type(); t {
+	case "ssh-rsa":
+		r, err = NewSSHRSARecipient(pubKey)
+	case "ssh-ed25519":
+		r, err = NewSSHEd25519Recipient(pubKey)
+	default:
+		return nil, fmt.Errorf("unknown SSH recipient type: %q", t)
+	}
+	if err != nil {
+		return nil, fmt.Errorf("malformed SSH recipient: %q: %v", s, err)
+	}
+
+	return r, nil
+}
+
 var curve25519P, _ = new(big.Int).SetString("57896044618658097711785492504343953926634992332820282019728792003956564819949", 10)
 
 func ed25519PublicKeyToCurve25519(pk ed25519.PublicKey) []byte {
@@ -258,6 +280,22 @@ func NewSSHEd25519Identity(key ed25519.PrivateKey) (*SSHEd25519Identity, error) 
 	copy(i.secretKey[:], secretKey)
 	curve25519.ScalarBaseMult(&i.ourPublicKey, &i.secretKey)
 	return i, nil
+}
+
+func ParseSSHIdentity(pemBytes []byte) (Identity, error) {
+	k, err := ssh.ParseRawPrivateKey(pemBytes)
+	if err != nil {
+		return nil, err
+	}
+
+	switch k := k.(type) {
+	case *ed25519.PrivateKey:
+		return NewSSHEd25519Identity(*k)
+	case *rsa.PrivateKey:
+		return NewSSHRSAIdentity(k)
+	}
+
+	return nil, fmt.Errorf("unsupported SSH identity type: %T", k)
 }
 
 func ed25519PrivateKeyToCurve25519(pk ed25519.PrivateKey) []byte {

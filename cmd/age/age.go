@@ -13,6 +13,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/FiloSottile/age/internal/age"
@@ -89,7 +90,17 @@ func decrypt() {
 	var identities []age.Identity
 	// TODO: use the default location if no arguments are provided.
 	for _, name := range flag.Args() {
-		ids, err := parseIdentitiesFile(name)
+		var (
+			ids []age.Identity
+			err error
+		)
+
+		// TODO: smarter detection logic than looking for .ssh/* in the path.
+		if filepath.Base(filepath.Dir(name)) == ".ssh" {
+			ids, err = parseSSHIdentity(name)
+		} else {
+			ids, err = parseIdentitiesFile(name)
+		}
 		if err != nil {
 			log.Fatalf("Error: %v", err)
 		}
