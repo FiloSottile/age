@@ -12,7 +12,6 @@ import (
 
 type Header struct {
 	Recipients []*Recipient
-	AEAD       string
 	MAC        []byte
 }
 
@@ -61,7 +60,7 @@ func (h *Header) MarshalWithoutMAC(w io.Writer) error {
 			return err
 		}
 	}
-	_, err := fmt.Fprintf(w, "%s %s", footerPrefix, h.AEAD)
+	_, err := fmt.Fprintf(w, "%s", footerPrefix)
 	return err
 }
 
@@ -107,11 +106,10 @@ func Parse(input io.Reader) (*Header, io.Reader, error) {
 
 		if bytes.HasPrefix(line, footerPrefix) {
 			prefix, args := splitArgs(line)
-			if prefix != string(footerPrefix) || len(args) != 2 {
+			if prefix != string(footerPrefix) || len(args) != 1 {
 				return nil, nil, errorf("malformed closing line: %q", line)
 			}
-			h.AEAD = args[0]
-			h.MAC, err = DecodeString(args[1])
+			h.MAC, err = DecodeString(args[0])
 			if err != nil {
 				return nil, nil, errorf("malformed closing line %q: %v", line, err)
 			}

@@ -32,8 +32,6 @@ func Encrypt(dst io.Writer, recipients ...Recipient) (io.WriteCloser, error) {
 	}
 
 	hdr := &format.Header{}
-	// TODO: remove the AEAD marker from v1.
-	hdr.AEAD = "ChaChaPoly"
 	for i, r := range recipients {
 		if r.Type() == "scrypt" && len(recipients) != 1 {
 			return nil, errors.New("an scrypt recipient must be the only one")
@@ -73,9 +71,6 @@ func Decrypt(src io.Reader, identities ...Identity) (io.Reader, error) {
 	hdr, payload, err := format.Parse(src)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read header: %v", err)
-	}
-	if hdr.AEAD != "ChaChaPoly" {
-		return nil, fmt.Errorf("unsupported AEAD: %v", hdr.AEAD)
 	}
 	if len(hdr.Recipients) > 20 {
 		return nil, errors.New("too many recipients")
