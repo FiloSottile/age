@@ -8,6 +8,7 @@ package age_test
 
 import (
 	"bytes"
+	"crypto/ed25519"
 	"crypto/rand"
 	"crypto/rsa"
 	"testing"
@@ -113,6 +114,49 @@ func TestSSHRSARoundTrip(t *testing.T) {
 	}
 
 	if r.Type() != i.Type() || r.Type() != "ssh-rsa" {
+		t.Errorf("invalid Type values: %v, %v", r.Type(), i.Type())
+	}
+
+	fileKey := make([]byte, 16)
+	if _, err := rand.Read(fileKey[:]); err != nil {
+		t.Fatal(err)
+	}
+	block, err := r.Wrap(fileKey[:])
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Logf("%#v", block)
+
+	out, err := i.Unwrap(block)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !bytes.Equal(fileKey[:], out) {
+		t.Errorf("invalid output: %x, expected %x", out, fileKey[:])
+	}
+}
+
+func TestSSHEd25519RoundTrip(t *testing.T) {
+	pub, priv, err := ed25519.GenerateKey(rand.Reader)
+	if err != nil {
+		t.Fatal(err)
+	}
+	sshPubKey, err := ssh.NewPublicKey(pub)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	r, err := age.NewSSHEd25519Recipient(sshPubKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+	i, err := age.NewSSHEd25519Identity(priv)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if r.Type() != i.Type() || r.Type() != "ssh-ed25519" {
 		t.Errorf("invalid Type values: %v, %v", r.Type(), i.Type())
 	}
 
