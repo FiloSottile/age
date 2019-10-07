@@ -9,6 +9,8 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"io"
+	"io/ioutil"
 	"os"
 	"strings"
 
@@ -16,10 +18,14 @@ import (
 )
 
 func parseRecipient(arg string) (age.Recipient, error) {
-	if strings.HasPrefix(arg, "pubkey:") {
+	switch {
+	case strings.HasPrefix(arg, "pubkey:"):
 		return age.ParseX25519Recipient(arg)
+	case strings.HasPrefix(arg, "ssh-"):
+		return age.ParseSSHRecipient(arg)
 	}
-	return nil, fmt.Errorf("unknown recipient type: %s", arg)
+
+	return nil, fmt.Errorf("unknown recipient type: %q", arg)
 }
 
 func parseIdentitiesFile(name string) ([]age.Identity, error) {
@@ -49,4 +55,27 @@ func parseIdentitiesFile(name string) ([]age.Identity, error) {
 		return nil, fmt.Errorf("no secret keys found in %q", name)
 	}
 	return ids, nil
+}
+
+func parseSSHIdentity(name string) ([]age.Identity, error) {
+	f, err := os.Open(name)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open file: %v", err)
+	}
+	defer f.Close()
+
+	// Don't allow unbounded reads.
+	// TODO: support for multiple keys in the same stream, such as user.keys
+	// on GitHub.
+	pemBytes, err := ioutil.ReadAll(io.LimitReader(f, 1<<20))
+	if err != nil {
+		return nil, fmt.Errorf("failed to read %q: %v", name, err)
+	}
+
+	id, err := age.ParseSSHIdentity(pemBytes)
+	if err != nil {
+		return nil, fmt.Errorf("malformed SSH identity in %q: %v", name, err)
+	}
+
+	return []age.Identity{id}, nil
 }
