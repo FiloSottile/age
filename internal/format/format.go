@@ -24,7 +24,7 @@ type Recipient struct {
 
 var b64 = base64.RawURLEncoding.Strict()
 
-func decodeString(s string) ([]byte, error) {
+func DecodeString(s string) ([]byte, error) {
 	// CR and LF are ignored by DecodeString. LF is handled by the parser,
 	// but CR can introduce malleability.
 	if strings.Contains(s, "\r") {
@@ -33,12 +33,14 @@ func decodeString(s string) ([]byte, error) {
 	return b64.DecodeString(s)
 }
 
+var EncodeToString = b64.EncodeToString // TODO: wrap lines
+
 const intro = "This is a file encrypted with age-tool.com, version 1\n"
 
 var recipientPrefix = []byte("->")
 var footerPrefix = []byte("---")
 
-func (h *Header) Marshal(w io.Writer) error {
+func (h *Header) MarshalWithoutMAC(w io.Writer) error {
 	if _, err := io.WriteString(w, intro); err != nil {
 		return err
 	}
@@ -54,12 +56,21 @@ func (h *Header) Marshal(w io.Writer) error {
 		if _, err := io.WriteString(w, "\n"); err != nil {
 			return err
 		}
+		// TODO: check that Body ends with a newline.
 		if _, err := w.Write(r.Body); err != nil {
 			return err
 		}
 	}
+	_, err := fmt.Fprintf(w, "%s %s", footerPrefix, h.AEAD)
+	return err
+}
+
+func (h *Header) Marshal(w io.Writer) error {
+	if err := h.MarshalWithoutMAC(w); err != nil {
+		return err
+	}
 	mac := b64.EncodeToString(h.MAC)
-	_, err := fmt.Fprintf(w, "%s %s %s\n", footerPrefix, h.AEAD, mac)
+	_, err := fmt.Fprintf(w, " %s\n", mac)
 	return err
 }
 
@@ -100,7 +111,7 @@ func Parse(input io.Reader) (*Header, io.Reader, error) {
 				return nil, nil, errorf("malformed closing line: %q", line)
 			}
 			h.AEAD = args[0]
-			h.MAC, err = decodeString(args[1])
+			h.MAC, err = DecodeString(args[1])
 			if err != nil {
 				return nil, nil, errorf("malformed closing line %q: %v", line, err)
 			}
