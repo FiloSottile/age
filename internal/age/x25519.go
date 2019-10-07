@@ -1,3 +1,9 @@
+// Copyright 2019 Google LLC
+//
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file or at
+// https://developers.google.com/open-source/licenses/bsd
+
 package age
 
 import (
@@ -6,6 +12,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/FiloSottile/age/internal/format"
 	"golang.org/x/crypto/chacha20poly1305"
@@ -29,6 +36,22 @@ func NewX25519Recipient(publicKey []byte) (*X25519Recipient, error) {
 	}
 	r := &X25519Recipient{}
 	copy(r.theirPublicKey[:], publicKey)
+	return r, nil
+}
+
+func ParseX25519Recipient(s string) (*X25519Recipient, error) {
+	if !strings.HasPrefix(s, "pubkey:") {
+		return nil, fmt.Errorf("malformed recipient: %s", s)
+	}
+	pubKey := strings.TrimPrefix(s, "pubkey:")
+	k, err := format.DecodeString(pubKey)
+	if err != nil {
+		return nil, fmt.Errorf("malformed recipient: %s", s)
+	}
+	r, err := NewX25519Recipient(k)
+	if err != nil {
+		return nil, fmt.Errorf("malformed recipient: %s", s)
+	}
 	return r, nil
 }
 
@@ -65,6 +88,10 @@ func (r *X25519Recipient) Wrap(fileKey []byte) (*format.Recipient, error) {
 	return l, nil
 }
 
+func (r *X25519Recipient) String() string {
+	return "pubkey:" + format.EncodeToString(r.theirPublicKey[:])
+}
+
 type X25519Identity struct {
 	secretKey, ourPublicKey [32]byte
 }
@@ -81,6 +108,22 @@ func NewX25519Identity(secretKey []byte) (*X25519Identity, error) {
 	copy(i.secretKey[:], secretKey)
 	curve25519.ScalarBaseMult(&i.ourPublicKey, &i.secretKey)
 	return i, nil
+}
+
+func ParseX25519Identity(s string) (*X25519Identity, error) {
+	if !strings.HasPrefix(s, "AGE_SECRET_KEY_") {
+		return nil, fmt.Errorf("malformed secret key: %s", s)
+	}
+	privKey := strings.TrimPrefix(s, "AGE_SECRET_KEY_")
+	k, err := format.DecodeString(privKey)
+	if err != nil {
+		return nil, fmt.Errorf("malformed secret key: %s", s)
+	}
+	r, err := NewX25519Identity(k)
+	if err != nil {
+		return nil, fmt.Errorf("malformed secret key: %s", s)
+	}
+	return r, nil
 }
 
 func (i *X25519Identity) Unwrap(block *format.Recipient) ([]byte, error) {
@@ -120,4 +163,14 @@ func (i *X25519Identity) Unwrap(block *format.Recipient) ([]byte, error) {
 		return nil, fmt.Errorf("failed to decrypt file key: %v", err)
 	}
 	return fileKey, nil
+}
+
+func (i *X25519Identity) Recipient() *X25519Recipient {
+	r := &X25519Recipient{}
+	r.theirPublicKey = i.ourPublicKey
+	return r
+}
+
+func (i *X25519Identity) String() string {
+	return "AGE_SECRET_KEY_" + format.EncodeToString(i.secretKey[:])
 }

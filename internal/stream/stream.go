@@ -1,3 +1,9 @@
+// Copyright 2019 Google LLC
+//
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file or at
+// https://developers.google.com/open-source/licenses/bsd
+
 package stream
 
 import (
@@ -156,8 +162,7 @@ func (w *Writer) Write(p []byte) (n int, err error) {
 
 	total := len(p)
 	for len(p) > 0 {
-		free := ChunkSize - len(w.unwritten)
-		freeBuf := w.buf[len(w.unwritten) : len(w.unwritten)+free]
+		freeBuf := w.buf[len(w.unwritten):ChunkSize]
 		n := copy(freeBuf, p)
 		p = p[n:]
 		w.unwritten = w.unwritten[:len(w.unwritten)+n]
