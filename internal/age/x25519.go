@@ -20,10 +20,13 @@ import (
 	"golang.org/x/crypto/hkdf"
 )
 
-const x25519Label = "age-tool.com X25519"
+const (
+	x25519Label   = "age-tool.com X25519"
+	x25519KeySize = 32
+)
 
 type X25519Recipient struct {
-	theirPublicKey [32]byte
+	theirPublicKey [x25519KeySize]byte
 }
 
 var _ Recipient = &X25519Recipient{}
@@ -31,7 +34,7 @@ var _ Recipient = &X25519Recipient{}
 func (*X25519Recipient) Type() string { return "X25519" }
 
 func NewX25519Recipient(publicKey []byte) (*X25519Recipient, error) {
-	if len(publicKey) != 32 {
+	if len(publicKey) != x25519KeySize {
 		return nil, errors.New("invalid X25519 public key")
 	}
 	r := &X25519Recipient{}
@@ -56,13 +59,13 @@ func ParseX25519Recipient(s string) (*X25519Recipient, error) {
 }
 
 func (r *X25519Recipient) Wrap(fileKey []byte) (*format.Recipient, error) {
-	var ephemeral, ourPublicKey [32]byte
+	var ephemeral, ourPublicKey [x25519KeySize]byte
 	if _, err := rand.Read(ephemeral[:]); err != nil {
 		return nil, err
 	}
 	curve25519.ScalarBaseMult(&ourPublicKey, &ephemeral)
 
-	var sharedSecret [32]byte
+	var sharedSecret [x25519KeySize]byte
 	curve25519.ScalarMult(&sharedSecret, &ephemeral, &r.theirPublicKey)
 
 	l := &format.Recipient{
@@ -70,7 +73,7 @@ func (r *X25519Recipient) Wrap(fileKey []byte) (*format.Recipient, error) {
 		Args: []string{format.EncodeToString(ourPublicKey[:])},
 	}
 
-	salt := make([]byte, 0, 32*2)
+	salt := make([]byte, 0, x25519KeySize*2)
 	salt = append(salt, ourPublicKey[:]...)
 	salt = append(salt, r.theirPublicKey[:]...)
 	h := hkdf.New(sha256.New, sharedSecret[:], salt, []byte(x25519Label))
@@ -93,7 +96,7 @@ func (r *X25519Recipient) String() string {
 }
 
 type X25519Identity struct {
-	secretKey, ourPublicKey [32]byte
+	secretKey, ourPublicKey [x25519KeySize]byte
 }
 
 var _ Identity = &X25519Identity{}
@@ -101,7 +104,7 @@ var _ Identity = &X25519Identity{}
 func (*X25519Identity) Type() string { return "X25519" }
 
 func NewX25519Identity(secretKey []byte) (*X25519Identity, error) {
-	if len(secretKey) != 32 {
+	if len(secretKey) != x25519KeySize {
 		return nil, errors.New("invalid X25519 secret key")
 	}
 	i := &X25519Identity{}
@@ -137,7 +140,7 @@ func (i *X25519Identity) Unwrap(block *format.Recipient) ([]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse X25519 recipient: %v", err)
 	}
-	if len(publicKey) != 32 {
+	if len(publicKey) != x25519KeySize {
 		return nil, errors.New("invalid X25519 recipient block")
 	}
 	wrappedKey, err := format.DecodeString(string(block.Body))
@@ -145,11 +148,11 @@ func (i *X25519Identity) Unwrap(block *format.Recipient) ([]byte, error) {
 		return nil, fmt.Errorf("failed to parse X25519 recipient: %v", err)
 	}
 
-	var sharedSecret, theirPublicKey [32]byte
+	var sharedSecret, theirPublicKey [x25519KeySize]byte
 	copy(theirPublicKey[:], publicKey)
 	curve25519.ScalarMult(&sharedSecret, &i.secretKey, &theirPublicKey)
 
-	salt := make([]byte, 0, 32*2)
+	salt := make([]byte, 0, x25519KeySize*2)
 	salt = append(salt, theirPublicKey[:]...)
 	salt = append(salt, i.ourPublicKey[:]...)
 	h := hkdf.New(sha256.New, sharedSecret[:], salt, []byte(x25519Label))
