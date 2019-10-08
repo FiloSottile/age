@@ -26,16 +26,14 @@ func main() {
 	decryptFlag := flag.Bool("d", false, "decrypt the input")
 	flag.Parse()
 
+	if *generateFlag && *decryptFlag {
+		log.Fatalf("Invalid flag combination")
+	}
+
 	switch {
 	case *generateFlag:
-		if *decryptFlag {
-			log.Fatalf("Invalid flag combination")
-		}
 		generate()
 	case *decryptFlag:
-		if *generateFlag {
-			log.Fatalf("Invalid flag combination")
-		}
 		decrypt()
 	default:
 		encrypt()
