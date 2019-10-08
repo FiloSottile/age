@@ -9,7 +9,6 @@ package main
 import (
 	"crypto/rand"
 	"flag"
-	"fmt"
 	"io"
 	"log"
 	"os"
@@ -24,23 +23,52 @@ func main() {
 
 	generateFlag := flag.Bool("generate", false, "generate a new age key pair")
 	decryptFlag := flag.Bool("d", false, "decrypt the input")
+	infileFlag := flag.String("i", "", "output file")
+	outfileFlag := flag.String("o", "", "input file")
 	flag.Parse()
+
+	var (
+		in, out *os.File
+		err     error
+	)
 
 	if *generateFlag && *decryptFlag {
 		log.Fatalf("Invalid flag combination")
 	}
 
+	if len(*infileFlag) > 0 {
+		if *generateFlag {
+			log.Fatalf("-generate takes no inputs")
+		}
+
+		in, err = os.Open(*infileFlag)
+		if err != nil {
+			log.Fatalf("cannot open file %s: %v", *infileFlag, err)
+		}
+	} else {
+		in = os.Stdin
+	}
+
+	if len(*outfileFlag) > 0 {
+		out, err = os.Create(*outfileFlag)
+		if err != nil {
+			log.Fatalf("cannot open file %s: %v", *outfileFlag, err)
+		}
+	} else {
+		out = os.Stdout
+	}
+
 	switch {
 	case *generateFlag:
-		generate()
+		generate(out)
 	case *decryptFlag:
-		decrypt()
+		decrypt(in, out)
 	default:
-		encrypt()
+		encrypt(in, out)
 	}
 }
 
-func generate() {
+func generate(out *os.File) {
 	if len(flag.Args()) != 0 {
 		log.Fatalf("-generate takes no arguments")
 	}
@@ -54,12 +82,12 @@ func generate() {
 		log.Fatalf("Internal error: %v", err)
 	}
 
-	fmt.Printf("# created: %s\n", time.Now().Format(time.RFC3339))
-	fmt.Printf("# %s\n", k.Recipient())
-	fmt.Printf("%s\n", k)
+	out.WriteString("# created: " + time.Now().Format(time.RFC3339) + "\n")
+	out.WriteString("# " + k.Recipient().String() + "\n")
+	out.WriteString(k.String() + "\n")
 }
 
-func encrypt() {
+func encrypt(in, out *os.File) {
 	var recipients []age.Recipient
 	for _, arg := range flag.Args() {
 		r, err := parseRecipient(arg)
@@ -72,11 +100,11 @@ func encrypt() {
 		log.Fatalf("Missing recipients!")
 	}
 
-	w, err := age.Encrypt(os.Stdout, recipients...)
+	w, err := age.Encrypt(out, recipients...)
 	if err != nil {
 		log.Fatalf("Error initializing encryption: %v", err)
 	}
-	if _, err := io.Copy(w, os.Stdin); err != nil {
+	if _, err := io.Copy(w, in); err != nil {
 		log.Fatalf("Error encrypting the input: %v", err)
 	}
 	if err := w.Close(); err != nil {
@@ -84,7 +112,7 @@ func encrypt() {
 	}
 }
 
-func decrypt() {
+func decrypt(in, out *os.File) {
 	var identities []age.Identity
 	// TODO: use the default location if no arguments are provided.
 	for _, name := range flag.Args() {
@@ -105,11 +133,11 @@ func decrypt() {
 		identities = append(identities, ids...)
 	}
 
-	r, err := age.Decrypt(os.Stdin, identities...)
+	r, err := age.Decrypt(in, identities...)
 	if err != nil {
 		log.Fatalf("Error initializing decryption: %v", err)
 	}
-	if _, err := io.Copy(os.Stdout, r); err != nil {
+	if _, err := io.Copy(out, r); err != nil {
 		log.Fatalf("Error decrypting the input: %v", err)
 	}
 }
