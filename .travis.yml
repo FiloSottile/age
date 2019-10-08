@@ -2,6 +2,4 @@ os: linux
 arch: arm64
 dist: bionic
 language: go
-go:
-- 1.x
-- master
+go: 1.x
