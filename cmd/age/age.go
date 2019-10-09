@@ -27,15 +27,11 @@ func main() {
 	flag.Parse()
 
 	switch {
+	case *generateFlag && *decryptFlag:
+		log.Fatalf("Invalid flag combination")
 	case *generateFlag:
-		if *decryptFlag {
-			log.Fatalf("Invalid flag combination")
-		}
 		generate()
 	case *decryptFlag:
-		if *generateFlag {
-			log.Fatalf("Invalid flag combination")
-		}
 		decrypt()
 	default:
 		encrypt()
