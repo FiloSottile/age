@@ -76,7 +76,7 @@ func TestEncryptDecryptScrypt(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	r.SetWorkFactor(1 << 15)
+	r.SetWorkFactor(15)
 	buf := &bytes.Buffer{}
 	w, err := age.Encrypt(buf, r)
 	if err != nil {

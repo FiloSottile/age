@@ -64,7 +64,7 @@ func TestScryptRoundTrip(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	r.SetWorkFactor(1 << 15)
+	r.SetWorkFactor(15)
 	i, err := age.NewScryptIdentity(password)
 	if err != nil {
 		t.Fatal(err)
