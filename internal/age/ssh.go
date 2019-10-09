@@ -186,7 +186,7 @@ var curve25519P, _ = new(big.Int).SetString("57896044618658097711785492504343953
 
 func ed25519PublicKeyToCurve25519(pk ed25519.PublicKey) []byte {
 	// ed25519.PublicKey is a little endian representation of the y-coordinate,
-	// with the most significant bit set based on the sign of the x-ccordinate.
+	// with the most significant bit set based on the sign of the x-coordinate.
 	bigEndianY := make([]byte, ed25519.PublicKeySize)
 	for i, b := range pk {
 		bigEndianY[ed25519.PublicKeySize-i-1] = b
