@@ -7,7 +7,6 @@
 package main
 
 import (
-	"crypto/rand"
 	"flag"
 	"fmt"
 	"io"
@@ -47,11 +46,7 @@ func generate() {
 		log.Fatalf("-generate takes no arguments")
 	}
 
-	key := make([]byte, 32)
-	if _, err := rand.Read(key); err != nil {
-		log.Fatalf("Internal error: %v", err)
-	}
-	k, err := age.NewX25519Identity(key)
+	k, err := age.GenerateX25519Identity()
 	if err != nil {
 		log.Fatalf("Internal error: %v", err)
 	}
