@@ -33,6 +33,7 @@ func parseIdentitiesFile(name string) ([]age.Identity, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to open file: %v", err)
 	}
+	defer f.Close()
 
 	var ids []age.Identity
 	scanner := bufio.NewScanner(f)
