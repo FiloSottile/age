@@ -30,39 +30,53 @@ type Recipient struct {
 var b64 = base64.RawURLEncoding.Strict()
 
 func DecodeString(s string) ([]byte, error) {
-	// CR and LF are ignored by DecodeString. LF is handled by the parser,
-	// but CR can introduce malleability.
-	if strings.Contains(s, "\r") {
-		return nil, errors.New(`invalid character: \r`)
+	// CR and LF are ignored by DecodeString, but we don't want any malleability.
+	if strings.ContainsAny(s, "\n\r") {
+		return nil, errors.New(`unexpected newline character`)
 	}
 	return b64.DecodeString(s)
 }
 
-var EncodeToString = b64.EncodeToString // TODO: wrap lines
+var EncodeToString = b64.EncodeToString
+
+const bytesPerLine = 56 / 4 * 3 // 56 columns of Base64
 
 const intro = "This is a file encrypted with age-tool.com, version 1\n"
 
 var recipientPrefix = []byte("->")
 var footerPrefix = []byte("---")
 
+func (r *Recipient) Marshal(w io.Writer) error {
+	if _, err := w.Write(recipientPrefix); err != nil {
+		return err
+	}
+	for _, a := range append([]string{r.Type}, r.Args...) {
+		if _, err := io.WriteString(w, " "+a); err != nil {
+			return err
+		}
+	}
+	if _, err := io.WriteString(w, "\n"); err != nil {
+		return err
+	}
+	for i := 0; i < len(r.Body); i += bytesPerLine {
+		n := bytesPerLine
+		if n > len(r.Body)-i {
+			n = len(r.Body) - i
+		}
+		s := EncodeToString(r.Body[i : i+n])
+		if _, err := io.WriteString(w, s+"\n"); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func (h *Header) MarshalWithoutMAC(w io.Writer) error {
 	if _, err := io.WriteString(w, intro); err != nil {
 		return err
 	}
 	for _, r := range h.Recipients {
-		if _, err := w.Write(recipientPrefix); err != nil {
-			return err
-		}
-		for _, a := range append([]string{r.Type}, r.Args...) {
-			if _, err := io.WriteString(w, " "+a); err != nil {
-				return err
-			}
-		}
-		if _, err := io.WriteString(w, "\n"); err != nil {
-			return err
-		}
-		// TODO: check that Body ends with a newline.
-		if _, err := w.Write(r.Body); err != nil {
+		if err := r.Marshal(w); err != nil {
 			return err
 		}
 	}
@@ -132,7 +146,18 @@ func Parse(input io.Reader) (*Header, io.Reader, error) {
 			h.Recipients = append(h.Recipients, r)
 
 		} else if r != nil {
-			r.Body = append(r.Body, line...)
+			b, err := DecodeString(strings.TrimSuffix(string(line), "\n"))
+			if err != nil {
+				return nil, nil, errorf("malformed body line %q: %v", line, err)
+			}
+			if len(b) > bytesPerLine {
+				return nil, nil, errorf("malformed body line %q: too long", line)
+			}
+			r.Body = append(r.Body, b...)
+			if len(b) < bytesPerLine {
+				// Only the last line of a body can be short.
+				r = nil
+			}
 
 		} else {
 			return nil, nil, errorf("unexpected line: %q", line)

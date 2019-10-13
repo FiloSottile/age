@@ -71,7 +71,7 @@ func (r *SSHRSARecipient) Wrap(fileKey []byte) (*format.Recipient, error) {
 	if err != nil {
 		return nil, err
 	}
-	l.Body = []byte(format.EncodeToString(wrappedKey) + "\n")
+	l.Body = wrappedKey
 
 	return l, nil
 }
@@ -110,10 +110,6 @@ func (i *SSHRSAIdentity) Unwrap(block *format.Recipient) ([]byte, error) {
 	if len(hash) != 4 {
 		return nil, errors.New("invalid ssh-rsa recipient block")
 	}
-	wrappedKey, err := format.DecodeString(string(block.Body))
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse ssh-rsa recipient: %v", err)
-	}
 
 	h := sha256.New()
 	h.Write(i.sshKey.Marshal())
@@ -123,7 +119,7 @@ func (i *SSHRSAIdentity) Unwrap(block *format.Recipient) ([]byte, error) {
 	}
 
 	fileKey, err := rsa.DecryptOAEP(sha256.New(), rand.Reader, i.k,
-		wrappedKey, []byte(oaepLabel))
+		block.Body, []byte(oaepLabel))
 	if err != nil {
 		return nil, fmt.Errorf("failed to decrypt file key: %v", err)
 	}
@@ -254,7 +250,7 @@ func (r *SSHEd25519Recipient) Wrap(fileKey []byte) (*format.Recipient, error) {
 	if err != nil {
 		return nil, err
 	}
-	l.Body = []byte(format.EncodeToString(wrappedKey) + "\n")
+	l.Body = wrappedKey
 
 	return l, nil
 }
@@ -327,10 +323,6 @@ func (i *SSHEd25519Identity) Unwrap(block *format.Recipient) ([]byte, error) {
 	if len(publicKey) != 32 {
 		return nil, errors.New("invalid ssh-ed25519 recipient block")
 	}
-	wrappedKey, err := format.DecodeString(string(block.Body))
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse ssh-ed25519 recipient: %v", err)
-	}
 
 	sH := sha256.New()
 	sH.Write(i.sshKey.Marshal())
@@ -357,7 +349,7 @@ func (i *SSHEd25519Identity) Unwrap(block *format.Recipient) ([]byte, error) {
 		return nil, err
 	}
 
-	fileKey, err := aeadDecrypt(wrappingKey, wrappedKey)
+	fileKey, err := aeadDecrypt(wrappingKey, block.Body)
 	if err != nil {
 		return nil, fmt.Errorf("failed to decrypt file key: %v", err)
 	}

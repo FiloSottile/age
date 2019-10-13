@@ -83,7 +83,7 @@ func (r *X25519Recipient) Wrap(fileKey []byte) (*format.Recipient, error) {
 	if err != nil {
 		return nil, err
 	}
-	l.Body = []byte(format.EncodeToString(wrappedKey) + "\n")
+	l.Body = wrappedKey
 
 	return l, nil
 }
@@ -140,10 +140,6 @@ func (i *X25519Identity) Unwrap(block *format.Recipient) ([]byte, error) {
 	if len(publicKey) != 32 {
 		return nil, errors.New("invalid X25519 recipient block")
 	}
-	wrappedKey, err := format.DecodeString(string(block.Body))
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse X25519 recipient: %v", err)
-	}
 
 	var sharedSecret, theirPublicKey [32]byte
 	copy(theirPublicKey[:], publicKey)
@@ -158,7 +154,7 @@ func (i *X25519Identity) Unwrap(block *format.Recipient) ([]byte, error) {
 		return nil, err
 	}
 
-	fileKey, err := aeadDecrypt(wrappingKey, wrappedKey)
+	fileKey, err := aeadDecrypt(wrappingKey, block.Body)
 	if err != nil {
 		return nil, fmt.Errorf("failed to decrypt file key: %v", err)
 	}

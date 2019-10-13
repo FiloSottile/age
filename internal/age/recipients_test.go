@@ -19,11 +19,8 @@ import (
 )
 
 func TestX25519RoundTrip(t *testing.T) {
-	var secretKey, publicKey, fileKey [32]byte
+	var secretKey, publicKey [32]byte
 	if _, err := rand.Read(secretKey[:]); err != nil {
-		t.Fatal(err)
-	}
-	if _, err := rand.Read(fileKey[:]); err != nil {
 		t.Fatal(err)
 	}
 	curve25519.ScalarBaseMult(&publicKey, &secretKey)
@@ -41,11 +38,17 @@ func TestX25519RoundTrip(t *testing.T) {
 		t.Errorf("invalid Type values: %v, %v", r.Type(), i.Type())
 	}
 
+	fileKey := make([]byte, 16)
+	if _, err := rand.Read(fileKey[:]); err != nil {
+		t.Fatal(err)
+	}
 	block, err := r.Wrap(fileKey[:])
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Logf("%#v", block)
+	b := &bytes.Buffer{}
+	block.Marshal(b)
+	t.Logf("%s", b.Bytes())
 
 	out, err := i.Unwrap(block)
 	if err != nil {
@@ -82,7 +85,9 @@ func TestScryptRoundTrip(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Logf("%#v", block)
+	b := &bytes.Buffer{}
+	block.Marshal(b)
+	t.Logf("%s", b.Bytes())
 
 	out, err := i.Unwrap(block)
 	if err != nil {
@@ -125,7 +130,9 @@ func TestSSHRSARoundTrip(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Logf("%#v", block)
+	b := &bytes.Buffer{}
+	block.Marshal(b)
+	t.Logf("%s", b.Bytes())
 
 	out, err := i.Unwrap(block)
 	if err != nil {
@@ -168,7 +175,9 @@ func TestSSHEd25519RoundTrip(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Logf("%#v", block)
+	b := &bytes.Buffer{}
+	block.Marshal(b)
+	t.Logf("%s", b.Bytes())
 
 	out, err := i.Unwrap(block)
 	if err != nil {

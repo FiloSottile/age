@@ -68,7 +68,7 @@ func (r *ScryptRecipient) Wrap(fileKey []byte) (*format.Recipient, error) {
 	if err != nil {
 		return nil, err
 	}
-	l.Body = []byte(format.EncodeToString(wrappedKey) + "\n")
+	l.Body = wrappedKey
 
 	return l, nil
 }
@@ -126,17 +126,13 @@ func (i *ScryptIdentity) Unwrap(block *format.Recipient) ([]byte, error) {
 	if logN <= 0 {
 		return nil, fmt.Errorf("invalid scrypt work factor: %v", logN)
 	}
-	wrappedKey, err := format.DecodeString(string(block.Body))
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse scrypt recipient: %v", err)
-	}
 
 	k, err := scrypt.Key(i.password, salt, 1<<logN, 8, 1, chacha20poly1305.KeySize)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate scrypt hash: %v", err)
 	}
 
-	fileKey, err := aeadDecrypt(k, wrappedKey)
+	fileKey, err := aeadDecrypt(k, block.Body)
 	if err != nil {
 		return nil, fmt.Errorf("failed to decrypt file key: %v", err)
 	}
