@@ -178,7 +178,6 @@ func (w *Writer) Write(p []byte) (n int, err error) {
 }
 
 func (w *Writer) Close() error {
-	// TODO: close w.dst if it can be interface upgraded to io.Closer.
 	if w.err != nil {
 		return w.err
 	}
