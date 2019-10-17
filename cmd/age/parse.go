@@ -38,30 +38,34 @@ func parseIdentitiesFile(name string) ([]age.Identity, error) {
 	}
 	defer f.Close()
 
-	buf := &bytes.Buffer{}
-	limitF := io.LimitReader(f, privateKeySizeLimit)
-	if _, err := io.Copy(buf, limitF); err != nil {
+	contents, err := ioutil.ReadAll(io.LimitReader(f, privateKeySizeLimit))
+	if err != nil {
 		return nil, fmt.Errorf("failed to read %q: %v", name, err)
+	}
+	if len(contents) == privateKeySizeLimit {
+		return nil, fmt.Errorf("failed to read %q: file too long", name)
 	}
 
 	var ids []age.Identity
 	var ageParsingError error
-	scanner := bufio.NewScanner(bytes.NewReader(buf.Bytes()))
+	scanner := bufio.NewScanner(bytes.NewReader(contents))
 	for scanner.Scan() {
 		line := scanner.Text()
 		if strings.HasPrefix(line, "#") || line == "" {
 			continue
 		}
 		if strings.HasPrefix(line, "-----BEGIN") {
-			return parseSSHIdentity(name, bytes.NewReader(buf.Bytes()))
+			return parseSSHIdentity(name, contents)
 		}
-		if ageParsingError == nil {
-			i, err := age.ParseX25519Identity(line)
-			if err != nil {
-				ageParsingError = fmt.Errorf("malformed secret keys file %q: %v", name, err)
-			}
-			ids = append(ids, i)
+		if ageParsingError != nil {
+			continue
 		}
+		i, err := age.ParseX25519Identity(line)
+		if err != nil {
+			ageParsingError = fmt.Errorf("malformed secret keys file %q: %v", name, err)
+			continue
+		}
+		ids = append(ids, i)
 	}
 	if err := scanner.Err(); err != nil {
 		return nil, fmt.Errorf("failed to read %q: %v", name, err)
@@ -76,12 +80,7 @@ func parseIdentitiesFile(name string) ([]age.Identity, error) {
 	return ids, nil
 }
 
-func parseSSHIdentity(name string, f io.Reader) ([]age.Identity, error) {
-	pemBytes, err := ioutil.ReadAll(f)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read %q: %v", name, err)
-	}
-
+func parseSSHIdentity(name string, pemBytes []byte) ([]age.Identity, error) {
 	id, err := age.ParseSSHIdentity(pemBytes)
 	if err != nil {
 		return nil, fmt.Errorf("malformed SSH identity in %q: %v", name, err)
