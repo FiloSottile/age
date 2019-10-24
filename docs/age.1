@@ -1,0 +1,129 @@
+.Dd October 25, 2019
+.Dt AGE 1
+.Os
+.Sh NAME
+.Nm age
+.Nd encrypt and decrypt data
+.Sh SYNOPSIS
+.Nm
+.Op Fl o Ar file
+.Fl generate
+.Nm
+.Op Fl i Ar file
+.Op Fl o Ar file
+.Ar recipient ...
+.Nm
+.Op Fl i Ar file
+.Op Fl o Ar file
+.Fl d
+.Op Ar identity-file ...
+.Sh DESCRIPTION
+The
+.Nm
+utility encrypts and decrypts data,
+reading from standard input and writing to standard output.
+By default,
+.Nm
+will encrypt input for one-or-more
+.Ar recipient Ns s .
+Other modes of operation are selected with the following options:
+.Bl -tag -width Ds
+.It Fl d
+Decrypt input using one or more
+.Ar identity-file Ns s
+containing valid identities.
+.It Fl generate
+Generate a new key-pair.
+.El
+.Pp
+The other options are as follows:
+.Bl -tag -width Ds
+.It Fl i Ar file
+Read input from
+.Ar file .
+.It Fl o Ar file
+Write output to
+.Ar file ,
+truncating if there is any data and creating it if it does not exist.
+.El
+.Pp
+A
+.Ar recipient
+can be one of the following:
+.Bl -tag -width Ds
+.It Cm pubkey : Ns Ar key
+A public key generated using
+.Fl G ,
+where
+.Ar key
+is a base64-encoded string.
+.It Cm ssh- Ns Oo Cm rsa | ed25519 Oc Ar key
+A public key generated using
+.Xr ssh-keygen 1 ,
+where
+.Ar key
+is a base64-encoded string.
+See the AUTHORIZED_KEYS FILE FORMAT section of
+.Xr sshd 8
+for a reference to the full format.
+.It Cm alias : Ns Ar name
+The name of a recipient alias contained in the alias file.
+.It Ar file
+A file containing a list of any of the key formats mentioned above,
+with keys separated by newlines.
+.It Ar https://example.tld/file
+A key list file located online.
+.Nm
+will start a network request to download it.
+.It Cm github : Ns Ar user
+A list of ssh keys for a GitHub
+.Ar user .
+This is expanded into
+.Ql https://github.com/user.keys .
+.El
+.Pp
+An
+.Ar identity-file
+is either a key-pair generated using
+.Fl generate
+or a ssh private key generated using
+.Xr ssh-keygen 1 .
+.Sh FILES
+The location of the alias file is platform specific.
+On
+.Ux Ns -like
+systems,
+.Nm
+will look for
+.Pa $XDG_CONFIG_HOME/age/aliases.txt
+if
+.Ev XDG_CONFIG_HOME
+is set,
+else it will look for
+.Pa ~/.config/age/aliases.txt .
+On macOS,
+.Nm
+will look for
+.Pa "~/Library/Application Support/age/aliases.txt" .
+.Sh EXIT STATUS
+.Ex -std
+.Sh EXAMPLES
+Generate a new key-pair, and encrypt a file using the public key:
+.Bd -literal -offset Ds
+age -generate > age-key
+age $(sed -n '2s/^..//p' age-key) < data.txt > data.txt.age
+.Ed
+.Pp
+Send a backup of a directory to another system:
+.Bd -literal -offset Ds
+tar cv /path/to/dir | gzip | age alias:sysname | nc sysname 1234
+.Ed
+.Sh SEE ALSO
+.Xr ssh-keygen 1 ,
+.Xr sshd 8
+.Sh AUTHORS
+.An -nosplit
+The specification and implementation for the
+.Nm
+utility was written by
+.An Filippo Valsorda Aq Mt filippo@golang.org .
