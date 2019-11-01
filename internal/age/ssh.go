@@ -7,7 +7,6 @@
 package age
 
 import (
-	"bufio"
 	"bytes"
 	"crypto/ed25519"
 	"crypto/rand"
@@ -26,6 +25,7 @@ import (
 	"golang.org/x/crypto/curve25519"
 	"golang.org/x/crypto/hkdf"
 	"golang.org/x/crypto/ssh"
+	"golang.org/x/crypto/ssh/terminal"
 )
 
 const oaepLabel = "age-tool.com ssh-rsa"
@@ -289,11 +289,8 @@ func ParseSSHIdentity(pemBytes []byte) (Identity, error) {
 		}
 
 		fmt.Print("Enter passphrase for encrypted id_rsa: ")
-
-		reader := bufio.NewReader(os.Stdin)
-		input, _ := reader.ReadString('\n')
-
-		pass := strings.TrimSuffix(input, "\n")
+		pass, _ := terminal.ReadPassword(int(os.Stdin.Fd()))
+		fmt.Println()
 
 		k, err = ssh.ParseRawPrivateKeyWithPassphrase(pemBytes, []byte(pass))
 		if err != nil {
