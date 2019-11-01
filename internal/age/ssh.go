@@ -7,6 +7,7 @@
 package age
 
 import (
+	"bufio"
 	"bytes"
 	"crypto/ed25519"
 	"crypto/rand"
@@ -17,6 +18,8 @@ import (
 	"fmt"
 	"io"
 	"math/big"
+	"os"
+	"strings"
 
 	"github.com/FiloSottile/age/internal/format"
 	"golang.org/x/crypto/chacha20poly1305"
@@ -281,7 +284,21 @@ func NewSSHEd25519Identity(key ed25519.PrivateKey) (*SSHEd25519Identity, error) 
 func ParseSSHIdentity(pemBytes []byte) (Identity, error) {
 	k, err := ssh.ParseRawPrivateKey(pemBytes)
 	if err != nil {
-		return nil, err
+		if !strings.Contains(err.Error(), "cannot decode encrypted private keys") {
+			return nil, err
+		}
+
+		fmt.Print("Enter passphrase for encrypted id_rsa: ")
+
+		reader := bufio.NewReader(os.Stdin)
+		input, _ := reader.ReadString('\n')
+
+		pass := strings.TrimSuffix(input, "\n")
+
+		k, err = ssh.ParseRawPrivateKeyWithPassphrase(pemBytes, []byte(pass))
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	switch k := k.(type) {
