@@ -281,14 +281,14 @@ func NewSSHEd25519Identity(key ed25519.PrivateKey) (*SSHEd25519Identity, error) 
 	return i, nil
 }
 
-func ParseSSHIdentity(pemBytes []byte) (Identity, error) {
+func ParseSSHIdentity(name string, pemBytes []byte) (Identity, error) {
 	k, err := ssh.ParseRawPrivateKey(pemBytes)
 	if err != nil {
 		if !strings.Contains(err.Error(), "cannot decode encrypted private keys") {
 			return nil, err
 		}
 
-		fmt.Print("Enter passphrase for encrypted id_rsa: ")
+		fmt.Printf("Enter passphrase for key '%s': ", name)
 		pass, _ := terminal.ReadPassword(int(os.Stdin.Fd()))
 		fmt.Println()
 

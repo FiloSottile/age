@@ -82,7 +82,7 @@ func parseSSHIdentity(name string, f io.Reader) ([]age.Identity, error) {
 		return nil, fmt.Errorf("failed to read %q: %v", name, err)
 	}
 
-	id, err := age.ParseSSHIdentity(pemBytes)
+	id, err := age.ParseSSHIdentity(name, pemBytes)
 	if err != nil {
 		return nil, fmt.Errorf("malformed SSH identity in %q: %v", name, err)
 	}
