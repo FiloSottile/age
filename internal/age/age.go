@@ -4,6 +4,7 @@
 // license that can be found in the LICENSE file or at
 // https://developers.google.com/open-source/licenses/bsd
 
+// Package age implements age-tool.com file encryption.
 package age
 
 import (
@@ -21,6 +22,13 @@ type Identity interface {
 	Type() string
 	Unwrap(block *format.Recipient) (fileKey []byte, err error)
 }
+
+type IdentityMatcher interface {
+	Identity
+	Matches(block *format.Recipient) error
+}
+
+var ErrIncorrectIdentity = errors.New("incorrect identity for recipient block")
 
 type Recipient interface {
 	Type() string
@@ -89,15 +97,29 @@ RecipientsLoop:
 			return nil, errors.New("an scrypt recipient must be the only one")
 		}
 		for _, i := range identities {
-
 			if i.Type() != r.Type {
 				continue
 			}
 
-			fileKey, err = i.Unwrap(r)
-			if err == nil {
-				break RecipientsLoop
+			if i, ok := i.(IdentityMatcher); ok {
+				err := i.Matches(r)
+				if err != nil {
+					if err == ErrIncorrectIdentity {
+						continue
+					}
+					return nil, err
+				}
 			}
+
+			fileKey, err = i.Unwrap(r)
+			if err != nil {
+				if err == ErrIncorrectIdentity {
+					continue
+				}
+				return nil, err
+			}
+
+			break RecipientsLoop
 		}
 	}
 	if fileKey == nil {

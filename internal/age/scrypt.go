@@ -104,7 +104,7 @@ func (i *ScryptIdentity) SetMaxWorkFactor(logN int) {
 
 func (i *ScryptIdentity) Unwrap(block *format.Recipient) ([]byte, error) {
 	if block.Type != "scrypt" {
-		return nil, errors.New("wrong recipient block type")
+		return nil, ErrIncorrectIdentity
 	}
 	if len(block.Args) != 2 {
 		return nil, errors.New("invalid scrypt recipient block")
@@ -134,7 +134,7 @@ func (i *ScryptIdentity) Unwrap(block *format.Recipient) ([]byte, error) {
 
 	fileKey, err := aeadDecrypt(k, block.Body)
 	if err != nil {
-		return nil, fmt.Errorf("failed to decrypt file key: %v", err)
+		return nil, ErrIncorrectIdentity
 	}
 	return fileKey, nil
 }

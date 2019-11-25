@@ -98,7 +98,7 @@ func NewSSHRSAIdentity(key *rsa.PrivateKey) (*SSHRSAIdentity, error) {
 
 func (i *SSHRSAIdentity) Unwrap(block *format.Recipient) ([]byte, error) {
 	if block.Type != "ssh-rsa" {
-		return nil, errors.New("wrong recipient block type")
+		return nil, ErrIncorrectIdentity
 	}
 	if len(block.Args) != 1 {
 		return nil, errors.New("invalid ssh-rsa recipient block")
@@ -115,7 +115,7 @@ func (i *SSHRSAIdentity) Unwrap(block *format.Recipient) ([]byte, error) {
 	h.Write(i.sshKey.Marshal())
 	hh := h.Sum(nil)
 	if !bytes.Equal(hh[:4], hash) {
-		return nil, errors.New("wrong ssh-rsa key")
+		return nil, ErrIncorrectIdentity
 	}
 
 	fileKey, err := rsa.DecryptOAEP(sha256.New(), rand.Reader, i.k,
@@ -304,7 +304,7 @@ func ed25519PrivateKeyToCurve25519(pk ed25519.PrivateKey) []byte {
 func (i *SSHEd25519Identity) Unwrap(block *format.Recipient) ([]byte, error) {
 	// TODO: DRY this up with the X25519 implementation.
 	if block.Type != "ssh-ed25519" {
-		return nil, errors.New("wrong recipient block type")
+		return nil, ErrIncorrectIdentity
 	}
 	if len(block.Args) != 2 {
 		return nil, errors.New("invalid ssh-ed25519 recipient block")
@@ -328,7 +328,7 @@ func (i *SSHEd25519Identity) Unwrap(block *format.Recipient) ([]byte, error) {
 	sH.Write(i.sshKey.Marshal())
 	hh := sH.Sum(nil)
 	if !bytes.Equal(hh[:4], hash) {
-		return nil, errors.New("wrong ssh-ed25519 key")
+		return nil, ErrIncorrectIdentity
 	}
 
 	var sharedSecret, theirPublicKey, tweak [32]byte

@@ -145,7 +145,7 @@ func ParseX25519Identity(s string) (*X25519Identity, error) {
 
 func (i *X25519Identity) Unwrap(block *format.Recipient) ([]byte, error) {
 	if block.Type != "X25519" {
-		return nil, errors.New("wrong recipient block type")
+		return nil, ErrIncorrectIdentity
 	}
 	if len(block.Args) != 1 {
 		return nil, errors.New("invalid X25519 recipient block")
@@ -174,7 +174,7 @@ func (i *X25519Identity) Unwrap(block *format.Recipient) ([]byte, error) {
 
 	fileKey, err := aeadDecrypt(wrappingKey, block.Body)
 	if err != nil {
-		return nil, fmt.Errorf("failed to decrypt file key: %v", err)
+		return nil, ErrIncorrectIdentity
 	}
 	return fileKey, nil
 }

@@ -16,6 +16,7 @@ import (
 	"strings"
 
 	"github.com/FiloSottile/age/internal/age"
+	"golang.org/x/crypto/ssh"
 )
 
 func parseRecipient(arg string) (age.Recipient, error) {
@@ -82,9 +83,42 @@ func parseIdentitiesFile(name string) ([]age.Identity, error) {
 
 func parseSSHIdentity(name string, pemBytes []byte) ([]age.Identity, error) {
 	id, err := age.ParseSSHIdentity(pemBytes)
+	if sshErr, ok := err.(*ssh.PassphraseNeededError); ok {
+		pubKey := sshErr.PublicKey
+		if pubKey == nil {
+			pubKey, err = readPubFile(name)
+			if err != nil {
+				return nil, err
+			}
+		}
+		i, err := NewEncryptedSSHIdentity(pubKey, pemBytes, passphrasePrompt(name))
+		if err != nil {
+			return nil, err
+		}
+		return []age.Identity{i}, nil
+	}
 	if err != nil {
 		return nil, fmt.Errorf("malformed SSH identity in %q: %v", name, err)
 	}
 
 	return []age.Identity{id}, nil
+}
+
+func readPubFile(name string) (ssh.PublicKey, error) {
+	f, err := os.Open(name + ".pub")
+	if err != nil {
+		return nil, fmt.Errorf(`failed to obtain public key for %q SSH key: %v
+
+    Ensure %q exists, or convert the private key %q to a modern format with "ssh-keygen -p -m RFC4716"`, name, err, name+".pub", name)
+	}
+	defer f.Close()
+	contents, err := ioutil.ReadAll(f)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read %q: %v", name+".pub", err)
+	}
+	pubKey, _, _, _, err := ssh.ParseAuthorizedKey(contents)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse %q: %v", name+".pub", err)
+	}
+	return pubKey, nil
 }
