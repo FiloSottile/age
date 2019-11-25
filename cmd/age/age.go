@@ -24,15 +24,16 @@ func main() {
 	decryptFlag := flag.Bool("d", false, "decrypt the input")
 	outFlag := flag.String("o", "", "output to `FILE` (default stdout)")
 	inFlag := flag.String("i", "", "read from `FILE` (default stdin)")
+	armorFlag := flag.Bool("a", false, "generate an armored file")
 	flag.Parse()
 
 	switch {
 	case *generateFlag:
-		if *decryptFlag || *inFlag != "" {
+		if *decryptFlag || *inFlag != "" || *armorFlag {
 			log.Fatalf("Invalid flag combination")
 		}
 	case *decryptFlag:
-		if *generateFlag {
+		if *generateFlag || *armorFlag {
 			log.Fatalf("Invalid flag combination")
 		}
 	default: // encrypt
@@ -62,7 +63,7 @@ func main() {
 	case *decryptFlag:
 		decrypt(in, out)
 	default:
-		encrypt(in, out)
+		encrypt(in, out, *armorFlag)
 	}
 }
 
@@ -81,7 +82,7 @@ func generate(out io.Writer) {
 	fmt.Fprintf(out, "%s\n", k)
 }
 
-func encrypt(in io.Reader, out io.Writer) {
+func encrypt(in io.Reader, out io.Writer, armor bool) {
 	var recipients []age.Recipient
 	for _, arg := range flag.Args() {
 		r, err := parseRecipient(arg)
@@ -94,7 +95,11 @@ func encrypt(in io.Reader, out io.Writer) {
 		log.Fatalf("Missing recipients!")
 	}
 
-	w, err := age.Encrypt(out, recipients...)
+	ageEncrypt := age.Encrypt
+	if armor {
+		ageEncrypt = age.EncryptWithArmor
+	}
+	w, err := ageEncrypt(out, recipients...)
 	if err != nil {
 		log.Fatalf("Error initializing encryption: %v", err)
 	}

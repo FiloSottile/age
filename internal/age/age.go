@@ -36,6 +36,14 @@ type Recipient interface {
 }
 
 func Encrypt(dst io.Writer, recipients ...Recipient) (io.WriteCloser, error) {
+	return encrypt(dst, false, recipients...)
+}
+
+func EncryptWithArmor(dst io.Writer, recipients ...Recipient) (io.WriteCloser, error) {
+	return encrypt(dst, true, recipients...)
+}
+
+func encrypt(dst io.Writer, armor bool, recipients ...Recipient) (io.WriteCloser, error) {
 	if len(recipients) == 0 {
 		return nil, errors.New("no recipients specified")
 	}
@@ -45,7 +53,7 @@ func Encrypt(dst io.Writer, recipients ...Recipient) (io.WriteCloser, error) {
 		return nil, err
 	}
 
-	hdr := &format.Header{}
+	hdr := &format.Header{Armor: armor}
 	for i, r := range recipients {
 		if r.Type() == "scrypt" && len(recipients) != 1 {
 			return nil, errors.New("an scrypt recipient must be the only one")
@@ -66,15 +74,25 @@ func Encrypt(dst io.Writer, recipients ...Recipient) (io.WriteCloser, error) {
 		return nil, fmt.Errorf("failed to write header: %v", err)
 	}
 
+	var finalDst io.WriteCloser
+	if armor {
+		finalDst = format.ArmoredWriter(dst)
+	} else {
+		// stream.Writer takes a WriteCloser, and will propagate Close calls (so
+		// that the ArmoredWriter will get closed), but we don't want to expose
+		// that behavior to our caller.
+		finalDst = format.NopCloser(dst)
+	}
+
 	nonce := make([]byte, 16)
 	if _, err := rand.Read(nonce); err != nil {
 		return nil, err
 	}
-	if _, err := dst.Write(nonce); err != nil {
+	if _, err := finalDst.Write(nonce); err != nil {
 		return nil, fmt.Errorf("failed to write nonce: %v", err)
 	}
 
-	return stream.NewWriter(streamKey(fileKey, nonce), dst)
+	return stream.NewWriter(streamKey(fileKey, nonce), finalDst)
 }
 
 func Decrypt(src io.Reader, identities ...Identity) (io.Reader, error) {

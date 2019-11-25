@@ -18,6 +18,7 @@ import (
 )
 
 type Header struct {
+	Armor      bool
 	Recipients []*Recipient
 	MAC        []byte
 }
@@ -40,9 +41,11 @@ func DecodeString(s string) ([]byte, error) {
 
 var EncodeToString = b64.EncodeToString
 
-const bytesPerLine = 56 / 4 * 3 // 56 columns of Base64
+const columnsPerLine = 56
+const bytesPerLine = columnsPerLine / 4 * 3
 
 const intro = "This is a file encrypted with age-tool.com, version 1\n"
+const introWithArmor = "This is an armored file encrypted with age-tool.com, version 1\n"
 
 var recipientPrefix = []byte("->")
 var footerPrefix = []byte("---")
@@ -59,22 +62,26 @@ func (r *Recipient) Marshal(w io.Writer) error {
 	if _, err := io.WriteString(w, "\n"); err != nil {
 		return err
 	}
-	for i := 0; i < len(r.Body); i += bytesPerLine {
-		n := bytesPerLine
-		if n > len(r.Body)-i {
-			n = len(r.Body) - i
-		}
-		s := EncodeToString(r.Body[i : i+n])
-		if _, err := io.WriteString(w, s+"\n"); err != nil {
-			return err
-		}
+	ww := base64.NewEncoder(b64, &newlineWriter{dst: w})
+	if _, err := ww.Write(r.Body); err != nil {
+		return err
 	}
-	return nil
+	if err := ww.Close(); err != nil {
+		return err
+	}
+	_, err := io.WriteString(w, "\n")
+	return err
 }
 
 func (h *Header) MarshalWithoutMAC(w io.Writer) error {
-	if _, err := io.WriteString(w, intro); err != nil {
-		return err
+	if h.Armor {
+		if _, err := io.WriteString(w, introWithArmor); err != nil {
+			return err
+		}
+	} else {
+		if _, err := io.WriteString(w, intro); err != nil {
+			return err
+		}
 	}
 	for _, r := range h.Recipients {
 		if err := r.Marshal(w); err != nil {

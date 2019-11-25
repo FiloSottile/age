@@ -4,6 +4,7 @@
 // license that can be found in the LICENSE file or at
 // https://developers.google.com/open-source/licenses/bsd
 
+// Package stream implements a variant of the STREAM chunked encryption scheme.
 package stream
 
 import (
@@ -131,14 +132,14 @@ func setLastChunkFlag(nonce *[chacha20poly1305.NonceSize]byte) {
 
 type Writer struct {
 	a         cipher.AEAD
-	dst       io.Writer
+	dst       io.WriteCloser
 	unwritten []byte // backed by buf
 	buf       [encChunkSize]byte
 	nonce     [chacha20poly1305.NonceSize]byte
 	err       error
 }
 
-func NewWriter(key []byte, dst io.Writer) (*Writer, error) {
+func NewWriter(key []byte, dst io.WriteCloser) (*Writer, error) {
 	aead, err := chacha20poly1305.New(key)
 	if err != nil {
 		return nil, err
@@ -177,6 +178,8 @@ func (w *Writer) Write(p []byte) (n int, err error) {
 	return total, nil
 }
 
+// Close will flush the last chunk and call the underlying
+// WriteCloser's Close method.
 func (w *Writer) Close() error {
 	if w.err != nil {
 		return w.err
@@ -185,10 +188,11 @@ func (w *Writer) Close() error {
 	err := w.flushChunk(lastChunk)
 	if err != nil {
 		w.err = err
-	} else {
-		w.err = errors.New("stream.Writer is already closed")
+		return err
 	}
-	return err
+	w.err = errors.New("stream.Writer is already closed")
+
+	return w.dst.Close()
 }
 
 const (
