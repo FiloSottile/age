@@ -150,6 +150,10 @@ RecipientsLoop:
 		return nil, errors.New("bad header MAC")
 	}
 
+	if hdr.Armor {
+		payload = format.ArmoredReader(payload)
+	}
+
 	nonce := make([]byte, 16)
 	if _, err := io.ReadFull(payload, nonce); err != nil {
 		return nil, fmt.Errorf("failed to read nonce: %v", err)

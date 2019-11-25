@@ -6,9 +6,13 @@
 
 package format
 
-import "io"
-
-import "encoding/base64"
+import (
+	"bufio"
+	"bytes"
+	"encoding/base64"
+	"errors"
+	"io"
+)
 
 type newlineWriter struct {
 	dst     io.Writer
@@ -50,6 +54,8 @@ func (nopCloser) Close() error { return nil }
 
 func NopCloser(w io.Writer) io.WriteCloser { return nopCloser{w} }
 
+var endOfArmor = []byte("--- end of file ---\n")
+
 func ArmoredWriter(dst io.Writer) io.WriteCloser {
 	// TODO: write a test with aligned and misaligned sizes, and 8 and 10 steps.
 	w := base64.NewEncoder(b64, &newlineWriter{dst: dst})
@@ -62,8 +68,91 @@ func ArmoredWriter(dst io.Writer) io.WriteCloser {
 			if err := w.Close(); err != nil {
 				return err
 			}
-			_, err := dst.Write([]byte("\n--- end of file ---\n"))
+			if _, err := dst.Write([]byte("\n")); err != nil {
+				return err
+			}
+			_, err := dst.Write(endOfArmor)
 			return err
 		}),
 	}
+}
+
+type armoredReader struct {
+	r      *bufio.Reader
+	unread []byte // backed by buf
+	buf    [bytesPerLine]byte
+	err    error
+}
+
+func ArmoredReader(r io.Reader) io.Reader {
+	return &armoredReader{r: bufio.NewReader(r)}
+}
+
+func (r *armoredReader) Read(p []byte) (int, error) {
+	if len(r.unread) > 0 {
+		n := copy(p, r.unread)
+		r.unread = r.unread[n:]
+		return n, nil
+	}
+	if r.err != nil {
+		return 0, r.err
+	}
+
+	getLine := func() ([]byte, error) {
+		line, err := r.r.ReadBytes('\n')
+		if err != nil {
+			if err == io.EOF {
+				err = errors.New("invalid input")
+			}
+			return nil, err
+		}
+		// Unconditionally accept CRLF because the line ending context of the
+		// header is lost at the ArmoredReader caller. =(
+		if bytes.HasSuffix(line, []byte("\r\n")) {
+			line[len(line)-2] = '\n'
+			line = line[:len(line)-1]
+		}
+		return line, nil
+	}
+
+	line, err := getLine()
+	if err != nil {
+		return 0, r.setErr(err)
+	}
+	if bytes.Equal(line, endOfArmor) {
+		return 0, r.setErr(io.EOF)
+	}
+	line = bytes.TrimSuffix(line, []byte("\n"))
+	if bytes.Contains(line, []byte("\r")) {
+		return 0, r.setErr(errors.New("invalid input"))
+	}
+	if len(line) > columnsPerLine {
+		return 0, r.setErr(errors.New("invalid input"))
+	}
+	r.unread = r.buf[:]
+	n, err := b64.Decode(r.unread, line)
+	if err != nil {
+		return 0, r.setErr(err)
+	}
+	r.unread = r.unread[:n]
+
+	if n < bytesPerLine {
+		line, err := getLine()
+		if err != nil {
+			return 0, r.setErr(err)
+		}
+		if !bytes.Equal(line, endOfArmor) {
+			return 0, r.setErr(errors.New("invalid input"))
+		}
+		r.err = io.EOF
+	}
+
+	nn := copy(p, r.unread)
+	r.unread = r.unread[nn:]
+	return nn, nil
+}
+
+func (r *armoredReader) setErr(err error) error {
+	r.err = err
+	return err
 }

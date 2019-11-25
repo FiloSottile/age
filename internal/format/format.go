@@ -46,6 +46,7 @@ const bytesPerLine = columnsPerLine / 4 * 3
 
 const intro = "This is a file encrypted with age-tool.com, version 1\n"
 const introWithArmor = "This is an armored file encrypted with age-tool.com, version 1\n"
+const introWithArmorCRLF = "This is an armored file encrypted with age-tool.com, version 1\r\n"
 
 var recipientPrefix = []byte("->")
 var footerPrefix = []byte("---")
@@ -121,7 +122,15 @@ func Parse(input io.Reader) (*Header, io.Reader, error) {
 	if err != nil {
 		return nil, nil, errorf("failed to read intro: %v", err)
 	}
-	if line != intro {
+	var normalizeCRLF bool
+	switch line {
+	case intro:
+	case introWithArmor:
+		h.Armor = true
+	case introWithArmorCRLF:
+		h.Armor = true
+		normalizeCRLF = true
+	default:
 		return nil, nil, errorf("unexpected intro: %q", line)
 	}
 
@@ -130,6 +139,13 @@ func Parse(input io.Reader) (*Header, io.Reader, error) {
 		line, err := rr.ReadBytes('\n')
 		if err != nil {
 			return nil, nil, errorf("failed to read header: %v", err)
+		}
+		if normalizeCRLF {
+			if !bytes.HasSuffix(line, []byte("\r\n")) {
+				return nil, nil, errorf("unexpected LF in CRLF input")
+			}
+			line[len(line)-2] = '\n'
+			line = line[:len(line)-1]
 		}
 
 		if bytes.HasPrefix(line, footerPrefix) {
