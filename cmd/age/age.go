@@ -87,9 +87,9 @@ func encrypt(in io.Reader, out io.Writer, armor bool) {
 	for _, arg := range flag.Args() {
 		r, err := parseRecipient(arg)
 		if err != nil {
-			log.Fatalf("Error: %v", err)
+			log.Fatalf("Error parsing recipient argument(s): %v", err)
 		}
-		recipients = append(recipients, r)
+		recipients = append(recipients, r...)
 	}
 	if len(recipients) == 0 {
 		log.Fatalf("Missing recipients!")

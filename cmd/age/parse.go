@@ -19,15 +19,76 @@ import (
 	"golang.org/x/crypto/ssh"
 )
 
-func parseRecipient(arg string) (age.Recipient, error) {
+func parseRecipient(arg string) ([]age.Recipient, error) {
+	var parsingError error
+
 	switch {
 	case strings.HasPrefix(arg, "pubkey:"):
-		return age.ParseX25519Recipient(arg)
+		r := make([]age.Recipient, 1)
+		r[0], parsingError = age.ParseX25519Recipient(arg)
+		return r, parsingError
 	case strings.HasPrefix(arg, "ssh-"):
-		return age.ParseSSHRecipient(arg)
+		r := make([]age.Recipient, 1)
+		r[0], parsingError = age.ParseSSHRecipient(arg)
+		return r, parsingError
 	}
 
-	return nil, fmt.Errorf("unknown recipient type: %q", arg)
+	return parseRecipientFile(arg)
+}
+
+const recipientFileSizeLimit = 1 << 24 // 16 MiB
+
+func parseRecipientFile(arg string) ([]age.Recipient, error) {
+	f, err := os.Open(arg)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open file: %v", err)
+	}
+	defer f.Close()
+
+	contents, err := ioutil.ReadAll(io.LimitReader(f, recipientFileSizeLimit))
+	if err != nil {
+		return nil, fmt.Errorf("failed to read %q: %v", arg, err)
+	}
+	if len(contents) == recipientFileSizeLimit {
+		return nil, fmt.Errorf("failed to read %q: file too long", arg)
+	}
+
+	var recipients []age.Recipient
+	scanner := bufio.NewScanner(bytes.NewReader(contents))
+	for scanner.Scan() {
+		line := scanner.Text()
+		switch {
+		case strings.HasPrefix(line, "pubkey:"):
+			newRecipient, err := age.ParseX25519Recipient(line)
+			if err != nil {
+				return nil, fmt.Errorf("failed to parse x25519 key line %q", err)
+			}
+			recipients = append(recipients, newRecipient)
+
+		case strings.HasPrefix(line, "# pubkey:"): //targets age-produced key format
+			newRecipient, err := age.ParseX25519Recipient(strings.TrimLeft(line, "# "))
+			if err != nil {
+				return nil, fmt.Errorf("failed to parse age key line %q", err)
+			}
+			recipients = append(recipients, newRecipient)
+
+		case strings.HasPrefix(line, "ssh-"):
+			newRecipient, err := age.ParseSSHRecipient(line)
+			if err != nil {
+				return nil, fmt.Errorf("failed to parse ssh key line %q", err)
+			}
+			recipients = append(recipients, newRecipient)
+		}
+	}
+	if err := scanner.Err(); err != nil {
+		return nil, fmt.Errorf("failed to read %q: %v", arg, err)
+	}
+
+	if len(recipients) == 0 {
+		return nil, fmt.Errorf("no recipients found in file %q", arg)
+	}
+
+	return recipients, nil
 }
 
 const privateKeySizeLimit = 1 << 24 // 16 MiB
