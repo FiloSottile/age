@@ -7,6 +7,7 @@
 package main
 
 import (
+	"bytes"
 	"flag"
 	"fmt"
 	"io"
@@ -14,6 +15,7 @@ import (
 	"os"
 
 	"github.com/FiloSottile/age/internal/age"
+	"golang.org/x/crypto/ssh/terminal"
 )
 
 type multiFlag []string
@@ -70,7 +72,7 @@ func main() {
 		}
 	}
 
-	in, out := os.Stdin, os.Stdout
+	var in, out io.ReadWriter = os.Stdin, os.Stdout
 	if name := flag.Arg(0); name != "" && name != "-" {
 		f, err := os.Open(name)
 		if err != nil {
@@ -86,6 +88,19 @@ func main() {
 		}
 		defer f.Close()
 		out = f
+	} else if terminal.IsTerminal(int(os.Stdout.Fd())) {
+		if armorFlag {
+			// If the output will go to a TTY, and it will be armored, buffer it
+			// up so it doesn't get in the way of typing the input.
+			buf := &bytes.Buffer{}
+			defer func() { io.Copy(os.Stdout, buf) }()
+			out = buf
+		} else if name != "-" {
+			// If the output wouldn't be armored, refuse to send binary to the
+			// terminal unless explicitly requested with "-o -".
+			log.Printf("Error: refusing to output binary to the terminal.")
+			log.Fatalf(`Did you mean to use -a/--armor? Force with "-o -".`)
+		}
 	}
 
 	switch {
