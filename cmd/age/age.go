@@ -8,11 +8,9 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"io"
 	"log"
 	"os"
-	"time"
 
 	"github.com/FiloSottile/age/internal/age"
 )
@@ -20,7 +18,6 @@ import (
 func main() {
 	log.SetFlags(0)
 
-	generateFlag := flag.Bool("generate", false, "generate a new age key pair")
 	decryptFlag := flag.Bool("d", false, "decrypt the input")
 	outFlag := flag.String("o", "", "output to `FILE` (default stdout)")
 	inFlag := flag.String("i", "", "read from `FILE` (default stdin)")
@@ -28,12 +25,8 @@ func main() {
 	flag.Parse()
 
 	switch {
-	case *generateFlag:
-		if *decryptFlag || *inFlag != "" || *armorFlag {
-			log.Fatalf("Invalid flag combination")
-		}
 	case *decryptFlag:
-		if *generateFlag || *armorFlag {
+		if *armorFlag {
 			log.Fatalf("Invalid flag combination")
 		}
 	default: // encrypt
@@ -58,28 +51,11 @@ func main() {
 	}
 
 	switch {
-	case *generateFlag:
-		generate(out)
 	case *decryptFlag:
 		decrypt(in, out)
 	default:
 		encrypt(in, out, *armorFlag)
 	}
-}
-
-func generate(out io.Writer) {
-	if len(flag.Args()) != 0 {
-		log.Fatalf("-generate takes no arguments")
-	}
-
-	k, err := age.GenerateX25519Identity()
-	if err != nil {
-		log.Fatalf("Internal error: %v", err)
-	}
-
-	fmt.Fprintf(out, "# created: %s\n", time.Now().Format(time.RFC3339))
-	fmt.Fprintf(out, "# %s\n", k.Recipient())
-	fmt.Fprintf(out, "%s\n", k)
 }
 
 func encrypt(in io.Reader, out io.Writer, armor bool) {
