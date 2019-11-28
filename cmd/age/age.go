@@ -88,7 +88,7 @@ func main() {
 		}
 		defer f.Close()
 		out = f
-	} else if terminal.IsTerminal(int(os.Stdout.Fd())) {
+	} else if terminal.IsTerminal(int(os.Stdout.Fd())) && !decryptFlag {
 		if armorFlag {
 			// If the output will go to a TTY, and it will be armored, buffer it
 			// up so it doesn't get in the way of typing the input.
