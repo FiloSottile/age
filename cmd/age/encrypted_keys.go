@@ -81,7 +81,7 @@ func (i *EncryptedSSHIdentity) Matches(block *format.Recipient) error {
 	if block.Type != i.Type() {
 		return age.ErrIncorrectIdentity
 	}
-	if len(block.Args) != 1 {
+	if len(block.Args) < 1 {
 		return fmt.Errorf("invalid %v recipient block", i.Type())
 	}
 
