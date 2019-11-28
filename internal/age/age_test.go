@@ -20,21 +20,22 @@ import (
 const helloWorld = "Hello, Twitch!"
 
 func TestEncryptDecryptX25519(t *testing.T) {
-	var secretKeyA, publicKeyA, secretKeyB, publicKeyB [32]byte
-	if _, err := rand.Read(secretKeyA[:]); err != nil {
+	secretKeyA := make([]byte, curve25519.ScalarSize)
+	secretKeyB := make([]byte, curve25519.ScalarSize)
+	if _, err := rand.Read(secretKeyA); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := rand.Read(secretKeyB[:]); err != nil {
+	if _, err := rand.Read(secretKeyB); err != nil {
 		t.Fatal(err)
 	}
-	curve25519.ScalarBaseMult(&publicKeyA, &secretKeyA)
-	curve25519.ScalarBaseMult(&publicKeyB, &secretKeyB)
+	publicKeyA, _ := curve25519.X25519(secretKeyA, curve25519.Basepoint)
+	publicKeyB, _ := curve25519.X25519(secretKeyB, curve25519.Basepoint)
 
-	rA, err := age.NewX25519Recipient(publicKeyA[:])
+	rA, err := age.NewX25519Recipient(publicKeyA)
 	if err != nil {
 		t.Fatal(err)
 	}
-	rB, err := age.NewX25519Recipient(publicKeyB[:])
+	rB, err := age.NewX25519Recipient(publicKeyB)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -52,7 +53,7 @@ func TestEncryptDecryptX25519(t *testing.T) {
 
 	t.Logf("%s", buf.Bytes())
 
-	i, err := age.NewX25519Identity(secretKeyB[:])
+	i, err := age.NewX25519Identity(secretKeyB)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -14,9 +14,9 @@ import (
 	"io"
 	"strings"
 
-	"github.com/FiloSottile/age/internal/curve25519"
 	"github.com/FiloSottile/age/internal/format"
 	"golang.org/x/crypto/chacha20poly1305"
+	"golang.org/x/crypto/curve25519"
 	"golang.org/x/crypto/hkdf"
 )
 
@@ -120,7 +120,7 @@ func NewX25519Identity(secretKey []byte) (*X25519Identity, error) {
 }
 
 func GenerateX25519Identity() (*X25519Identity, error) {
-	secretKey := make([]byte, 32)
+	secretKey := make([]byte, curve25519.ScalarSize)
 	if _, err := rand.Read(secretKey); err != nil {
 		return nil, fmt.Errorf("internal error: %v", err)
 	}

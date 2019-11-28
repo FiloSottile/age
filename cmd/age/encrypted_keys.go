@@ -7,10 +7,8 @@
 package main
 
 import (
-	"bytes"
 	"crypto/ed25519"
 	"crypto/rsa"
-	"crypto/sha256"
 	"fmt"
 	"os"
 
@@ -86,18 +84,8 @@ func (i *EncryptedSSHIdentity) Matches(block *format.Recipient) error {
 	if len(block.Args) != 1 {
 		return fmt.Errorf("invalid %v recipient block", i.Type())
 	}
-	hash, err := format.DecodeString(block.Args[0])
-	if err != nil {
-		return fmt.Errorf("failed to parse %v recipient: %v", i.Type(), err)
-	}
-	if len(hash) != 4 {
-		return fmt.Errorf("invalid %v recipient block", i.Type())
-	}
 
-	sH := sha256.New()
-	sH.Write(i.pubKey.Marshal())
-	hh := sH.Sum(nil)
-	if !bytes.Equal(hh[:4], hash) {
+	if block.Args[0] != age.SSHFingerprint(i.pubKey) {
 		return age.ErrIncorrectIdentity
 	}
 	return nil

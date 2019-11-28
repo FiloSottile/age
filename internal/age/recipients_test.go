@@ -19,17 +19,17 @@ import (
 )
 
 func TestX25519RoundTrip(t *testing.T) {
-	var secretKey, publicKey [32]byte
-	if _, err := rand.Read(secretKey[:]); err != nil {
+	secretKey := make([]byte, curve25519.ScalarSize)
+	if _, err := rand.Read(secretKey); err != nil {
 		t.Fatal(err)
 	}
-	curve25519.ScalarBaseMult(&publicKey, &secretKey)
+	publicKey, _ := curve25519.X25519(secretKey, curve25519.Basepoint)
 
-	r, err := age.NewX25519Recipient(publicKey[:])
+	r, err := age.NewX25519Recipient(publicKey)
 	if err != nil {
 		t.Fatal(err)
 	}
-	i, err := age.NewX25519Identity(secretKey[:])
+	i, err := age.NewX25519Identity(secretKey)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -39,10 +39,10 @@ func TestX25519RoundTrip(t *testing.T) {
 	}
 
 	fileKey := make([]byte, 16)
-	if _, err := rand.Read(fileKey[:]); err != nil {
+	if _, err := rand.Read(fileKey); err != nil {
 		t.Fatal(err)
 	}
-	block, err := r.Wrap(fileKey[:])
+	block, err := r.Wrap(fileKey)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -55,8 +55,8 @@ func TestX25519RoundTrip(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if !bytes.Equal(fileKey[:], out) {
-		t.Errorf("invalid output: %x, expected %x", out, fileKey[:])
+	if !bytes.Equal(fileKey, out) {
+		t.Errorf("invalid output: %x, expected %x", out, fileKey)
 	}
 }
 
@@ -78,10 +78,10 @@ func TestScryptRoundTrip(t *testing.T) {
 	}
 
 	fileKey := make([]byte, 16)
-	if _, err := rand.Read(fileKey[:]); err != nil {
+	if _, err := rand.Read(fileKey); err != nil {
 		t.Fatal(err)
 	}
-	block, err := r.Wrap(fileKey[:])
+	block, err := r.Wrap(fileKey)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -94,8 +94,8 @@ func TestScryptRoundTrip(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if !bytes.Equal(fileKey[:], out) {
-		t.Errorf("invalid output: %x, expected %x", out, fileKey[:])
+	if !bytes.Equal(fileKey, out) {
+		t.Errorf("invalid output: %x, expected %x", out, fileKey)
 	}
 }
 
@@ -123,10 +123,10 @@ func TestSSHRSARoundTrip(t *testing.T) {
 	}
 
 	fileKey := make([]byte, 16)
-	if _, err := rand.Read(fileKey[:]); err != nil {
+	if _, err := rand.Read(fileKey); err != nil {
 		t.Fatal(err)
 	}
-	block, err := r.Wrap(fileKey[:])
+	block, err := r.Wrap(fileKey)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -139,8 +139,8 @@ func TestSSHRSARoundTrip(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if !bytes.Equal(fileKey[:], out) {
-		t.Errorf("invalid output: %x, expected %x", out, fileKey[:])
+	if !bytes.Equal(fileKey, out) {
+		t.Errorf("invalid output: %x, expected %x", out, fileKey)
 	}
 }
 
@@ -168,10 +168,10 @@ func TestSSHEd25519RoundTrip(t *testing.T) {
 	}
 
 	fileKey := make([]byte, 16)
-	if _, err := rand.Read(fileKey[:]); err != nil {
+	if _, err := rand.Read(fileKey); err != nil {
 		t.Fatal(err)
 	}
-	block, err := r.Wrap(fileKey[:])
+	block, err := r.Wrap(fileKey)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -184,7 +184,7 @@ func TestSSHEd25519RoundTrip(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if !bytes.Equal(fileKey[:], out) {
-		t.Errorf("invalid output: %x, expected %x", out, fileKey[:])
+	if !bytes.Equal(fileKey, out) {
+		t.Errorf("invalid output: %x, expected %x", out, fileKey)
 	}
 }
