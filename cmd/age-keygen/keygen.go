@@ -14,7 +14,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/FiloSottile/age/internal/age"
+	"filippo.io/age/internal/age"
 )
 
 func main() {

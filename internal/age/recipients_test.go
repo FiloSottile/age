@@ -13,7 +13,7 @@ import (
 	"crypto/rsa"
 	"testing"
 
-	"github.com/FiloSottile/age/internal/age"
+	"filippo.io/age/internal/age"
 	"golang.org/x/crypto/curve25519"
 	"golang.org/x/crypto/ssh"
 )

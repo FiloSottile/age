@@ -14,8 +14,8 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/FiloSottile/age/internal/format"
-	"github.com/FiloSottile/age/internal/stream"
+	"filippo.io/age/internal/format"
+	"filippo.io/age/internal/stream"
 )
 
 type Identity interface {

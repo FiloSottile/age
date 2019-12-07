@@ -1,4 +1,4 @@
-module github.com/FiloSottile/age
+module filippo.io/age
 
 go 1.13
 

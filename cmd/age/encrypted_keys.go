@@ -12,8 +12,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/FiloSottile/age/internal/age"
-	"github.com/FiloSottile/age/internal/format"
+	"filippo.io/age/internal/age"
+	"filippo.io/age/internal/format"
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/crypto/ssh/terminal"
 )
