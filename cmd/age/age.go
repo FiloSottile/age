@@ -31,13 +31,15 @@ func main() {
 	log.SetFlags(0)
 
 	var (
-		outFlag                       string
-		decryptFlag, armorFlag        bool
-		recipientFlags, identityFlags multiFlag
+		outFlag                          string
+		decryptFlag, armorFlag, passFlag bool
+		recipientFlags, identityFlags    multiFlag
 	)
 
 	flag.BoolVar(&decryptFlag, "d", false, "decrypt the input")
 	flag.BoolVar(&decryptFlag, "decrypt", false, "decrypt the input")
+	flag.BoolVar(&passFlag, "p", false, "use a passphrase")
+	flag.BoolVar(&passFlag, "passphrase", false, "use a passphrase")
 	flag.StringVar(&outFlag, "o", "", "output to `FILE` (default stdout)")
 	flag.BoolVar(&armorFlag, "a", false, "generate an armored file")
 	flag.BoolVar(&armorFlag, "armor", false, "generate an armored file")
@@ -66,9 +68,12 @@ func main() {
 			log.Printf("Error: -i/--identity can't be used in encryption mode.")
 			log.Fatalf("Did you forget to specify -d/--decrypt?")
 		}
-		if len(recipientFlags) == 0 {
+		if len(recipientFlags) == 0 && !passFlag {
 			log.Printf("Error: missing recipients.")
-			log.Fatalf("Did you forget to specify -r/--recipient?")
+			log.Fatalf("Did you forget to specify -r/--recipient or -p/--passphrase?")
+		}
+		if len(recipientFlags) > 0 && passFlag {
+			log.Fatalf("Error: -p/--passphrase can't be combined with -r/--recipient.")
 		}
 	}
 
@@ -80,6 +85,8 @@ func main() {
 		}
 		defer f.Close()
 		in = f
+	} else {
+		stdinInUse = true
 	}
 	if name := outFlag; name != "" && name != "-" {
 		f, err := os.OpenFile(name, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0666)
@@ -104,23 +111,45 @@ func main() {
 	}
 
 	switch {
+	case passFlag:
+		fmt.Fprintf(os.Stderr, "Enter passphrase: ")
+		pass, err := readPassphrase()
+		if err != nil {
+			log.Fatalf("Error: could not read passphrase: %v", err)
+		}
+		if decryptFlag {
+			decryptPass(string(pass), in, out)
+		} else {
+			encryptPass(string(pass), in, out, armorFlag)
+		}
 	case decryptFlag:
-		decrypt(identityFlags, in, out)
+		decryptKeys(identityFlags, in, out)
 	default:
-		encrypt(recipientFlags, in, out, armorFlag)
+		encryptKeys(recipientFlags, in, out, armorFlag)
 	}
 }
 
-func encrypt(args []string, in io.Reader, out io.Writer, armor bool) {
+func encryptKeys(keys []string, in io.Reader, out io.Writer, armor bool) {
 	var recipients []age.Recipient
-	for _, arg := range args {
+	for _, arg := range keys {
 		r, err := parseRecipient(arg)
 		if err != nil {
 			log.Fatalf("Error: %v", err)
 		}
 		recipients = append(recipients, r)
 	}
+	encrypt(recipients, in, out, armor)
+}
 
+func encryptPass(pass string, in io.Reader, out io.Writer, armor bool) {
+	r, err := age.NewScryptRecipient(pass)
+	if err != nil {
+		log.Fatalf("Error: %v", err)
+	}
+	encrypt([]age.Recipient{r}, in, out, armor)
+}
+
+func encrypt(recipients []age.Recipient, in io.Reader, out io.Writer, armor bool) {
 	ageEncrypt := age.Encrypt
 	if armor {
 		ageEncrypt = age.EncryptWithArmor
@@ -137,18 +166,29 @@ func encrypt(args []string, in io.Reader, out io.Writer, armor bool) {
 	}
 }
 
-func decrypt(args []string, in io.Reader, out io.Writer) {
+func decryptKeys(keys []string, in io.Reader, out io.Writer) {
 	var identities []age.Identity
 	// TODO: use the default location if no arguments are provided:
 	// os.UserConfigDir()/age/keys.txt, ~/.ssh/id_rsa, ~/.ssh/id_ed25519
-	for _, name := range args {
+	for _, name := range keys {
 		ids, err := parseIdentitiesFile(name)
 		if err != nil {
 			log.Fatalf("Error: %v", err)
 		}
 		identities = append(identities, ids...)
 	}
+	decrypt(identities, in, out)
+}
 
+func decryptPass(pass string, in io.Reader, out io.Writer) {
+	i, err := age.NewScryptIdentity(pass)
+	if err != nil {
+		log.Fatalf("Error: %v", err)
+	}
+	decrypt([]age.Identity{i}, in, out)
+}
+
+func decrypt(identities []age.Identity, in io.Reader, out io.Writer) {
 	r, err := age.Decrypt(in, identities...)
 	if err != nil {
 		log.Fatalf("Error: %v", err)

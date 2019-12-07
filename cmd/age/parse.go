@@ -91,7 +91,15 @@ func parseSSHIdentity(name string, pemBytes []byte) ([]age.Identity, error) {
 				return nil, err
 			}
 		}
-		i, err := NewEncryptedSSHIdentity(pubKey, pemBytes, passphrasePrompt(name))
+		passphrasePrompt := func() ([]byte, error) {
+			fmt.Fprintf(os.Stderr, "Enter passphrase for %q: ", name)
+			pass, err := readPassphrase()
+			if err != nil {
+				return nil, fmt.Errorf("could not read passphrase for %q: %v", name, err)
+			}
+			return pass, nil
+		}
+		i, err := NewEncryptedSSHIdentity(pubKey, pemBytes, passphrasePrompt)
 		if err != nil {
 			return nil, err
 		}

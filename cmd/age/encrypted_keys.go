@@ -91,23 +91,23 @@ func (i *EncryptedSSHIdentity) Matches(block *format.Recipient) error {
 	return nil
 }
 
-func passphrasePrompt(name string) func() ([]byte, error) {
-	return func() ([]byte, error) {
-		fd := int(os.Stdin.Fd())
-		if !terminal.IsTerminal(fd) {
-			tty, err := os.Open("/dev/tty")
-			if err != nil {
-				return nil, fmt.Errorf("could not read passphrase for %q: standard input is not a terminal, and opening /dev/tty failed: %v", name, err)
-			}
-			defer tty.Close()
-			fd = int(tty.Fd())
-		}
-		fmt.Fprintf(os.Stderr, "Enter passphrase for %q: ", name)
-		defer fmt.Fprintf(os.Stderr, "\n")
-		p, err := terminal.ReadPassword(fd)
+// stdinInUse is set in main. It's a singleton like os.Stdin.
+var stdinInUse bool
+
+func readPassphrase() ([]byte, error) {
+	fd := int(os.Stdin.Fd())
+	if !terminal.IsTerminal(fd) || stdinInUse {
+		tty, err := os.Open("/dev/tty")
 		if err != nil {
-			return nil, fmt.Errorf("could not read passphrase for %q: %v", name, err)
+			return nil, fmt.Errorf("standard input is not available or not a terminal, and opening /dev/tty failed: %v", err)
 		}
-		return p, nil
+		defer tty.Close()
+		fd = int(tty.Fd())
 	}
+	defer fmt.Fprintf(os.Stderr, "\n")
+	p, err := terminal.ReadPassword(fd)
+	if err != nil {
+		return nil, err
+	}
+	return p, nil
 }
