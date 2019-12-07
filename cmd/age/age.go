@@ -11,7 +11,7 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"log"
+	_log "log"
 	"os"
 
 	"filippo.io/age/internal/age"
@@ -28,7 +28,7 @@ func (f *multiFlag) Set(value string) error {
 }
 
 func main() {
-	log.SetFlags(0)
+	_log.SetFlags(0)
 
 	var (
 		outFlag                          string
@@ -50,34 +50,34 @@ func main() {
 	flag.Parse()
 
 	if flag.NArg() > 1 {
-		log.Printf("Error: too many arguments.")
-		log.Fatalf("age accepts a single optional argument for the input file.")
+		logFatalf("Error: too many arguments.\n" +
+			"age accepts a single optional argument for the input file.")
 	}
 	switch {
 	case decryptFlag:
 		if armorFlag {
-			log.Printf("Error: -a/--armor can't be used with -d/--decrypt.")
-			log.Fatalf("Note that armored files are detected automatically.")
+			logFatalf("Error: -a/--armor can't be used with -d/--decrypt.\n" +
+				"Note that armored files are detected automatically.")
 		}
 		if passFlag {
-			log.Printf("Error: -p/--passphrase can't be used with -d/--decrypt.")
-			log.Fatalf("Note that password protected files are detected automatically.")
+			logFatalf("Error: -p/--passphrase can't be used with -d/--decrypt.\n" +
+				"Note that password protected files are detected automatically.")
 		}
 		if len(recipientFlags) > 0 {
-			log.Printf("Error: -r/--recipient can't be used with -d/--decrypt.")
-			log.Fatalf("Did you mean to use -i/--identity to specify a private key?")
+			logFatalf("Error: -r/--recipient can't be used with -d/--decrypt.\n" +
+				"Did you mean to use -i/--identity to specify a private key?")
 		}
 	default: // encrypt
 		if len(identityFlags) > 0 {
-			log.Printf("Error: -i/--identity can't be used in encryption mode.")
-			log.Fatalf("Did you forget to specify -d/--decrypt?")
+			logFatalf("Error: -i/--identity can't be used in encryption mode.\n" +
+				"Did you forget to specify -d/--decrypt?")
 		}
 		if len(recipientFlags) == 0 && !passFlag {
-			log.Printf("Error: missing recipients.")
-			log.Fatalf("Did you forget to specify -r/--recipient or -p/--passphrase?")
+			logFatalf("Error: missing recipients.\n" +
+				"Did you forget to specify -r/--recipient or -p/--passphrase?")
 		}
 		if len(recipientFlags) > 0 && passFlag {
-			log.Fatalf("Error: -p/--passphrase can't be combined with -r/--recipient.")
+			logFatalf("Error: -p/--passphrase can't be combined with -r/--recipient.")
 		}
 	}
 
@@ -85,7 +85,7 @@ func main() {
 	if name := flag.Arg(0); name != "" && name != "-" {
 		f, err := os.Open(name)
 		if err != nil {
-			log.Fatalf("Error: failed to open input file %q: %v", name, err)
+			logFatalf("Error: failed to open input file %q: %v", name, err)
 		}
 		defer f.Close()
 		in = f
@@ -95,7 +95,7 @@ func main() {
 	if name := outFlag; name != "" && name != "-" {
 		f, err := os.OpenFile(name, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0666)
 		if err != nil {
-			log.Fatalf("Error: failed to open output file %q: %v", name, err)
+			logFatalf("Error: failed to open output file %q: %v", name, err)
 		}
 		defer f.Close()
 		out = f
@@ -109,8 +109,8 @@ func main() {
 		} else if name != "-" {
 			// If the output wouldn't be armored, refuse to send binary to the
 			// terminal unless explicitly requested with "-o -".
-			log.Printf("Error: refusing to output binary to the terminal.")
-			log.Fatalf(`Did you mean to use -a/--armor? Force with "-o -".`)
+			logFatalf("Error: refusing to output binary to the terminal.\n" +
+				`Did you mean to use -a/--armor? Force with "-o -".`)
 		}
 	}
 
@@ -120,7 +120,7 @@ func main() {
 	case passFlag:
 		pass, err := passphrasePrompt()
 		if err != nil {
-			log.Fatalf("Error: %v", err)
+			logFatalf("Error: %v", err)
 		}
 		encryptPass(pass, in, out, armorFlag)
 	default:
@@ -142,7 +142,7 @@ func encryptKeys(keys []string, in io.Reader, out io.Writer, armor bool) {
 	for _, arg := range keys {
 		r, err := parseRecipient(arg)
 		if err != nil {
-			log.Fatalf("Error: %v", err)
+			logFatalf("Error: %v", err)
 		}
 		recipients = append(recipients, r)
 	}
@@ -152,7 +152,7 @@ func encryptKeys(keys []string, in io.Reader, out io.Writer, armor bool) {
 func encryptPass(pass string, in io.Reader, out io.Writer, armor bool) {
 	r, err := age.NewScryptRecipient(pass)
 	if err != nil {
-		log.Fatalf("Error: %v", err)
+		logFatalf("Error: %v", err)
 	}
 	encrypt([]age.Recipient{r}, in, out, armor)
 }
@@ -164,13 +164,13 @@ func encrypt(recipients []age.Recipient, in io.Reader, out io.Writer, armor bool
 	}
 	w, err := ageEncrypt(out, recipients...)
 	if err != nil {
-		log.Fatalf("Error: %v", err)
+		logFatalf("Error: %v", err)
 	}
 	if _, err := io.Copy(w, in); err != nil {
-		log.Fatalf("Error: %v", err)
+		logFatalf("Error: %v", err)
 	}
 	if err := w.Close(); err != nil {
-		log.Fatalf("Error: %v", err)
+		logFatalf("Error: %v", err)
 	}
 }
 
@@ -186,16 +186,25 @@ func decrypt(keys []string, in io.Reader, out io.Writer) {
 	for _, name := range keys {
 		ids, err := parseIdentitiesFile(name)
 		if err != nil {
-			log.Fatalf("Error: %v", err)
+			logFatalf("Error: %v", err)
 		}
 		identities = append(identities, ids...)
 	}
 
 	r, err := age.Decrypt(in, identities...)
 	if err != nil {
-		log.Fatalf("Error: %v", err)
+		logFatalf("Error: %v", err)
 	}
 	if _, err := io.Copy(out, r); err != nil {
-		log.Fatalf("Error: %v", err)
+		logFatalf("Error: %v", err)
 	}
+}
+
+func logFatalf(format string, v ...interface{}) {
+	_log.Printf(format, v...)
+	_log.Printf("\n")
+	_log.Printf("   *** Did age not do what you expected? ***")
+	_log.Printf("   *** Could an error be more useful?    ***")
+	_log.Printf("   *** -> https://age-tool.com/report <- ***")
+	_log.Fatalf("\n")
 }
