@@ -91,6 +91,28 @@ func (i *EncryptedSSHIdentity) Matches(block *format.Recipient) error {
 	return nil
 }
 
+type LazyScryptIdentity struct {
+	Passphrase func() (string, error)
+}
+
+var _ age.Identity = &LazyScryptIdentity{}
+
+func (i *LazyScryptIdentity) Type() string {
+	return "scrypt"
+}
+
+func (i *LazyScryptIdentity) Unwrap(block *format.Recipient) (fileKey []byte, err error) {
+	pass, err := i.Passphrase()
+	if err != nil {
+		return nil, fmt.Errorf("could not read passphrase: %v", err)
+	}
+	ii, err := age.NewScryptIdentity(pass)
+	if err != nil {
+		return nil, err
+	}
+	return ii.Unwrap(block)
+}
+
 // stdinInUse is set in main. It's a singleton like os.Stdin.
 var stdinInUse bool
 
