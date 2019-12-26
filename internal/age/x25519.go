@@ -14,6 +14,7 @@ import (
 	"io"
 	"strings"
 
+	"filippo.io/age/internal/bech32"
 	"filippo.io/age/internal/format"
 	"golang.org/x/crypto/chacha20poly1305"
 	"golang.org/x/crypto/curve25519"
@@ -42,17 +43,16 @@ func NewX25519Recipient(publicKey []byte) (*X25519Recipient, error) {
 }
 
 func ParseX25519Recipient(s string) (*X25519Recipient, error) {
-	if !strings.HasPrefix(s, "pubkey:") {
-		return nil, fmt.Errorf("malformed recipient: %s", s)
-	}
-	pubKey := strings.TrimPrefix(s, "pubkey:")
-	k, err := format.DecodeString(pubKey)
+	t, k, err := bech32.Decode(s)
 	if err != nil {
-		return nil, fmt.Errorf("malformed recipient: %s", s)
+		return nil, fmt.Errorf("malformed recipient %q: %v", s, err)
+	}
+	if t != "age" {
+		return nil, fmt.Errorf("malformed recipient %q: invalid type %q", s, t)
 	}
 	r, err := NewX25519Recipient(k)
 	if err != nil {
-		return nil, fmt.Errorf("malformed recipient: %s", s)
+		return nil, fmt.Errorf("malformed recipient %q: %v", s, err)
 	}
 	return r, nil
 }
@@ -96,7 +96,8 @@ func (r *X25519Recipient) Wrap(fileKey []byte) (*format.Recipient, error) {
 }
 
 func (r *X25519Recipient) String() string {
-	return "pubkey:" + format.EncodeToString(r.theirPublicKey)
+	s, _ := bech32.Encode("age", r.theirPublicKey)
+	return s
 }
 
 type X25519Identity struct {
@@ -128,17 +129,16 @@ func GenerateX25519Identity() (*X25519Identity, error) {
 }
 
 func ParseX25519Identity(s string) (*X25519Identity, error) {
-	if !strings.HasPrefix(s, "AGE_SECRET_KEY_") {
-		return nil, fmt.Errorf("malformed secret key: %s", s)
-	}
-	privKey := strings.TrimPrefix(s, "AGE_SECRET_KEY_")
-	k, err := format.DecodeString(privKey)
+	t, k, err := bech32.Decode(s)
 	if err != nil {
-		return nil, fmt.Errorf("malformed secret key: %s", s)
+		return nil, fmt.Errorf("malformed secret key %q: %v", s, err)
+	}
+	if t != "AGE-SECRET-KEY-" {
+		return nil, fmt.Errorf("malformed secret key %q: invalid type %q", s, t)
 	}
 	r, err := NewX25519Identity(k)
 	if err != nil {
-		return nil, fmt.Errorf("malformed secret key: %s", s)
+		return nil, fmt.Errorf("malformed secret key %q: %v", s, err)
 	}
 	return r, nil
 }
@@ -186,5 +186,6 @@ func (i *X25519Identity) Recipient() *X25519Recipient {
 }
 
 func (i *X25519Identity) String() string {
-	return "AGE_SECRET_KEY_" + format.EncodeToString(i.secretKey)
+	s, _ := bech32.Encode("AGE-SECRET-KEY-", i.secretKey)
+	return strings.ToUpper(s)
 }
