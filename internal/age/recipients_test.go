@@ -38,6 +38,17 @@ func TestX25519RoundTrip(t *testing.T) {
 		t.Errorf("invalid Type values: %v, %v", r.Type(), i.Type())
 	}
 
+	if r1, err := age.ParseX25519Recipient(r.String()); err != nil {
+		t.Fatal(err)
+	} else if r1.String() != r.String() {
+		t.Errorf("recipient did not round-trip through parsing: got %q, want %q", r1, r)
+	}
+	if i1, err := age.ParseX25519Identity(i.String()); err != nil {
+		t.Fatal(err)
+	} else if i1.String() != i.String() {
+		t.Errorf("identity did not round-trip through parsing: got %q, want %q", i1, i)
+	}
+
 	fileKey := make([]byte, 16)
 	if _, err := rand.Read(fileKey); err != nil {
 		t.Fatal(err)

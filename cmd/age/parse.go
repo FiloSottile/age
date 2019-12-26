@@ -21,7 +21,7 @@ import (
 
 func parseRecipient(arg string) (age.Recipient, error) {
 	switch {
-	case strings.HasPrefix(arg, "pubkey:"):
+	case strings.HasPrefix(arg, "age1"):
 		return age.ParseX25519Recipient(arg)
 	case strings.HasPrefix(arg, "ssh-"):
 		return age.ParseSSHRecipient(arg)

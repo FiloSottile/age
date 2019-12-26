@@ -53,6 +53,6 @@ func generate(out io.Writer) {
 	}
 
 	fmt.Fprintf(out, "# created: %s\n", time.Now().Format(time.RFC3339))
-	fmt.Fprintf(out, "# %s\n", k.Recipient())
+	fmt.Fprintf(out, "# public key: %s\n", k.Recipient())
 	fmt.Fprintf(out, "%s\n", k)
 }
