@@ -4,7 +4,7 @@
 // license that can be found in the LICENSE file or at
 // https://developers.google.com/open-source/licenses/bsd
 
-// Package age implements age-tool.com file encryption.
+// Package age implements file encryption according to age-encryption.org/v1.
 package age
 
 import (

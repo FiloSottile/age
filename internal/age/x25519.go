@@ -21,7 +21,7 @@ import (
 	"golang.org/x/crypto/hkdf"
 )
 
-const x25519Label = "age-tool.com X25519"
+const x25519Label = "age-encryption.org/v1/X25519"
 
 type X25519Recipient struct {
 	theirPublicKey []byte
