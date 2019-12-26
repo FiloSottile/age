@@ -29,7 +29,7 @@ type Recipient struct {
 	Body []byte
 }
 
-var b64 = base64.RawURLEncoding.Strict()
+var b64 = base64.RawStdEncoding.Strict()
 
 func DecodeString(s string) ([]byte, error) {
 	// CR and LF are ignored by DecodeString, but we don't want any malleability.
@@ -41,7 +41,7 @@ func DecodeString(s string) ([]byte, error) {
 
 var EncodeToString = b64.EncodeToString
 
-const columnsPerLine = 56
+const columnsPerLine = 64
 const bytesPerLine = columnsPerLine / 4 * 3
 
 const intro = "This is a file encrypted with age-tool.com, version 1\n"
