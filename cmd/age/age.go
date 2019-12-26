@@ -202,9 +202,6 @@ func decrypt(keys []string, in io.Reader, out io.Writer) {
 
 func logFatalf(format string, v ...interface{}) {
 	_log.Printf(format, v...)
-	_log.Printf("\n")
-	_log.Printf("   *** Did age not do what you expected? ***")
-	_log.Printf("   *** Could an error be more useful?    ***")
-	_log.Printf("   *** -> https://age-tool.com/report <- ***")
-	_log.Fatalf("\n")
+	_log.Fatalf("[ Did age not do what you expected? Could an error be more useful?" +
+		" Tell us: https://filippo.io/age/report ]")
 }

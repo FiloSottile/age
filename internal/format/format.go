@@ -43,7 +43,7 @@ var EncodeToString = b64.EncodeToString
 const columnsPerLine = 64
 const bytesPerLine = columnsPerLine / 4 * 3
 
-const intro = "This is a file encrypted with age-tool.com, version 1\n"
+const intro = "age-encryption.org/v1\n"
 
 var recipientPrefix = []byte("->")
 var footerPrefix = []byte("---")

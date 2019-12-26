@@ -31,7 +31,7 @@ func SSHFingerprint(pk ssh.PublicKey) string {
 	return format.EncodeToString(hh[:4])
 }
 
-const oaepLabel = "age-tool.com ssh-rsa"
+const oaepLabel = "age-encryption.org/v1/ssh-rsa"
 
 type SSHRSARecipient struct {
 	sshKey ssh.PublicKey
@@ -200,7 +200,7 @@ func ed25519PublicKeyToCurve25519(pk ed25519.PublicKey) []byte {
 	return out
 }
 
-const ed25519Label = "age-tool.com ssh-ed25519"
+const ed25519Label = "age-encryption.org/v1/ssh-ed25519"
 
 func (r *SSHEd25519Recipient) Wrap(fileKey []byte) (*format.Recipient, error) {
 	ephemeral := make([]byte, curve25519.ScalarSize)
