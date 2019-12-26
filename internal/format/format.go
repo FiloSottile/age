@@ -18,7 +18,6 @@ import (
 )
 
 type Header struct {
-	Armor      bool
 	Recipients []*Recipient
 	MAC        []byte
 }
@@ -45,8 +44,6 @@ const columnsPerLine = 64
 const bytesPerLine = columnsPerLine / 4 * 3
 
 const intro = "This is a file encrypted with age-tool.com, version 1\n"
-const introWithArmor = "This is an armored file encrypted with age-tool.com, version 1\n"
-const introWithArmorCRLF = "This is an armored file encrypted with age-tool.com, version 1\r\n"
 
 var recipientPrefix = []byte("->")
 var footerPrefix = []byte("---")
@@ -75,14 +72,8 @@ func (r *Recipient) Marshal(w io.Writer) error {
 }
 
 func (h *Header) MarshalWithoutMAC(w io.Writer) error {
-	if h.Armor {
-		if _, err := io.WriteString(w, introWithArmor); err != nil {
-			return err
-		}
-	} else {
-		if _, err := io.WriteString(w, intro); err != nil {
-			return err
-		}
+	if _, err := io.WriteString(w, intro); err != nil {
+		return err
 	}
 	for _, r := range h.Recipients {
 		if err := r.Marshal(w); err != nil {
@@ -118,19 +109,18 @@ func Parse(input io.Reader) (*Header, io.Reader, error) {
 	h := &Header{}
 	rr := bufio.NewReader(input)
 
+	// TODO: find a way to communicate to the caller that the file was armored,
+	// as they might not appreciate the malleability.
+	if start, _ := rr.Peek(len(armorPreamble)); string(start) == armorPreamble {
+		input = ArmoredReader(rr)
+		rr = bufio.NewReader(input)
+	}
+
 	line, err := rr.ReadString('\n')
 	if err != nil {
 		return nil, nil, errorf("failed to read intro: %v", err)
 	}
-	var normalizeCRLF bool
-	switch line {
-	case intro:
-	case introWithArmor:
-		h.Armor = true
-	case introWithArmorCRLF:
-		h.Armor = true
-		normalizeCRLF = true
-	default:
+	if line != intro {
 		return nil, nil, errorf("unexpected intro: %q", line)
 	}
 
@@ -139,13 +129,6 @@ func Parse(input io.Reader) (*Header, io.Reader, error) {
 		line, err := rr.ReadBytes('\n')
 		if err != nil {
 			return nil, nil, errorf("failed to read header: %v", err)
-		}
-		if normalizeCRLF {
-			if !bytes.HasSuffix(line, []byte("\r\n")) {
-				return nil, nil, errorf("unexpected LF in CRLF input")
-			}
-			line[len(line)-2] = '\n'
-			line = line[:len(line)-1]
 		}
 
 		if bytes.HasPrefix(line, footerPrefix) {

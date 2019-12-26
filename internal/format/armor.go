@@ -54,34 +54,50 @@ func (nopCloser) Close() error { return nil }
 
 func NopCloser(w io.Writer) io.WriteCloser { return nopCloser{w} }
 
-var endOfArmor = []byte("--- end of file ---\n")
+const armorPreamble = "-----BEGIN AGE ENCRYPTED FILE-----"
+const armorEnd = "-----END AGE ENCRYPTED FILE-----"
+
+type armoredWriter struct {
+	started, closed bool
+	encoder         io.WriteCloser
+	dst             io.Writer
+}
+
+func (a *armoredWriter) Write(p []byte) (int, error) {
+	if !a.started {
+		if _, err := io.WriteString(a.dst, armorPreamble+"\n"); err != nil {
+			return 0, err
+		}
+	}
+	a.started = true
+	return a.encoder.Write(p)
+}
+
+func (a *armoredWriter) Close() error {
+	if a.closed {
+		return errors.New("ArmoredWriter already closed")
+	}
+	a.closed = true
+	if err := a.encoder.Close(); err != nil {
+		return err
+	}
+	_, err := io.WriteString(a.dst, "\n"+armorEnd+"\n")
+	return err
+}
 
 func ArmoredWriter(dst io.Writer) io.WriteCloser {
 	// TODO: write a test with aligned and misaligned sizes, and 8 and 10 steps.
-	w := base64.NewEncoder(b64, &newlineWriter{dst: dst})
-	return struct {
-		io.Writer
-		io.Closer
-	}{
-		Writer: w,
-		Closer: CloserFunc(func() error {
-			if err := w.Close(); err != nil {
-				return err
-			}
-			if _, err := dst.Write([]byte("\n")); err != nil {
-				return err
-			}
-			_, err := dst.Write(endOfArmor)
-			return err
-		}),
-	}
+	return &armoredWriter{dst: dst,
+		encoder: base64.NewEncoder(base64.StdEncoding.Strict(),
+			&newlineWriter{dst: dst})}
 }
 
 type armoredReader struct {
-	r      *bufio.Reader
-	unread []byte // backed by buf
-	buf    [bytesPerLine]byte
-	err    error
+	r       *bufio.Reader
+	started bool
+	unread  []byte // backed by buf
+	buf     [bytesPerLine]byte
+	err     error
 }
 
 func ArmoredReader(r io.Reader) io.Reader {
@@ -100,37 +116,37 @@ func (r *armoredReader) Read(p []byte) (int, error) {
 
 	getLine := func() ([]byte, error) {
 		line, err := r.r.ReadBytes('\n')
-		if err != nil {
+		if err != nil && len(line) == 0 {
 			if err == io.EOF {
-				err = errors.New("invalid input")
+				err = errors.New("invalid armor: unexpected EOF")
 			}
 			return nil, err
 		}
-		// Unconditionally accept CRLF because the line ending context of the
-		// header is lost at the ArmoredReader caller. =(
-		if bytes.HasSuffix(line, []byte("\r\n")) {
-			line[len(line)-2] = '\n'
-			line = line[:len(line)-1]
-		}
-		return line, nil
+		return bytes.TrimSpace(line), nil
 	}
 
+	if !r.started {
+		line, err := getLine()
+		if err != nil {
+			return 0, r.setErr(err)
+		}
+		if string(line) != armorPreamble {
+			return 0, r.setErr(errors.New("invalid armor first line: " + string(line)))
+		}
+		r.started = true
+	}
 	line, err := getLine()
 	if err != nil {
 		return 0, r.setErr(err)
 	}
-	if bytes.Equal(line, endOfArmor) {
+	if string(line) == armorEnd {
 		return 0, r.setErr(io.EOF)
 	}
-	line = bytes.TrimSuffix(line, []byte("\n"))
-	if bytes.Contains(line, []byte("\r")) {
-		return 0, r.setErr(errors.New("invalid input"))
-	}
 	if len(line) > columnsPerLine {
-		return 0, r.setErr(errors.New("invalid input"))
+		return 0, r.setErr(errors.New("invalid armor: column limit exceeded"))
 	}
 	r.unread = r.buf[:]
-	n, err := b64.Decode(r.unread, line)
+	n, err := base64.StdEncoding.Strict().Decode(r.unread, line)
 	if err != nil {
 		return 0, r.setErr(err)
 	}
@@ -141,8 +157,8 @@ func (r *armoredReader) Read(p []byte) (int, error) {
 		if err != nil {
 			return 0, r.setErr(err)
 		}
-		if !bytes.Equal(line, endOfArmor) {
-			return 0, r.setErr(errors.New("invalid input"))
+		if string(line) != armorEnd {
+			return 0, r.setErr(errors.New("invalid armor closing line: " + string(line)))
 		}
 		r.err = io.EOF
 	}
