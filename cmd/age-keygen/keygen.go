@@ -9,12 +9,12 @@ package main
 import (
 	"flag"
 	"fmt"
-	"io"
 	"log"
 	"os"
 	"time"
 
 	"filippo.io/age/internal/age"
+	"golang.org/x/crypto/ssh/terminal"
 )
 
 func main() {
@@ -46,10 +46,14 @@ func main() {
 	generate(out)
 }
 
-func generate(out io.Writer) {
+func generate(out *os.File) {
 	k, err := age.GenerateX25519Identity()
 	if err != nil {
 		log.Fatalf("Internal error: %v", err)
+	}
+
+	if !terminal.IsTerminal(int(out.Fd())) {
+		fmt.Fprintf(os.Stderr, "Public key: %s\n", k.Recipient())
 	}
 
 	fmt.Fprintf(out, "# created: %s\n", time.Now().Format(time.RFC3339))
