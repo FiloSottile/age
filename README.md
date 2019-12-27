@@ -2,7 +2,7 @@
 
 age is a simple, modern and secure file encryption tool.
 
-I features small explicit keys, no config options, and UNIX-style composability.
+It features small explicit keys, no config options, and UNIX-style composability.
 
 ```
 $ age-keygen -o key.txt
