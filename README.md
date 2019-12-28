@@ -21,7 +21,7 @@ Usage:
     age --decrypt [-i KEY] [-o OUTPUT] [INPUT]
 
 Options:
-    -o OUTPUT                   Write the result to the file at path OUTPUT.
+    -o, --output OUTPUT         Write the result to the file at path OUTPUT.
     -a, --armor                 Encrypt to a PEM encoded format.
     -p, --passphrase            Encrypt with a passphrase.
     -r, --recipient RECIPIENT   Encrypt to the specified RECIPIENT. Can be repeated.
@@ -54,8 +54,6 @@ If your system has [Go 1.13+](https://golang.org/dl/), you can build from source
 ```
 git clone https://filippo.io/age && cd age
 go build filippo.io/cmd/age/...
-go build ./cmd/age
-go build ./cmd/age-keygen
 ```
 
 Help from new packagers is very welcome.
