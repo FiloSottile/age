@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"filippo.io/age/internal/age"
+	"github.com/skip2/go-qrcode"
 	"golang.org/x/crypto/ssh/terminal"
 )
 
@@ -21,6 +22,7 @@ func main() {
 	log.SetFlags(0)
 
 	outFlag := flag.String("o", "", "output to `FILE` (default stdout)")
+	qrFlag := flag.Bool("q", false, "generate QR Code from public key")
 	flag.Parse()
 	if len(flag.Args()) != 0 {
 		log.Fatalf("age-keygen takes no arguments")
@@ -43,10 +45,10 @@ func main() {
 		}
 	}
 
-	generate(out)
+	generate(out, qrFlag)
 }
 
-func generate(out *os.File) {
+func generate(out *os.File, qr *bool) {
 	k, err := age.GenerateX25519Identity()
 	if err != nil {
 		log.Fatalf("Internal error: %v", err)
@@ -58,5 +60,23 @@ func generate(out *os.File) {
 
 	fmt.Fprintf(out, "# created: %s\n", time.Now().Format(time.RFC3339))
 	fmt.Fprintf(out, "# public key: %s\n", k.Recipient())
+
+	if *qr {
+		var q *qrcode.QRCode
+		q, err = qrcode.New(k.Recipient().String(), qrcode.Low)
+
+		if err != nil {
+			log.Fatalf("Internal error: %v", err)
+		}
+
+		if !terminal.IsTerminal(int(out.Fd())) {
+			fmt.Fprint(os.Stderr, "public key QR code:\n")
+			fmt.Fprintf(os.Stderr, "%s\n", q.ToSmallString(false))
+		} else {
+			fmt.Fprint(out, "public key QR code:\n")
+			fmt.Fprintf(out, "%s\n", q.ToSmallString(false))
+		}
+	}
+
 	fmt.Fprintf(out, "%s\n", k)
 }
