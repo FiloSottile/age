@@ -40,7 +40,7 @@ Multiple keys can be provided, and any unused ones will be ignored.
 
 ## Installation
 
-On macOS, you can use Homebrew:
+On macOS or Linux, you can use Homebrew:
 
 ```
 brew tap filippo.io/age https://filippo.io/age
