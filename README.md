@@ -40,18 +40,22 @@ Multiple keys can be provided, and any unused ones will be ignored.
 
 ## Installation
 
-On macOS, use Homebrew.
+On macOS, you can use Homebrew:
 
 ```
 brew tap filippo.io/age https://filippo.io/age
 brew install age
 ```
 
-On Linux and Windows, use [the pre-built binaries](https://github.com/FiloSottile/age/releases) or build from source with Go 1.13+.
+On Windows, Linux, and macOS, you can use [the pre-built binaries](https://github.com/FiloSottile/age/releases).
+
+If your system has [Go 1.13+](https://golang.org/dl/), you can build from source:
 
 ```
 git clone https://filippo.io/age && cd age
 go build filippo.io/cmd/age/...
+go build ./cmd/age
+go build ./cmd/age-keygen
 ```
 
 Help from new packagers is very welcome.
