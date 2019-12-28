@@ -53,7 +53,7 @@ If your system has [Go 1.13+](https://golang.org/dl/), you can build from source
 
 ```
 git clone https://filippo.io/age && cd age
-go build filippo.io/cmd/age/...
+go build filippo.io/age/cmd/...
 ```
 
 Help from new packagers is very welcome.
