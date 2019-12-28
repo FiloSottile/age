@@ -32,7 +32,7 @@ const usage = `Usage:
     age --decrypt [-i KEY] [-o OUTPUT] [INPUT]
 
 Options:
-    -o OUTPUT                   Write the result to the file at path OUTPUT.
+    -o, --output OUTPUT         Write the result to the file at path OUTPUT.
     -a, --armor                 Encrypt to a PEM encoded format.
     -p, --passphrase            Encrypt with a passphrase.
     -r, --recipient RECIPIENT   Encrypt to the specified RECIPIENT. Can be repeated.
@@ -69,6 +69,7 @@ func main() {
 	flag.BoolVar(&passFlag, "p", false, "use a passphrase")
 	flag.BoolVar(&passFlag, "passphrase", false, "use a passphrase")
 	flag.StringVar(&outFlag, "o", "", "output to `FILE` (default stdout)")
+	flag.StringVar(&outFlag, "output", "", "output to `FILE` (default stdout)")
 	flag.BoolVar(&armorFlag, "a", false, "generate an armored file")
 	flag.BoolVar(&armorFlag, "armor", false, "generate an armored file")
 	flag.Var(&recipientFlags, "r", "recipient (can be repeated)")
