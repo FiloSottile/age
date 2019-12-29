@@ -1,0 +1,96 @@
+project_name: age
+
+before:
+  hooks:
+  - go mod download
+
+builds:
+- id: age
+  main: ./cmd/age
+  goos:
+  - linux
+  - darwin
+  - freebsd
+  - openbsd
+  - windows
+  goarch:
+  - "386"
+  - amd64
+  - arm
+  - arm64
+  - ppc64
+  - ppc64le
+  ignore:
+  - goos: darwin
+    goarch: "386"
+
+archives:
+- builds:
+  - age
+  files:
+  - LICENSE
+  - README.md
+  replacements:
+    386: i386
+  format_overrides:
+  - goos: windows
+    format: zip
+
+nfpms:
+- builds:
+  - age
+  vendor: "Filippo Valsorda <hi@filippo.io>"
+  homepage: "https://age-encryption.org/"
+  maintainer: "Filippo Valsorda <hi@filippo.io>"
+  description: "A simple, modern and secure encryption tool with small explicit keys, no config options, and UNIX-style composability."
+  license: BSD-3-Clause
+  formats:
+  - deb
+  - rpm
+  bindir: /usr/bin
+  overrides:
+    deb:
+      file_name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+      replacements:
+        386: i386
+        arm: armel
+    rpm:
+      file_name_template: "{{ .ProjectName }}-{{ .Version }}-{{ .Arch }}"
+      replacements:
+        amd64: x86_64
+        386: i686
+        arm: armhfp
+        arm64: aarch64
+
+# Uncomment the following section to enable brews.
+# brews:
+# - github:
+#     owner: FiloSottile
+#     name: age
+#   commit_author:
+#     name: Filippo Valsorda
+#     email: hi@filippo.io
+#   folder: Formula
+#   homepage: "https://age-encryption.org"
+#   description: "A simple, modern and secure encryption tool with small explicit keys, no config options, and UNIX-style composability."
+
+# Uncomment the following section to enable scoop.
+# scoop:
+#   bucket:
+#     owner: FiloSottile
+#     name: scoop-bucket
+#   commit_author:
+#     name: Filippo Valsorda
+#     email: hi@filippo.io
+#   homepage: "https://age-encryption.org"
+#   description: "A simple, modern and secure encryption tool with small explicit keys, no config options, and UNIX-style composability."
+#   license: BSD-3-Clause
+
+# Uncomment the following section to enable snapcrafts.
+# snapcrafts:
+# - builds:
+#   - age
+#   summary: "A simple, modern and secure encryption tool with small explicit keys, no config options, and UNIX-style composability."
+#   description: "A simple, modern and secure encryption tool with small explicit keys, no config options, and UNIX-style composability."
+#   publish: true
+#   grade: stable

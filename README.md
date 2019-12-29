@@ -57,3 +57,14 @@ go build -o . filippo.io/age/cmd/...
 ```
 
 Help from new packagers is very welcome.
+
+## Releasing
+
+age can use [Goreleaser](https://goreleaser.com) to build binaries, archives,
+packages, and installation scripts for a wide variety of operating systems and
+architectures. To run a test release, first [install
+Goreleaser](https://goreleaser.com/install/), then run:
+
+```
+goreleaser release --rm-dist --skip-publish --snapshot
+```
