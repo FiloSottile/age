@@ -13,9 +13,8 @@ class Age < Formula
   depends_on "go" => :build
 
   def install
-    ENV["GOPATH"] = HOMEBREW_CACHE/"go_cache"
-    system "mkdir", bin
-    system "go", "build", "-o", bin, "filippo.io/age/cmd/..."
+    mkdir bin
+    system "go", "build", "-trimpath", "-o", bin, "filippo.io/age/cmd/..."
     prefix.install_metafiles
   end
 end
