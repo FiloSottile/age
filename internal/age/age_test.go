@@ -51,8 +51,6 @@ func TestEncryptDecryptX25519(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	t.Logf("%s", buf.Bytes())
-
 	i, err := age.NewX25519Identity(secretKeyB)
 	if err != nil {
 		t.Fatal(err)
@@ -89,8 +87,6 @@ func TestEncryptDecryptScrypt(t *testing.T) {
 	if err := w.Close(); err != nil {
 		t.Fatal(err)
 	}
-
-	t.Logf("%s", buf.Bytes())
 
 	i, err := age.NewScryptIdentity(password)
 	if err != nil {
