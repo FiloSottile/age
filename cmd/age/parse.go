@@ -164,23 +164,22 @@ func parseGithubRecipient(s string) ([]age.Recipient, error) {
 	var parsedKeys []GithubKey
 
 	err = json.NewDecoder(res.Body).Decode(&parsedKeys)
-
 	if err != nil {
 		return nil, fmt.Errorf("Could not parse Github API response: %w", err)
 	}
 
-	var keys []age.Recipient
+	var recipients []age.Recipient
 	for _, ghKey := range parsedKeys {
 		k, err := age.ParseSSHRecipient(ghKey.Key)
 		if err != nil {
 			logFatalf("Unable to parse Github key: %s", err)
 		}
-		keys = append(keys, k)
+		recipients = append(recipients, k)
 	}
 
-	if len(keys) > 0 {
-		fmt.Printf("Encrypting with %d keys from Github\n", len(keys))
-		return keys, nil
+	if len(recipients) > 0 {
+		fmt.Printf("Encrypting with %d keys from Github\n", len(recipients))
+		return recipients, nil
 	}
 	return nil, errors.New("No Github keys found")
 }
