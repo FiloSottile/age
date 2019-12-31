@@ -127,6 +127,9 @@ RecipientsLoop:
 			fileKey, err = i.Unwrap(r)
 			if err != nil {
 				if err == ErrIncorrectIdentity {
+					// TODO: we should collect these errors and return them as an
+					// []error type with an Error method. That will require turning
+					// ErrIncorrectIdentity into an interface or wrapper error.
 					continue
 				}
 				return nil, err
