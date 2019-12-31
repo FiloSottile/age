@@ -143,10 +143,9 @@ func readPubFile(name string) (ssh.PublicKey, error) {
 func parseGithubRecipient(s string) ([]age.Recipient, error) {
 	parts := strings.Split(s, ":")
 	if len(parts) != 2 {
-		return nil, errors.New("invalid github recipient format")
+		return nil, errors.New("Invalid github recipient format")
 	}
 
-	// api: https://api.github.com/users/NNN/keys
 	res, err := http.Get("https://api.github.com/users/" + url.PathEscape(parts[1]) + "/keys")
 	if err != nil {
 		return nil, fmt.Errorf("Github API request failed: %w", err)
@@ -162,25 +161,26 @@ func parseGithubRecipient(s string) ([]age.Recipient, error) {
 		Key string `json:"key"`
 	}
 
-	var parsed []GithubKey
+	var parsedKeys []GithubKey
 
-	err = json.NewDecoder(res.Body).Decode(&parsed)
+	err = json.NewDecoder(res.Body).Decode(&parsedKeys)
 
 	if err != nil {
 		return nil, fmt.Errorf("Could not parse Github API response: %w", err)
 	}
 
 	var keys []age.Recipient
-	for _, ghKey := range parsed {
+	for _, ghKey := range parsedKeys {
 		k, err := age.ParseSSHRecipient(ghKey.Key)
 		if err != nil {
 			logFatalf("Unable to parse Github key: %s", err)
 		}
 		keys = append(keys, k)
 	}
+
 	if len(keys) > 0 {
 		fmt.Printf("Encrypting with %d keys from Github\n", len(keys))
 		return keys, nil
 	}
-	return nil, errors.New("no Github keys found")
+	return nil, errors.New("No Github keys found")
 }
