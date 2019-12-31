@@ -9,9 +9,13 @@ package main
 import (
 	"bufio"
 	"bytes"
+	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
+	"net/http"
+	"net/url"
 	"os"
 	"strings"
 
@@ -19,12 +23,17 @@ import (
 	"golang.org/x/crypto/ssh"
 )
 
-func parseRecipient(arg string) (age.Recipient, error) {
+func parseRecipient(arg string) ([]age.Recipient, error) {
+
 	switch {
 	case strings.HasPrefix(arg, "age1"):
-		return age.ParseX25519Recipient(arg)
+		r, err := age.ParseX25519Recipient(arg)
+		return []age.Recipient{r}, err
 	case strings.HasPrefix(arg, "ssh-"):
-		return age.ParseSSHRecipient(arg)
+		r, err := age.ParseSSHRecipient(arg)
+		return []age.Recipient{r}, err
+	case strings.HasPrefix(arg, "github:"):
+		return parseGithubRecipient(arg)
 	}
 
 	return nil, fmt.Errorf("unknown recipient type: %q", arg)
@@ -129,4 +138,49 @@ func readPubFile(name string) (ssh.PublicKey, error) {
 		return nil, fmt.Errorf("failed to parse %q: %v", name+".pub", err)
 	}
 	return pubKey, nil
+}
+
+func parseGithubRecipient(s string) ([]age.Recipient, error) {
+	parts := strings.Split(s, ":")
+	if len(parts) != 2 {
+		return nil, errors.New("invalid github recipient format")
+	}
+
+	// api: https://api.github.com/users/NNN/keys
+	res, err := http.Get("https://api.github.com/users/" + url.PathEscape(parts[1]) + "/keys")
+	if err != nil {
+		return nil, fmt.Errorf("Github API request failed: %w", err)
+	}
+	defer res.Body.Close()
+
+	if res.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("Github returned HTTP status %d", res.StatusCode)
+	}
+
+	type GithubKey struct {
+		ID  uint64 `json:"id"`
+		Key string `json:"key"`
+	}
+
+	var parsed []GithubKey
+
+	err = json.NewDecoder(res.Body).Decode(&parsed)
+
+	if err != nil {
+		return nil, fmt.Errorf("Could not parse Github API response: %w", err)
+	}
+
+	var keys []age.Recipient
+	for _, ghKey := range parsed {
+		k, err := age.ParseSSHRecipient(ghKey.Key)
+		if err != nil {
+			logFatalf("Unable to parse Github key: %s", err)
+		}
+		keys = append(keys, k)
+	}
+	if len(keys) > 0 {
+		fmt.Printf("Encrypting with %d keys from Github\n", len(keys))
+		return keys, nil
+	}
+	return nil, errors.New("no Github keys found")
 }

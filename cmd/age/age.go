@@ -183,7 +183,7 @@ func encryptKeys(keys []string, in io.Reader, out io.Writer, armor bool) {
 		if err != nil {
 			logFatalf("Error: %v", err)
 		}
-		recipients = append(recipients, r)
+		recipients = append(recipients, r...)
 	}
 	encrypt(recipients, in, out, armor)
 }
