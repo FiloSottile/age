@@ -110,7 +110,15 @@ func (i *LazyScryptIdentity) Unwrap(block *format.Recipient) (fileKey []byte, er
 	if err != nil {
 		return nil, err
 	}
-	return ii.Unwrap(block)
+	fileKey, err = ii.Unwrap(block)
+	if err == age.ErrIncorrectIdentity {
+		// The API will just ignore the identity if the passphrase is wrong, and
+		// move on, eventually returning "no identity matched a recipient".
+		// Since we only supply one identity from the CLI, make it a fatal
+		// error with a better message.
+		return nil, fmt.Errorf("incorrect passphrase")
+	}
+	return fileKey, err
 }
 
 // stdinInUse is set in main. It's a singleton like os.Stdin.
