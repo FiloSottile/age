@@ -30,7 +30,7 @@ func (*ScryptRecipient) Type() string { return "scrypt" }
 
 func NewScryptRecipient(password string) (*ScryptRecipient, error) {
 	if len(password) == 0 {
-		return nil, errors.New("empty scrypt password")
+		return nil, errors.New("passphrase can't be empty")
 	}
 	r := &ScryptRecipient{
 		password: []byte(password),
@@ -87,7 +87,7 @@ func (*ScryptIdentity) Type() string { return "scrypt" }
 
 func NewScryptIdentity(password string) (*ScryptIdentity, error) {
 	if len(password) == 0 {
-		return nil, errors.New("empty scrypt password")
+		return nil, errors.New("passphrase can't be empty")
 	}
 	i := &ScryptIdentity{
 		password:      []byte(password),
