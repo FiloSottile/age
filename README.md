@@ -98,4 +98,12 @@ On OpenBSD -current and 6.7+, you can use the port:
 pkg_add age
 ```
 
+On Arch Linux there are [AUR](https://aur.archlinux.org) packages for age and age-git.
+```
+auracle clone age       # or whichever AUR helper you use
+cd age/
+makepkg
+sudo pacman -U age-1.0.0beta2-1-x86_64.pkg.tar.xz
+```
+
 Help from new packagers is very welcome.
