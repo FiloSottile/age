@@ -69,7 +69,7 @@ As a convenience feature, age also supports encrypting to `ssh-rsa` and `ssh-ed2
 $ cat ~/.ssh/id_ed25519.pub
 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIZDRcvS8PnhXr30WKSKmf7WKKi92ACUa5nW589WukJz filippo@Bistromath.local
 $ age -r "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIZDRcvS8PnhXr30WKSKmf7WKKi92ACUa5nW589WukJz" example.jpg > example.jpg.age
-$ age -i ~/.ssh/id_ed25519 example.jpg.age > example.jpg
+$ age -d -i ~/.ssh/id_ed25519 example.jpg.age > example.jpg
 ```
 
 Note that SSH key support employs more complex cryptography, and embeds a public key tag in the encrypted file, making it possible to track files that are encrypted to a specific public key.
