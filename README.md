@@ -92,6 +92,14 @@ git clone https://filippo.io/age && cd age
 go build -o . filippo.io/age/cmd/...
 ```
 
+On Arch Linux, age is available from AUR as [`age`](https://aur.archlinux.org/packages/age/) or [`age-git`](https://aur.archlinux.org/packages/age-git/):
+
+```bash
+git clone https://aur.archlinux.org/age.git
+cd age
+makepkg -si
+```
+
 On OpenBSD -current and 6.7+, you can use the port:
 
 ```
