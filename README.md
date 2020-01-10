@@ -69,7 +69,7 @@ As a convenience feature, age also supports encrypting to `ssh-rsa` and `ssh-ed2
 $ cat ~/.ssh/id_ed25519.pub
 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIZDRcvS8PnhXr30WKSKmf7WKKi92ACUa5nW589WukJz filippo@Bistromath.local
 $ age -r "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIZDRcvS8PnhXr30WKSKmf7WKKi92ACUa5nW589WukJz" example.jpg > example.jpg.age
-$ age -i ~/.ssh/id_ed25519 example.jpg.age > example.jpg
+$ age -d -i ~/.ssh/id_ed25519 example.jpg.age > example.jpg
 ```
 
 Note that SSH key support employs more complex cryptography, and embeds a public key tag in the encrypted file, making it possible to track files that are encrypted to a specific public key.
@@ -92,18 +92,24 @@ git clone https://filippo.io/age && cd age
 go build -o . filippo.io/age/cmd/...
 ```
 
+On Arch Linux, age is available from AUR as [`age`](https://aur.archlinux.org/packages/age/) or [`age-git`](https://aur.archlinux.org/packages/age-git/):
+
+```bash
+git clone https://aur.archlinux.org/age.git
+cd age
+makepkg -si
+```
+
 On OpenBSD -current and 6.7+, you can use the port:
 
 ```
 pkg_add age
 ```
 
-On Arch Linux there are [AUR](https://aur.archlinux.org) packages for age and age-git.
+On all supported versions of FreeBSD, you can build the security/age port or use pkg:
+
 ```
-auracle clone age       # or whichever AUR helper you use
-cd age/
-makepkg
-sudo pacman -U age-1.0.0beta2-1-x86_64.pkg.tar.xz
+pkg install age
 ```
 
 Help from new packagers is very welcome.
