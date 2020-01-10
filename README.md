@@ -98,4 +98,10 @@ On OpenBSD -current and 6.7+, you can use the port:
 pkg_add age
 ```
 
+On all supported versions of FreeBSD, you can build the security/age port or use pkg:
+
+```
+pkg install age
+```
+
 Help from new packagers is very welcome.
