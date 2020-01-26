@@ -29,6 +29,7 @@ Options:
     -r, --recipient RECIPIENT   Encrypt to the specified RECIPIENT. Can be repeated.
     -d, --decrypt               Decrypt the input to the output.
     -i, --identity KEY          Use the private key file at path KEY. Can be repeated.
+    -v, --version               Print the version string and exit
 
 INPUT defaults to standard input, and OUTPUT defaults to standard output.
 
@@ -89,8 +90,13 @@ If your system has [Go 1.13+](https://golang.org/dl/), you can build from source
 
 ```
 git clone https://filippo.io/age && cd age
-go build -o . filippo.io/age/cmd/...
+./build.sh #(Use build.ps1 on Windows)  
 ```
+The build script is just a wrapper around `go build` that automatically inserts version information. The same result can be achieved by running:  
+```
+go build --ldflags "-X main.version=$VERSION -X main.commit=$HASH" -o . filippo.io/age/cmd/...
+```  
+Where `$VERSION` is the current git tag and `$HASH` is the current (short) git hash  
 
 On Arch Linux, age is available from AUR as [`age`](https://aur.archlinux.org/packages/age/) or [`age-git`](https://aur.archlinux.org/packages/age-git/):
 

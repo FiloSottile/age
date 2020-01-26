@@ -13,8 +13,9 @@ class Age < Formula
   depends_on "go" => :build
 
   def install
+
     mkdir bin
-    system "go", "build", "-trimpath", "-o", bin, "filippo.io/age/cmd/..."
+    system "go", "build", "-trimpath", "-o", bin, "-ldflags", "\"-X main.version=#{version}\"", "filippo.io/age/cmd/..."
     prefix.install_metafiles
   end
 end
