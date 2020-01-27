@@ -17,8 +17,8 @@ import (
 	"golang.org/x/crypto/ssh/terminal"
 )
 
-var version="development"
-var commit="N/A"
+var version = "not compiled with version information"
+var commit string
 
 func main() {
 	log.SetFlags(0)
@@ -28,10 +28,10 @@ func main() {
 	outFlag := flag.String("o", "", "output to `FILE` (default stdout)")
 	flag.Parse()
 	if verFlag {
-		if commit!="" {
+		if commit != "" {
 			fmt.Printf("Version: %v\nHash: %v\n", version, commit)
 		} else {
-			fmt.Printf("Version: %v,\n", version)
+			fmt.Printf("Version: %v\n", version)
 		}
 		os.Exit(0)
 	}

@@ -27,7 +27,8 @@ func (f *multiFlag) Set(value string) error {
 	*f = append(*f, value)
 	return nil
 }
-var version="Not compiled with version information"
+
+var version = "Not compiled with version information"
 var commit string
 
 const usage = `Usage:
@@ -63,9 +64,9 @@ func main() {
 	flag.Usage = func() { fmt.Fprintf(os.Stderr, "%s\n", usage) }
 
 	var (
-		outFlag                          string
+		outFlag                                   string
 		decryptFlag, armorFlag, passFlag, verFlag bool
-		recipientFlags, identityFlags    multiFlag
+		recipientFlags, identityFlags             multiFlag
 	)
 
 	flag.BoolVar(&decryptFlag, "d", false, "decrypt the input")
@@ -89,10 +90,10 @@ func main() {
 			"age accepts a single optional argument for the input file.")
 	}
 	if verFlag {
-		if commit!="" {
+		if commit != "" {
 			fmt.Printf("Version: %v\nHash: %v\n", version, commit)
 		} else {
-			fmt.Printf("Version: %v,\n", version)
+			fmt.Printf("Version: %v\n", version)
 		}
 		os.Exit(0)
 	}

@@ -90,7 +90,7 @@ If your system has [Go 1.13+](https://golang.org/dl/), you can build from source
 
 ```
 git clone https://filippo.io/age && cd age
-./build.sh #(Use build.ps1 on Windows)  
+./build_age #(Use build_age.ps1 with Powershell)  
 ```
 The build script is just a wrapper around `go build` that automatically inserts version information. The same result can be achieved by running:  
 ```

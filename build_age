@@ -1,0 +1,25 @@
+#!/bin/bash
+
+function usage() {
+  echo "usage: ./build_age [--release]"
+  exit 1
+}
+# --release doesn't use a hash to allow for minor post-tag commits (e.g. README updates) without having to revert or retag
+if [[ $# -eq 1 ]] && [[ $1 == "--release" ]]; then
+  AGE_VER=$(git describe --tags)
+elif [[ $# -ne 0 ]]; then
+  usage
+else
+  AV=$(git describe --tags)
+  AGE_VER=${AV%-*-g*}
+  AGE_COMMIT=$(git rev-parse --short HEAD)
+fi
+
+go build --ldflags "-X main.version=${AGE_VER:1} -X main.commit=$AGE_COMMIT" -o . filippo.io/age/cmd/...
+if [[ $? ]]; then
+  echo "age build success"
+else
+  echo "age build failure"
+  exit 1
+fi
+
