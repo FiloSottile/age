@@ -88,7 +88,9 @@ func main() {
 	flag.BoolVar(&helpFlag, "help", false, "print usage and quit")
 	flag.Parse()
 
-	if flag.NArg() > 1 {
+	if flag.NArg()+flag.NFlag() == 0 {
+		logFatalf("%s\n", usage)
+	} else if flag.NArg() > 1 {
 		logFatalf("Error: too many arguments.\n" +
 			"age accepts a single optional argument for the input file.\n" +
 			"Run age -h for help")
