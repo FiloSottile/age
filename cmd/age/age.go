@@ -28,7 +28,7 @@ func (f *multiFlag) Set(value string) error {
 	return nil
 }
 
-var version = "Not compiled with version information"
+var version = "not compiled with version information"
 var commit string
 
 const usage = `Usage:
@@ -42,7 +42,8 @@ Options:
     -r, --recipient RECIPIENT   Encrypt to the specified RECIPIENT. Can be repeated.
     -d, --decrypt               Decrypt the input to the output.
     -i, --identity KEY          Use the private key file at path KEY. Can be repeated.
-	-v, --version 				Print the version string and exit
+    -v, --version               Print the version string and exit
+    -h, --help                  Print this message and exit
 
 INPUT defaults to standard input, and OUTPUT defaults to standard output.
 
@@ -64,9 +65,9 @@ func main() {
 	flag.Usage = func() { fmt.Fprintf(os.Stderr, "%s\n", usage) }
 
 	var (
-		outFlag                                   string
-		decryptFlag, armorFlag, passFlag, verFlag bool
-		recipientFlags, identityFlags             multiFlag
+		outFlag                                             string
+		decryptFlag, armorFlag, passFlag, verFlag, helpFlag bool
+		recipientFlags, identityFlags                       multiFlag
 	)
 
 	flag.BoolVar(&decryptFlag, "d", false, "decrypt the input")
@@ -83,21 +84,27 @@ func main() {
 	flag.Var(&identityFlags, "identity", "identity (can be repeated)")
 	flag.BoolVar(&verFlag, "v", false, "print version and quit")
 	flag.BoolVar(&verFlag, "version", false, "print version and quit")
+	flag.BoolVar(&helpFlag, "h", false, "print usage and quit")
+	flag.BoolVar(&helpFlag, "help", false, "print usage and quit")
 	flag.Parse()
 
 	if flag.NArg() > 1 {
 		logFatalf("Error: too many arguments.\n" +
-			"age accepts a single optional argument for the input file.")
+			"age accepts a single optional argument for the input file.\n" +
+			"Run age -h for help")
 	}
-	if verFlag {
+
+	switch {
+	case helpFlag:
+		fmt.Printf("%s\n", usage)
+		os.Exit(0)
+	case verFlag:
 		if commit != "" {
-			fmt.Printf("Version: %v\nHash: %v\n", version, commit)
+			fmt.Printf("Version: %s\nHash: %s\n", version, commit)
 		} else {
-			fmt.Printf("Version: %v\n", version)
+			fmt.Printf("Version: %s\n", version)
 		}
 		os.Exit(0)
-	}
-	switch {
 	case decryptFlag:
 		if armorFlag {
 			logFatalf("Error: -a/--armor can't be used with -d/--decrypt.\n" +
