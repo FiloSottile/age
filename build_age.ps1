@@ -7,10 +7,9 @@ if($args.count -ne 0){
 
 $AV=git describe --tags
 $AV=$AV -split '-\d*-g'
-$AGE_VER=$av[0].Substring(1,$AV[0].length-1)
-
+$AGE_VER=$av[0]
 # -release doesn't use a hash to allow for minor post-tag commits (e.g. README updates) without having to revert or retag
-if($release.IsPresent -or $AV.length -eq 1){
+if($release.IsPresent){
     $verstring="`"-X main.version=$AGE_VER`""
 } else{
     $verstring="`"-X main.version=$AGE_VER -X main.commit=$($AV[1])`""

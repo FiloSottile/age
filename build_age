@@ -15,7 +15,7 @@ else
   AGE_COMMIT=$(git rev-parse --short HEAD)
 fi
 
-go build --ldflags "-X main.version=${AGE_VER:1} -X main.commit=$AGE_COMMIT" -o . filippo.io/age/cmd/...
+go build --ldflags "-X main.version=$AGE_VER -X main.commit=$AGE_COMMIT" -o . filippo.io/age/cmd/...
 if [[ $? ]]; then
   echo "age build success"
 else

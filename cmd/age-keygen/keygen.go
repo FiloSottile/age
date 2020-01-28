@@ -21,7 +21,7 @@ var version = "not compiled with version information"
 var commit string
 
 const usage = `Usage:
-    age-keygen [>> /path/to/keyfile]
+    age-keygen
     age-keygen -o OUTPUT
 
 Options:
@@ -33,7 +33,9 @@ If -o is not provided, OUTPUT defaults to standard output
 
 Example:
     $ age-keygen -o key.txt
-    Public key: age1ql3z7hjy54pw3hyww5ayyfg7zqgvc7w3j2elw8zmrj2kg5sfn9aqmcac8p`
+    Public key: age12d695gkxyk07dfng0ght8thsc9yhug74um2hnydslpunjvjpvd7s3dzp6m
+    $ cat key.txt|grep KEY
+    AGE-SECRET-KEY-1L3W64GQX6H8YPG7HXW7EMTXHSJ97Q3G8HGGPXS2N5PRT9H6TDD6S7LRZZS`
 
 func main() {
 	log.SetFlags(0)
