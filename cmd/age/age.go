@@ -42,8 +42,8 @@ Options:
     -r, --recipient RECIPIENT   Encrypt to the specified RECIPIENT. Can be repeated.
     -d, --decrypt               Decrypt the input to the output.
     -i, --identity KEY          Use the private key file at path KEY. Can be repeated.
-    -v, --version               Print the version string and exit
     -h, --help                  Print this message and exit
+    --version                   Print the version string and exit
 
 INPUT defaults to standard input, and OUTPUT defaults to standard output.
 
@@ -82,7 +82,6 @@ func main() {
 	flag.Var(&recipientFlags, "recipient", "recipient (can be repeated)")
 	flag.Var(&identityFlags, "i", "identity (can be repeated)")
 	flag.Var(&identityFlags, "identity", "identity (can be repeated)")
-	flag.BoolVar(&verFlag, "v", false, "print version and quit")
 	flag.BoolVar(&verFlag, "version", false, "print version and quit")
 	flag.BoolVar(&helpFlag, "h", false, "print usage and quit")
 	flag.BoolVar(&helpFlag, "help", false, "print usage and quit")

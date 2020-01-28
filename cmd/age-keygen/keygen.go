@@ -26,8 +26,8 @@ const usage = `Usage:
 
 Options:
     -o OUTPUT         Write the result to the file at path OUTPUT.
-    -v, --version     Print the version string and exit
     -h, --help        Print this message and exit
+    --version     Print the version string and exit
 
 If -o is not provided, OUTPUT defaults to standard output
 
@@ -42,7 +42,6 @@ func main() {
 	flag.Usage = func() { fmt.Fprintf(os.Stderr, "%s\n", usage) }
 
 	var verFlag, helpFlag bool
-	flag.BoolVar(&verFlag, "v", false, "print version and quit")
 	flag.BoolVar(&verFlag, "version", false, "print version and quit")
 	flag.BoolVar(&helpFlag, "h", false, "print usage and quit")
 	flag.BoolVar(&helpFlag, "help", false, "print usage and quit")
