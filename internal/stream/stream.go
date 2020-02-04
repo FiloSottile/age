@@ -74,7 +74,7 @@ func (r *Reader) Read(p []byte) (int, error) {
 	return n, nil
 }
 
-// readChunk reads the next chunk of ciphertext from r.c and makes in available
+// readChunk reads the next chunk of ciphertext from r.c and makes it available
 // in r.unread. last is true if the chunk was marked as the end of the message.
 // readChunk must not be called again after returning a last chunk or an error.
 func (r *Reader) readChunk() (last bool, err error) {

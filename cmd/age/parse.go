@@ -83,7 +83,7 @@ func parseIdentitiesFile(name string) ([]age.Identity, error) {
 
 func parseSSHIdentity(name string, pemBytes []byte) ([]age.Identity, error) {
 	id, err := age.ParseSSHIdentity(pemBytes)
-	if sshErr, ok := err.(*ssh.PassphraseNeededError); ok {
+	if sshErr, ok := err.(*ssh.PassphraseMissingError); ok {
 		pubKey := sshErr.PublicKey
 		if pubKey == nil {
 			pubKey, err = readPubFile(name)
