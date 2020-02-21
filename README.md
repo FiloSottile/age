@@ -1,6 +1,6 @@
 # age
 
-age is a simple, modern and secure file encryption tool.
+age (pronounced ah-geh, IPA [age] - the e is not silent) is a simple, modern and secure file encryption tool.
 
 It features small explicit keys, no config options, and UNIX-style composability.
 
