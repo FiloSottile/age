@@ -57,7 +57,7 @@ func main() {
 	}
 	defer fk.Close()
 
-	if fi, err := key.Stat(); err == nil {
+	if fi, err := fk.Stat(); err == nil {
 		if fi.Mode().IsRegular() && fi.Mode().Perm()&0004 != 0 {
 			fmt.Fprintf(os.Stderr, "Warning: writing key to a world-readable file.\n")
 			fmt.Fprintf(os.Stderr, "Consider setting the umask to 066 and trying again.\n")
@@ -71,14 +71,14 @@ func main() {
 	}
 }
 
-func generate(pub *os.File, key *os.File) {
+func generate(fp *os.File, fk *os.File) {
 	k, err := age.GenerateX25519Identity()
 	if err != nil {
 		log.Fatalf("Internal error: %v", err)
 	}
 
-	fmt.Fprintf(pub, "%s\n", k.Recipient())
-	fmt.Fprintf(key, "%s\n", k)
+	fmt.Fprintf(fp, "%s\n", k.Recipient())
+	fmt.Fprintf(fk, "%s\n", k)
 
 	if terminal.IsTerminal(int(os.Stdout.Fd())) {
 		fmt.Fprintf(os.Stderr, "Public key: %s\n", k.Recipient())
