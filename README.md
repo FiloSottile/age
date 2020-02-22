@@ -10,7 +10,7 @@ Examples:
     /home/myuser/.age/ does not exist, creating
     Public key: age1prxppd3gy8flrlfcxnk7wshxuer75wcc7seq6n9l9ctuxjggvggs48qvzn
     Created at: 2020-02-21T18:35:46-05:00
-    /home/myuser/.age/me.pub and /home/dkovach/.age/me.key written
+    /home/myuser/.age/me.pub and /home/myuser/.age/me.key written
     $ echo "very sensitive info" |age -r me -a >info.age
     $ ./age -d info.age
     very sensitive info
@@ -18,7 +18,7 @@ Examples:
     $ age-keygen -o john
     Public key: age1zhan38xvccu9sa868xhtmpelxmacwtfdwq5d4048mzh06s4cuazs8mqny3
     Created at: 2020-02-21T18:32:48-05:00
-    /home/myuser/.age/john.pub and /home/dkovach/.age/john.key written
+    /home/myuser/.age/john.pub and /home/myuser/.age/john.key written
     $ tar cvz ~/data | age -r age1zhan38xvccu9sa868xhtmpelxmacwtfdwq5d4048mzh06s4cuazs8mqny3 > data.tar.gz.age
     $ age -d -i ~/.age/john.key -o data.tar.gz data.tar.gz.age
 ```
