@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"os/user"
 	"time"
 
 	"filippo.io/age/internal/age"
@@ -20,43 +21,69 @@ import (
 func main() {
 	log.SetFlags(0)
 
-	outFlag := flag.String("o", "", "output to `FILE` (default stdout)")
+	outFlag := flag.String("o", "", "output to ~/.age/`FILE`.pub and ~/.age/FILE.key (default \"me\")")
 	flag.Parse()
 	if len(flag.Args()) != 0 {
 		log.Fatalf("age-keygen takes no arguments")
 	}
 
-	out := os.Stdout
-	if name := *outFlag; name != "" {
-		f, err := os.OpenFile(name, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0600)
+	// create ~/.age if it doesn't exist
+	usr, _ := user.Current()
+	agedir := usr.HomeDir + "/.age/"
+	if _, err := os.Stat(agedir); os.IsNotExist(err) {
+		fmt.Fprintf(os.Stderr, "%s does not exist, creating\n", agedir)
+		err := os.Mkdir(agedir, 0700)
 		if err != nil {
-			log.Fatalf("Failed to open output file %q: %v", name, err)
+			log.Fatalf("Unable to make .age directory in %s, exiting\n", usr.HomeDir)
 		}
-		defer f.Close()
-		out = f
 	}
 
-	if fi, err := out.Stat(); err == nil {
+	fpname := "me.pub"
+	fkname := "me.key"
+	if name := *outFlag; name != "" {
+		fpname = name + ".pub"
+		fkname = name + ".key"
+	}
+	fpfullname := agedir + fpname
+	fkfullname := agedir + fkname
+	fp, err := os.OpenFile(fpfullname, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0600)
+	if err != nil {
+		log.Fatalf("Failed to open pub output file %s: %v", fpname, err)
+	}
+	defer fp.Close()
+	pub := fp
+	fk, err := os.OpenFile(fkfullname, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0600)
+	if err != nil {
+		log.Fatalf("Failed to open key output file %s: %v", fkname, err)
+	}
+	defer fk.Close()
+	key := fk
+
+	if fi, err := key.Stat(); err == nil {
 		if fi.Mode().IsRegular() && fi.Mode().Perm()&0004 != 0 {
-			fmt.Fprintf(os.Stderr, "Warning: writing to a world-readable file.\n")
+			fmt.Fprintf(os.Stderr, "Warning: writing key to a world-readable file.\n")
 			fmt.Fprintf(os.Stderr, "Consider setting the umask to 066 and trying again.\n")
 		}
 	}
 
-	generate(out)
+	generate(pub, key)
+
+	if terminal.IsTerminal(int(os.Stdout.Fd())) {
+		fmt.Fprintf(os.Stderr, "%s and %s written\n", fpfullname, fkfullname)
+	}
 }
 
-func generate(out *os.File) {
+func generate(pub *os.File, key *os.File) {
 	k, err := age.GenerateX25519Identity()
 	if err != nil {
 		log.Fatalf("Internal error: %v", err)
 	}
 
-	if !terminal.IsTerminal(int(out.Fd())) {
-		fmt.Fprintf(os.Stderr, "Public key: %s\n", k.Recipient())
-	}
+	fmt.Fprintf(pub, "%s\n", k.Recipient())
+	fmt.Fprintf(key, "%s\n", k)
 
-	fmt.Fprintf(out, "# created: %s\n", time.Now().Format(time.RFC3339))
-	fmt.Fprintf(out, "# public key: %s\n", k.Recipient())
-	fmt.Fprintf(out, "%s\n", k)
+	if terminal.IsTerminal(int(os.Stdout.Fd())) {
+		fmt.Fprintf(os.Stderr, "Public key: %s\n", k.Recipient())
+	  fmt.Fprintf(os.Stderr, "Created at: %s\n", time.Now().Format(time.RFC3339))
+	}
 }
