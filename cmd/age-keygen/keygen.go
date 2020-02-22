@@ -51,13 +51,11 @@ func main() {
 		log.Fatalf("Failed to open pub output file %s: %v", fpname, err)
 	}
 	defer fp.Close()
-	pub := fp
 	fk, err := os.OpenFile(fkfullname, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0600)
 	if err != nil {
 		log.Fatalf("Failed to open key output file %s: %v", fkname, err)
 	}
 	defer fk.Close()
-	key := fk
 
 	if fi, err := key.Stat(); err == nil {
 		if fi.Mode().IsRegular() && fi.Mode().Perm()&0004 != 0 {
@@ -66,7 +64,7 @@ func main() {
 		}
 	}
 
-	generate(pub, key)
+	generate(fp, fk)
 
 	if terminal.IsTerminal(int(os.Stdout.Fd())) {
 		fmt.Fprintf(os.Stderr, "%s and %s written\n", fpfullname, fkfullname)
