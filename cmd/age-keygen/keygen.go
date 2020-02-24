@@ -11,7 +11,6 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"os/user"
 	"time"
 
 	"filippo.io/age/internal/age"
@@ -21,20 +20,23 @@ import (
 func main() {
 	log.SetFlags(0)
 
-	outFlag := flag.String("o", "", "output to ~/.age/`FILE`.pub and ~/.age/FILE.key (default \"me\")")
+	outFlag := flag.String("o", "", "output to ~/.config/age/`FILE`.pub and ~/.config/age/FILE.key (default \"me\")")
 	flag.Parse()
 	if len(flag.Args()) != 0 {
 		log.Fatalf("age-keygen takes no arguments")
 	}
 
-	// create ~/.age if it doesn't exist
-	usr, _ := user.Current()
-	agedir := usr.HomeDir + "/.age/"
+	// create ~/.config/age if it doesn't exist
+	cfgdir, err := os.UserConfigDir()
+	if err != nil {
+		log.Fatalf("could not find UserConfigDir (perhaps $HOME is not defined?): %v", err)
+	}
+	agedir := cfgdir + "/age/"
 	if _, err := os.Stat(agedir); os.IsNotExist(err) {
 		fmt.Fprintf(os.Stderr, "%s does not exist, creating\n", agedir)
 		err := os.Mkdir(agedir, 0700)
 		if err != nil {
-			log.Fatalf("Unable to make .age directory in %s, exiting\n", usr.HomeDir)
+			log.Fatalf("Unable to make age directory in %s, exiting\n", cfgdir)
 		}
 	}
 
