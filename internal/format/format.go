@@ -151,6 +151,11 @@ func Parse(input io.Reader) (*Header, io.Reader, error) {
 			if prefix != string(recipientPrefix) || len(args) < 1 {
 				return nil, nil, errorf("malformed recipient: %q", line)
 			}
+			for _, a := range args {
+				if !isValidString(a) {
+					return nil, nil, errorf("malformed recipient: %q", line)
+				}
+			}
 			r.Type = args[0]
 			r.Args = args[1:]
 			h.Recipients = append(h.Recipients, r)
@@ -191,4 +196,16 @@ func splitArgs(line []byte) (string, []string) {
 	l := strings.TrimSuffix(string(line), "\n")
 	parts := strings.Split(l, " ")
 	return parts[0], parts[1:]
+}
+
+func isValidString(s string) bool {
+	if len(s) == 0 {
+		return false
+	}
+	for _, c := range s {
+		if c < 33 || c > 126 {
+			return false
+		}
+	}
+	return true
 }
