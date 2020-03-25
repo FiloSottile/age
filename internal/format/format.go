@@ -60,6 +60,9 @@ func (r *Recipient) Marshal(w io.Writer) error {
 	if _, err := io.WriteString(w, "\n"); err != nil {
 		return err
 	}
+	if len(r.Body) == 0 {
+		return nil
+	}
 	ww := base64.NewEncoder(b64, &newlineWriter{dst: w})
 	if _, err := ww.Write(r.Body); err != nil {
 		return err
@@ -159,6 +162,9 @@ func Parse(input io.Reader) (*Header, io.Reader, error) {
 			}
 			if len(b) > bytesPerLine {
 				return nil, nil, errorf("malformed body line %q: too long", line)
+			}
+			if len(b) == 0 {
+				return nil, nil, errorf("malformed body line %q: line is empty", line)
 			}
 			r.Body = append(r.Body, b...)
 			if len(b) < bytesPerLine {
