@@ -1,0 +1,21 @@
+# Copyright 2019 Google LLC
+#
+# Use of this source code is governed by a BSD-style
+# license that can be found in the LICENSE file or at
+# https://developers.google.com/open-source/licenses/bsd
+
+# docker run --rm -v $PWD/workdir:/workdir $(docker build -q -f internal/format/Dockerfile.go-fuzz .)
+
+FROM golang:1.14-alpine3.11
+
+RUN apk add --no-cache git
+RUN go get github.com/dvyukov/go-fuzz/...
+
+ADD . $GOPATH/src/filippo.io/age/
+WORKDIR $GOPATH/src/filippo.io/age
+
+RUN go-fuzz-build ./internal/format
+
+VOLUME /workdir
+
+ENTRYPOINT ["go-fuzz", "-workdir", "/workdir", "-bin", "format-fuzz.zip"]

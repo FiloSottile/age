@@ -148,7 +148,7 @@ func (r *armoredReader) Read(p []byte) (int, error) {
 	r.unread = r.buf[:]
 	n, err := base64.StdEncoding.Strict().Decode(r.unread, line)
 	if err != nil {
-		return 0, r.setErr(err)
+		return 0, r.setErr(errors.New("invalid armor: " + err.Error()))
 	}
 	r.unread = r.unread[:n]
 
