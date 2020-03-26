@@ -1,0 +1,20 @@
+#!/usr/bin/make -f
+
+export DH_GOPKG := filippo.io/age
+export DH_GOLANG_BUILDPKG := filippo.io/age/cmd/...
+
+%:
+	dh $@ --builddirectory=_build --buildsystem=golang --with=golang
+
+override_dh_auto_build:
+	cd _build/src/${DH_GOPKG} && go mod vendor
+	dh_auto_build
+
+override_dh_auto_install:
+	dh_auto_install -- --no-source
+
+override_dh_auto_build:
+	cd _build/src/${DH_GOPKG} && go mod vendor
+	dh_auto_build
+
+override_dh_auto_test:

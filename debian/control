@@ -1,0 +1,15 @@
+Source: age
+Section: unknown
+Priority: optional
+Maintainer: Paul Knopf <pknopf@unknown>
+Build-Depends: debhelper (>= 10),
+  dh-golang,
+  golang-go
+Standards-Version: 4.1.2
+Homepage: https://github.com/medxchange/age.git
+
+Package: age
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: Encryption utility.
+ Encryption utility, posix friendly.
