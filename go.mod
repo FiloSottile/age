@@ -1,4 +1,4 @@
-module filippo.io/age
+module github.com/UNO-SOFT/age
 
 go 1.13
 

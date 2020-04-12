@@ -12,8 +12,8 @@ import (
 	"fmt"
 	"os"
 
-	"filippo.io/age/internal/age"
-	"filippo.io/age/internal/format"
+	"github.com/UNO-SOFT/age/internal/age"
+	"github.com/UNO-SOFT/age/internal/format"
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/crypto/ssh/terminal"
 )

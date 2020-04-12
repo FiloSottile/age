@@ -15,7 +15,7 @@ import (
 
 	"golang.org/x/crypto/ssh"
 
-	"filippo.io/age/internal/age"
+	"github.com/UNO-SOFT/age/internal/age"
 )
 
 type Identity = age.Identity

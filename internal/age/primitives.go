@@ -11,7 +11,7 @@ import (
 	"crypto/sha256"
 	"io"
 
-	"filippo.io/age/internal/format"
+	"github.com/UNO-SOFT/age/internal/format"
 	"golang.org/x/crypto/chacha20poly1305"
 	"golang.org/x/crypto/hkdf"
 )

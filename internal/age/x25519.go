@@ -14,8 +14,8 @@ import (
 	"io"
 	"strings"
 
-	"filippo.io/age/internal/bech32"
-	"filippo.io/age/internal/format"
+	"github.com/UNO-SOFT/age/internal/bech32"
+	"github.com/UNO-SOFT/age/internal/format"
 	"golang.org/x/crypto/chacha20poly1305"
 	"golang.org/x/crypto/curve25519"
 	"golang.org/x/crypto/hkdf"

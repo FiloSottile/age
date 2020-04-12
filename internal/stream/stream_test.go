@@ -13,8 +13,8 @@ import (
 	"io"
 	"testing"
 
-	"filippo.io/age/internal/format"
-	"filippo.io/age/internal/stream"
+	"github.com/UNO-SOFT/age/internal/format"
+	"github.com/UNO-SOFT/age/internal/stream"
 	"golang.org/x/crypto/chacha20poly1305"
 )
 
