@@ -79,7 +79,7 @@ Note that SSH key support employs more complex cryptography, and embeds a public
 On macOS or Linux, you can use Homebrew:
 
 ```
-brew tap filippo.io/age https://filippo.io/age
+brew tap https://github.com/FiloSottile/age
 brew install age
 ```
 
@@ -88,7 +88,7 @@ On Windows, Linux, and macOS, you can use [the pre-built binaries](https://githu
 If your system has [Go 1.13+](https://golang.org/dl/), you can build from source:
 
 ```
-git clone https://filippo.io/age && cd age
+git clone https://github.com/FiloSottile/age && cd age
 go build -o . filippo.io/age/cmd/...
 ```
 
