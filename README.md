@@ -79,7 +79,7 @@ Note that SSH key support employs more complex cryptography, and embeds a public
 On macOS or Linux, you can use Homebrew:
 
 ```
-brew tap https://github.com/FiloSottile/age
+brew tap FiloSottile/age
 brew install age
 ```
 
