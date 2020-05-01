@@ -13,7 +13,7 @@ import (
 	"io/ioutil"
 	"testing"
 
-	"filippo.io/age/internal/age"
+	"filippo.io/age"
 	"golang.org/x/crypto/curve25519"
 )
 

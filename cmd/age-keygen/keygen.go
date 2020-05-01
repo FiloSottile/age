@@ -13,7 +13,7 @@ import (
 	"os"
 	"time"
 
-	"filippo.io/age/internal/age"
+	"filippo.io/age"
 	"golang.org/x/crypto/ssh/terminal"
 )
 

@@ -12,7 +12,7 @@ import (
 	"fmt"
 	"os"
 
-	"filippo.io/age/internal/age"
+	"filippo.io/age"
 	"filippo.io/age/internal/format"
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/crypto/ssh/terminal"

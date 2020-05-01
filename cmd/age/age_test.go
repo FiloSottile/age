@@ -13,7 +13,7 @@ import (
 	"strings"
 	"testing"
 
-	"filippo.io/age/internal/age"
+	"filippo.io/age"
 )
 
 func TestVectors(t *testing.T) {
