@@ -9,6 +9,7 @@ package main
 import (
 	"crypto/ed25519"
 	"crypto/rsa"
+	"crypto/sha256"
 	"fmt"
 	"os"
 
@@ -77,6 +78,11 @@ func (i *EncryptedSSHIdentity) Unwrap(block *format.Recipient) (fileKey []byte, 
 	return i.decrypted.Unwrap(block)
 }
 
+func sshFingerprint(pk ssh.PublicKey) string {
+	h := sha256.Sum256(pk.Marshal())
+	return format.EncodeToString(h[:4])
+}
+
 func (i *EncryptedSSHIdentity) Matches(block *format.Recipient) error {
 	if block.Type != i.Type() {
 		return age.ErrIncorrectIdentity
@@ -85,7 +91,7 @@ func (i *EncryptedSSHIdentity) Matches(block *format.Recipient) error {
 		return fmt.Errorf("invalid %v recipient block", i.Type())
 	}
 
-	if block.Args[0] != age.SSHFingerprint(i.pubKey) {
+	if block.Args[0] != sshFingerprint(i.pubKey) {
 		return age.ErrIncorrectIdentity
 	}
 	return nil

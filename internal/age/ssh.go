@@ -24,11 +24,9 @@ import (
 	"golang.org/x/crypto/ssh"
 )
 
-func SSHFingerprint(pk ssh.PublicKey) string {
-	h := sha256.New()
-	h.Write(pk.Marshal())
-	hh := h.Sum(nil)
-	return format.EncodeToString(hh[:4])
+func sshFingerprint(pk ssh.PublicKey) string {
+	h := sha256.Sum256(pk.Marshal())
+	return format.EncodeToString(h[:4])
 }
 
 const oaepLabel = "age-encryption.org/v1/ssh-rsa"
@@ -65,7 +63,7 @@ func NewSSHRSARecipient(pk ssh.PublicKey) (*SSHRSARecipient, error) {
 func (r *SSHRSARecipient) Wrap(fileKey []byte) (*format.Recipient, error) {
 	l := &format.Recipient{
 		Type: "ssh-rsa",
-		Args: []string{SSHFingerprint(r.sshKey)},
+		Args: []string{sshFingerprint(r.sshKey)},
 	}
 
 	wrappedKey, err := rsa.EncryptOAEP(sha256.New(), rand.Reader,
@@ -106,7 +104,7 @@ func (i *SSHRSAIdentity) Unwrap(block *format.Recipient) ([]byte, error) {
 		return nil, errors.New("invalid ssh-rsa recipient block")
 	}
 
-	if block.Args[0] != SSHFingerprint(i.sshKey) {
+	if block.Args[0] != sshFingerprint(i.sshKey) {
 		return nil, ErrIncorrectIdentity
 	}
 
@@ -226,7 +224,7 @@ func (r *SSHEd25519Recipient) Wrap(fileKey []byte) (*format.Recipient, error) {
 
 	l := &format.Recipient{
 		Type: "ssh-ed25519",
-		Args: []string{SSHFingerprint(r.sshKey),
+		Args: []string{sshFingerprint(r.sshKey),
 			format.EncodeToString(ourPublicKey[:])},
 	}
 
@@ -308,7 +306,7 @@ func (i *SSHEd25519Identity) Unwrap(block *format.Recipient) ([]byte, error) {
 		return nil, errors.New("invalid ssh-ed25519 recipient block")
 	}
 
-	if block.Args[0] != SSHFingerprint(i.sshKey) {
+	if block.Args[0] != sshFingerprint(i.sshKey) {
 		return nil, ErrIncorrectIdentity
 	}
 
