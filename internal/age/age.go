@@ -36,19 +36,6 @@ type Recipient interface {
 }
 
 func Encrypt(dst io.Writer, recipients ...Recipient) (io.WriteCloser, error) {
-	// stream.Writer takes a WriteCloser, and will propagate Close calls (so
-	// that the ArmoredWriter will get closed), but we don't want to expose
-	// that behavior to our caller.
-	dstCloser := format.NopCloser(dst)
-	return encrypt(dstCloser, recipients...)
-}
-
-func EncryptWithArmor(dst io.Writer, recipients ...Recipient) (io.WriteCloser, error) {
-	dstCloser := format.ArmoredWriter(dst)
-	return encrypt(dstCloser, recipients...)
-}
-
-func encrypt(dst io.WriteCloser, recipients ...Recipient) (io.WriteCloser, error) {
 	if len(recipients) == 0 {
 		return nil, errors.New("no recipients specified")
 	}

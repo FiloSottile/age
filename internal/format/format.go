@@ -112,13 +112,6 @@ func Parse(input io.Reader) (*Header, io.Reader, error) {
 	h := &Header{}
 	rr := bufio.NewReader(input)
 
-	// TODO: find a way to communicate to the caller that the file was armored,
-	// as they might not appreciate the malleability.
-	if start, _ := rr.Peek(len(armorPreamble)); string(start) == armorPreamble {
-		input = ArmoredReader(rr)
-		rr = bufio.NewReader(input)
-	}
-
 	line, err := rr.ReadString('\n')
 	if err != nil {
 		return nil, nil, errorf("failed to read intro: %v", err)
