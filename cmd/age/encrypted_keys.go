@@ -84,7 +84,7 @@ func sshFingerprint(pk ssh.PublicKey) string {
 	return format.EncodeToString(h[:4])
 }
 
-func (i *EncryptedSSHIdentity) Matches(block *format.Recipient) error {
+func (i *EncryptedSSHIdentity) Match(block *format.Recipient) error {
 	if block.Type != i.Type() {
 		return age.ErrIncorrectIdentity
 	}

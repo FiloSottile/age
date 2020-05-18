@@ -106,7 +106,7 @@ func (r *Reader) readChunk() (last bool, err error) {
 		out, err = r.a.Open(outBuf, r.nonce[:], in, nil)
 	}
 	if err != nil {
-		return false, err
+		return false, errors.New("failed to decrypt and authenticate payload chunk")
 	}
 
 	incNonce(&r.nonce)

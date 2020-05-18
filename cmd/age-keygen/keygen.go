@@ -38,8 +38,8 @@ func main() {
 
 	if fi, err := out.Stat(); err == nil {
 		if fi.Mode().IsRegular() && fi.Mode().Perm()&0004 != 0 {
-			fmt.Fprintf(os.Stderr, "Warning: writing to a world-readable file.\n")
-			fmt.Fprintf(os.Stderr, "Consider setting the umask to 066 and trying again.\n")
+			fmt.Fprintf(os.Stderr, "Warning: writing to a world-readable file.\n"+
+				"Consider setting the umask to 066 and trying again.\n")
 		}
 	}
 

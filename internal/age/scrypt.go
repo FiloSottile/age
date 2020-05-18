@@ -19,6 +19,14 @@ import (
 
 const scryptLabel = "age-encryption.org/v1/scrypt"
 
+// ScryptRecipient is a password-based recipient.
+//
+// If a ScryptRecipient is used, it must be the only recipient for the file: it
+// can't be mixed with other recipient types and can't be used multiple times
+// for the same file.
+//
+// Its use is not recommended for automated systems, which should prefer
+// X25519Recipient.
 type ScryptRecipient struct {
 	password   []byte
 	workFactor int
@@ -28,6 +36,7 @@ var _ Recipient = &ScryptRecipient{}
 
 func (*ScryptRecipient) Type() string { return "scrypt" }
 
+// NewScryptRecipient returns a new ScryptRecipient with the provided password.
 func NewScryptRecipient(password string) (*ScryptRecipient, error) {
 	if len(password) == 0 {
 		return nil, errors.New("passphrase can't be empty")
@@ -42,6 +51,8 @@ func NewScryptRecipient(password string) (*ScryptRecipient, error) {
 
 // SetWorkFactor sets the scrypt work factor to 2^logN.
 // It must be called before Wrap.
+//
+// If SetWorkFactor is not called, a reasonable default is used.
 func (r *ScryptRecipient) SetWorkFactor(logN int) {
 	if logN > 30 || logN < 1 {
 		panic("age: SetWorkFactor called with illegal value")
@@ -76,6 +87,7 @@ func (r *ScryptRecipient) Wrap(fileKey []byte) (*format.Recipient, error) {
 	return l, nil
 }
 
+// ScryptIdentity is a password-based identity.
 type ScryptIdentity struct {
 	password      []byte
 	maxWorkFactor int
@@ -85,6 +97,7 @@ var _ Identity = &ScryptIdentity{}
 
 func (*ScryptIdentity) Type() string { return "scrypt" }
 
+// NewScryptIdentity returns a new ScryptIdentity with the provided password.
 func NewScryptIdentity(password string) (*ScryptIdentity, error) {
 	if len(password) == 0 {
 		return nil, errors.New("passphrase can't be empty")
@@ -96,8 +109,12 @@ func NewScryptIdentity(password string) (*ScryptIdentity, error) {
 	return i, nil
 }
 
-// SetWorkFactor sets the maximum accepted scrypt work factor to 2^logN.
+// SetMaxWorkFactor sets the maximum accepted scrypt work factor to 2^logN.
 // It must be called before Unwrap.
+//
+// This caps the amount of work that Decrypt might have to do to process
+// received files. If SetMaxWorkFactor is not called, a fairly high default is
+// used, which might not be suitable for systems processing untrusted files.
 func (i *ScryptIdentity) SetMaxWorkFactor(logN int) {
 	if logN > 30 || logN < 1 {
 		panic("age: SetMaxWorkFactor called with illegal value")

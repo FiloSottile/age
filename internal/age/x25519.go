@@ -23,6 +23,7 @@ import (
 
 const x25519Label = "age-encryption.org/v1/X25519"
 
+// X25519Recipient is the standard age public key, based on a Curve25519 point.
 type X25519Recipient struct {
 	theirPublicKey []byte
 }
@@ -31,6 +32,7 @@ var _ Recipient = &X25519Recipient{}
 
 func (*X25519Recipient) Type() string { return "X25519" }
 
+// NewX25519Recipient returns a new X25519Recipient from a raw Curve25519 point.
 func NewX25519Recipient(publicKey []byte) (*X25519Recipient, error) {
 	if len(publicKey) != curve25519.PointSize {
 		return nil, errors.New("invalid X25519 public key")
@@ -42,6 +44,8 @@ func NewX25519Recipient(publicKey []byte) (*X25519Recipient, error) {
 	return r, nil
 }
 
+// ParseX25519Recipient returns a new X25519Recipient from a Bech32 public key
+// encoding with the "age1" prefix.
 func ParseX25519Recipient(s string) (*X25519Recipient, error) {
 	t, k, err := bech32.Decode(s)
 	if err != nil {
@@ -95,11 +99,13 @@ func (r *X25519Recipient) Wrap(fileKey []byte) (*format.Recipient, error) {
 	return l, nil
 }
 
+// String returns the Bech32 public key encoding of r.
 func (r *X25519Recipient) String() string {
 	s, _ := bech32.Encode("age", r.theirPublicKey)
 	return s
 }
 
+// X25519Identity is the standard age private key, based on a Curve25519 scalar.
 type X25519Identity struct {
 	secretKey, ourPublicKey []byte
 }
@@ -108,6 +114,7 @@ var _ Identity = &X25519Identity{}
 
 func (*X25519Identity) Type() string { return "X25519" }
 
+// NewX25519Identity returns a new X25519Identity from a raw Curve25519 scalar.
 func NewX25519Identity(secretKey []byte) (*X25519Identity, error) {
 	if len(secretKey) != curve25519.ScalarSize {
 		return nil, errors.New("invalid X25519 secret key")
@@ -120,6 +127,7 @@ func NewX25519Identity(secretKey []byte) (*X25519Identity, error) {
 	return i, nil
 }
 
+// GenerateX25519Identity generates a fresh X25519Identity.
 func GenerateX25519Identity() (*X25519Identity, error) {
 	secretKey := make([]byte, curve25519.ScalarSize)
 	if _, err := rand.Read(secretKey); err != nil {
@@ -128,6 +136,8 @@ func GenerateX25519Identity() (*X25519Identity, error) {
 	return NewX25519Identity(secretKey)
 }
 
+// ParseX25519Identity returns a new X25519Recipient from a Bech32 private key
+// encoding with the "AGE-SECRET-KEY-1" prefix.
 func ParseX25519Identity(s string) (*X25519Identity, error) {
 	t, k, err := bech32.Decode(s)
 	if err != nil {
@@ -179,12 +189,14 @@ func (i *X25519Identity) Unwrap(block *format.Recipient) ([]byte, error) {
 	return fileKey, nil
 }
 
+// Recipient returns the public X25519Recipient value corresponding to i.
 func (i *X25519Identity) Recipient() *X25519Recipient {
 	r := &X25519Recipient{}
 	r.theirPublicKey = i.ourPublicKey
 	return r
 }
 
+// String returns the Bech32 private key encoding of i.
 func (i *X25519Identity) String() string {
 	s, _ := bech32.Encode("AGE-SECRET-KEY-", i.secretKey)
 	return strings.ToUpper(s)
