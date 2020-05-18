@@ -131,13 +131,15 @@ func main() {
 		}
 		defer f.Close()
 		out = f
-	} else if terminal.IsTerminal(int(os.Stdout.Fd())) && !decryptFlag {
+	} else if terminal.IsTerminal(int(os.Stdout.Fd())) {
 		if armorFlag {
 			// If the output will go to a TTY, and it will be armored, buffer it
 			// up so it doesn't get in the way of typing the input.
 			buf := &bytes.Buffer{}
 			defer func() { io.Copy(os.Stdout, buf) }()
 			out = buf
+		} else if decryptFlag && name != "-" {
+			// TODO: buffer the output and check it's printable.
 		} else if name != "-" {
 			// If the output wouldn't be armored, refuse to send binary to the
 			// terminal unless explicitly requested with "-o -".
