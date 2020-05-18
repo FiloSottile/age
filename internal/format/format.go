@@ -210,13 +210,18 @@ func Parse(input io.Reader) (*Header, io.Reader, error) {
 		}
 	}
 
-	// Unwind the bufio overread and return the unbuffered input.
+	// If input is a bufio.Reader, rr might be equal to input because
+	// bufio.NewReader short-circuits. In this case we can just return it (and
+	// we would end up reading the buffer twice if we prepended the peek below).
+	if rr == input {
+		return h, rr, nil
+	}
+	// Otherwise, unwind the bufio overread and return the unbuffered input.
 	buf, err := rr.Peek(rr.Buffered())
 	if err != nil {
 		return nil, nil, errorf("internal error: %v", err)
 	}
 	payload := io.MultiReader(bytes.NewReader(buf), input)
-
 	return h, payload, nil
 }
 
