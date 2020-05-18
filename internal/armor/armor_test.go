@@ -4,7 +4,7 @@
 // license that can be found in the LICENSE file or at
 // https://developers.google.com/open-source/licenses/bsd
 
-package format_test
+package armor_test
 
 import (
 	"bytes"
@@ -12,12 +12,12 @@ import (
 	"io/ioutil"
 	"testing"
 
-	"filippo.io/age/internal/format"
+	"filippo.io/age/internal/armor"
 )
 
 func TestArmor(t *testing.T) {
 	buf := &bytes.Buffer{}
-	w := format.ArmoredWriter(buf)
+	w := armor.NewWriter(buf)
 	plain := make([]byte, 611)
 	if _, err := w.Write(plain); err != nil {
 		t.Fatal(err)
@@ -34,7 +34,7 @@ func TestArmor(t *testing.T) {
 		t.Error("PEM decoded value doesn't match")
 	}
 
-	r := format.ArmoredReader(buf)
+	r := armor.NewReader(buf)
 	out, err := ioutil.ReadAll(r)
 	if err != nil {
 		t.Fatal(err)

@@ -17,7 +17,7 @@ import (
 	"strings"
 
 	"filippo.io/age/internal/age"
-	"filippo.io/age/internal/format"
+	"filippo.io/age/internal/armor"
 	"golang.org/x/crypto/ssh/terminal"
 )
 
@@ -207,10 +207,10 @@ func encryptPass(pass string, in io.Reader, out io.Writer, armor bool) {
 	encrypt([]age.Recipient{r}, in, out, armor)
 }
 
-func encrypt(recipients []age.Recipient, in io.Reader, out io.Writer, armor bool) {
+func encrypt(recipients []age.Recipient, in io.Reader, out io.Writer, withArmor bool) {
 	ageEncrypt := age.Encrypt
-	if armor {
-		a := format.ArmoredWriter(out)
+	if withArmor {
+		a := armor.NewWriter(out)
 		defer func() {
 			if err := a.Close(); err != nil {
 				logFatalf("Error: %v", err)
@@ -248,9 +248,8 @@ func decrypt(keys []string, in io.Reader, out io.Writer) {
 	}
 
 	rr := bufio.NewReader(in)
-	armorHeader := "-----BEGIN AGE ENCRYPTED FILE-----"
-	if start, _ := rr.Peek(len(armorHeader)); string(start) == armorHeader {
-		in = format.ArmoredReader(rr)
+	if start, _ := rr.Peek(len(armor.Header)); string(start) == armor.Header {
+		in = armor.NewReader(rr)
 	} else {
 		in = rr
 	}

@@ -40,8 +40,43 @@ func DecodeString(s string) ([]byte, error) {
 
 var EncodeToString = b64.EncodeToString
 
-const columnsPerLine = 64
-const bytesPerLine = columnsPerLine / 4 * 3
+const ColumnsPerLine = 64
+const BytesPerLine = ColumnsPerLine / 4 * 3
+
+// NewlineWriter returns a Writer that writes to dst, inserting an LF character
+// every ColumnsPerLine bytes. It does not insert a newline neither at the
+// beginning nor at the end of the stream.
+func NewlineWriter(dst io.Writer) io.Writer {
+	return &newlineWriter{dst: dst}
+}
+
+type newlineWriter struct {
+	dst     io.Writer
+	written int
+}
+
+func (w *newlineWriter) Write(p []byte) (n int, err error) {
+	for len(p) > 0 {
+		remainingInLine := ColumnsPerLine - (w.written % ColumnsPerLine)
+		if remainingInLine == ColumnsPerLine && w.written != 0 {
+			if _, err := w.dst.Write([]byte("\n")); err != nil {
+				return n, err
+			}
+		}
+		toWrite := remainingInLine
+		if toWrite > len(p) {
+			toWrite = len(p)
+		}
+		nn, err := w.dst.Write(p[:toWrite])
+		n += nn
+		w.written += nn
+		p = p[nn:]
+		if err != nil {
+			return n, err
+		}
+	}
+	return n, nil
+}
 
 const intro = "age-encryption.org/v1\n"
 
@@ -63,7 +98,7 @@ func (r *Recipient) Marshal(w io.Writer) error {
 	if len(r.Body) == 0 {
 		return nil
 	}
-	ww := base64.NewEncoder(b64, &newlineWriter{dst: w})
+	ww := base64.NewEncoder(b64, NewlineWriter(w))
 	if _, err := ww.Write(r.Body); err != nil {
 		return err
 	}
@@ -158,14 +193,14 @@ func Parse(input io.Reader) (*Header, io.Reader, error) {
 			if err != nil {
 				return nil, nil, errorf("malformed body line %q: %v", line, err)
 			}
-			if len(b) > bytesPerLine {
+			if len(b) > BytesPerLine {
 				return nil, nil, errorf("malformed body line %q: too long", line)
 			}
 			if len(b) == 0 {
 				return nil, nil, errorf("malformed body line %q: line is empty", line)
 			}
 			r.Body = append(r.Body, b...)
-			if len(b) < bytesPerLine {
+			if len(b) < BytesPerLine {
 				// Only the last line of a body can be short.
 				r = nil
 			}
