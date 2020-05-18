@@ -4,7 +4,13 @@
 // license that can be found in the LICENSE file or at
 // https://developers.google.com/open-source/licenses/bsd
 
-package age
+// Package agessh provides age.Identity and age.Recipient implementations of
+// types "ssh-rsa" and "ssh-ed25519", which allow reusing existing SSH key files
+// for encryption with age-encryption.org/v1.
+//
+// These should only be used for compatibility with existing keys, and native
+// X25519 keys should be preferred otherwise.
+package agessh
 
 import (
 	"crypto/ed25519"
@@ -17,6 +23,7 @@ import (
 	"io"
 	"math/big"
 
+	"filippo.io/age/internal/age"
 	"filippo.io/age/internal/format"
 	"golang.org/x/crypto/chacha20poly1305"
 	"golang.org/x/crypto/curve25519"
@@ -31,20 +38,20 @@ func sshFingerprint(pk ssh.PublicKey) string {
 
 const oaepLabel = "age-encryption.org/v1/ssh-rsa"
 
-type SSHRSARecipient struct {
+type RSARecipient struct {
 	sshKey ssh.PublicKey
 	pubKey *rsa.PublicKey
 }
 
-var _ Recipient = &SSHRSARecipient{}
+var _ age.Recipient = &RSARecipient{}
 
-func (*SSHRSARecipient) Type() string { return "ssh-rsa" }
+func (*RSARecipient) Type() string { return "ssh-rsa" }
 
-func NewSSHRSARecipient(pk ssh.PublicKey) (*SSHRSARecipient, error) {
+func NewRSARecipient(pk ssh.PublicKey) (*RSARecipient, error) {
 	if pk.Type() != "ssh-rsa" {
 		return nil, errors.New("SSH public key is not an RSA key")
 	}
-	r := &SSHRSARecipient{
+	r := &RSARecipient{
 		sshKey: pk,
 	}
 
@@ -60,7 +67,7 @@ func NewSSHRSARecipient(pk ssh.PublicKey) (*SSHRSARecipient, error) {
 	return r, nil
 }
 
-func (r *SSHRSARecipient) Wrap(fileKey []byte) (*format.Recipient, error) {
+func (r *RSARecipient) Wrap(fileKey []byte) (*format.Recipient, error) {
 	l := &format.Recipient{
 		Type: "ssh-rsa",
 		Args: []string{sshFingerprint(r.sshKey)},
@@ -76,36 +83,36 @@ func (r *SSHRSARecipient) Wrap(fileKey []byte) (*format.Recipient, error) {
 	return l, nil
 }
 
-type SSHRSAIdentity struct {
+type RSAIdentity struct {
 	k      *rsa.PrivateKey
 	sshKey ssh.PublicKey
 }
 
-var _ Identity = &SSHRSAIdentity{}
+var _ age.Identity = &RSAIdentity{}
 
-func (*SSHRSAIdentity) Type() string { return "ssh-rsa" }
+func (*RSAIdentity) Type() string { return "ssh-rsa" }
 
-func NewSSHRSAIdentity(key *rsa.PrivateKey) (*SSHRSAIdentity, error) {
+func NewRSAIdentity(key *rsa.PrivateKey) (*RSAIdentity, error) {
 	s, err := ssh.NewSignerFromKey(key)
 	if err != nil {
 		return nil, err
 	}
-	i := &SSHRSAIdentity{
+	i := &RSAIdentity{
 		k: key, sshKey: s.PublicKey(),
 	}
 	return i, nil
 }
 
-func (i *SSHRSAIdentity) Unwrap(block *format.Recipient) ([]byte, error) {
+func (i *RSAIdentity) Unwrap(block *format.Recipient) ([]byte, error) {
 	if block.Type != "ssh-rsa" {
-		return nil, ErrIncorrectIdentity
+		return nil, age.ErrIncorrectIdentity
 	}
 	if len(block.Args) != 1 {
 		return nil, errors.New("invalid ssh-rsa recipient block")
 	}
 
 	if block.Args[0] != sshFingerprint(i.sshKey) {
-		return nil, ErrIncorrectIdentity
+		return nil, age.ErrIncorrectIdentity
 	}
 
 	fileKey, err := rsa.DecryptOAEP(sha256.New(), rand.Reader, i.k,
@@ -116,20 +123,20 @@ func (i *SSHRSAIdentity) Unwrap(block *format.Recipient) ([]byte, error) {
 	return fileKey, nil
 }
 
-type SSHEd25519Recipient struct {
+type Ed25519Recipient struct {
 	sshKey         ssh.PublicKey
 	theirPublicKey []byte
 }
 
-var _ Recipient = &SSHEd25519Recipient{}
+var _ age.Recipient = &Ed25519Recipient{}
 
-func (*SSHEd25519Recipient) Type() string { return "ssh-ed25519" }
+func (*Ed25519Recipient) Type() string { return "ssh-ed25519" }
 
-func NewSSHEd25519Recipient(pk ssh.PublicKey) (*SSHEd25519Recipient, error) {
+func NewEd25519Recipient(pk ssh.PublicKey) (*Ed25519Recipient, error) {
 	if pk.Type() != "ssh-ed25519" {
 		return nil, errors.New("SSH public key is not an Ed25519 key")
 	}
-	r := &SSHEd25519Recipient{
+	r := &Ed25519Recipient{
 		sshKey: pk,
 	}
 
@@ -145,18 +152,18 @@ func NewSSHEd25519Recipient(pk ssh.PublicKey) (*SSHEd25519Recipient, error) {
 	return r, nil
 }
 
-func ParseSSHRecipient(s string) (Recipient, error) {
+func ParseRecipient(s string) (age.Recipient, error) {
 	pubKey, _, _, _, err := ssh.ParseAuthorizedKey([]byte(s))
 	if err != nil {
 		return nil, fmt.Errorf("malformed SSH recipient: %q: %v", s, err)
 	}
 
-	var r Recipient
+	var r age.Recipient
 	switch t := pubKey.Type(); t {
 	case "ssh-rsa":
-		r, err = NewSSHRSARecipient(pubKey)
+		r, err = NewRSARecipient(pubKey)
 	case "ssh-ed25519":
-		r, err = NewSSHEd25519Recipient(pubKey)
+		r, err = NewEd25519Recipient(pubKey)
 	default:
 		return nil, fmt.Errorf("unknown SSH recipient type: %q", t)
 	}
@@ -200,7 +207,7 @@ func ed25519PublicKeyToCurve25519(pk ed25519.PublicKey) []byte {
 
 const ed25519Label = "age-encryption.org/v1/ssh-ed25519"
 
-func (r *SSHEd25519Recipient) Wrap(fileKey []byte) (*format.Recipient, error) {
+func (r *Ed25519Recipient) Wrap(fileKey []byte) (*format.Recipient, error) {
 	ephemeral := make([]byte, curve25519.ScalarSize)
 	if _, err := rand.Read(ephemeral); err != nil {
 		return nil, err
@@ -246,21 +253,21 @@ func (r *SSHEd25519Recipient) Wrap(fileKey []byte) (*format.Recipient, error) {
 	return l, nil
 }
 
-type SSHEd25519Identity struct {
+type Ed25519Identity struct {
 	secretKey, ourPublicKey []byte
 	sshKey                  ssh.PublicKey
 }
 
-var _ Identity = &SSHEd25519Identity{}
+var _ age.Identity = &Ed25519Identity{}
 
-func (*SSHEd25519Identity) Type() string { return "ssh-ed25519" }
+func (*Ed25519Identity) Type() string { return "ssh-ed25519" }
 
-func NewSSHEd25519Identity(key ed25519.PrivateKey) (*SSHEd25519Identity, error) {
+func NewEd25519Identity(key ed25519.PrivateKey) (*Ed25519Identity, error) {
 	s, err := ssh.NewSignerFromKey(key)
 	if err != nil {
 		return nil, err
 	}
-	i := &SSHEd25519Identity{
+	i := &Ed25519Identity{
 		sshKey:    s.PublicKey(),
 		secretKey: ed25519PrivateKeyToCurve25519(key),
 	}
@@ -268,7 +275,7 @@ func NewSSHEd25519Identity(key ed25519.PrivateKey) (*SSHEd25519Identity, error) 
 	return i, nil
 }
 
-func ParseSSHIdentity(pemBytes []byte) (Identity, error) {
+func ParseIdentity(pemBytes []byte) (age.Identity, error) {
 	k, err := ssh.ParseRawPrivateKey(pemBytes)
 	if err != nil {
 		return nil, err
@@ -276,9 +283,9 @@ func ParseSSHIdentity(pemBytes []byte) (Identity, error) {
 
 	switch k := k.(type) {
 	case *ed25519.PrivateKey:
-		return NewSSHEd25519Identity(*k)
+		return NewEd25519Identity(*k)
 	case *rsa.PrivateKey:
-		return NewSSHRSAIdentity(k)
+		return NewRSAIdentity(k)
 	}
 
 	return nil, fmt.Errorf("unsupported SSH identity type: %T", k)
@@ -291,9 +298,9 @@ func ed25519PrivateKeyToCurve25519(pk ed25519.PrivateKey) []byte {
 	return out[:curve25519.ScalarSize]
 }
 
-func (i *SSHEd25519Identity) Unwrap(block *format.Recipient) ([]byte, error) {
+func (i *Ed25519Identity) Unwrap(block *format.Recipient) ([]byte, error) {
 	if block.Type != "ssh-ed25519" {
-		return nil, ErrIncorrectIdentity
+		return nil, age.ErrIncorrectIdentity
 	}
 	if len(block.Args) != 2 {
 		return nil, errors.New("invalid ssh-ed25519 recipient block")
@@ -307,7 +314,7 @@ func (i *SSHEd25519Identity) Unwrap(block *format.Recipient) ([]byte, error) {
 	}
 
 	if block.Args[0] != sshFingerprint(i.sshKey) {
-		return nil, ErrIncorrectIdentity
+		return nil, age.ErrIncorrectIdentity
 	}
 
 	sharedSecret, err := curve25519.X25519(i.secretKey, publicKey)
@@ -336,4 +343,24 @@ func (i *SSHEd25519Identity) Unwrap(block *format.Recipient) ([]byte, error) {
 		return nil, fmt.Errorf("failed to decrypt file key: %v", err)
 	}
 	return fileKey, nil
+}
+
+// aeadEncrypt and aeadDecrypt are copied from package age.
+
+func aeadEncrypt(key, plaintext []byte) ([]byte, error) {
+	aead, err := chacha20poly1305.New(key)
+	if err != nil {
+		return nil, err
+	}
+	nonce := make([]byte, chacha20poly1305.NonceSize)
+	return aead.Seal(nil, nonce, plaintext, nil), nil
+}
+
+func aeadDecrypt(key, ciphertext []byte) ([]byte, error) {
+	aead, err := chacha20poly1305.New(key)
+	if err != nil {
+		return nil, err
+	}
+	nonce := make([]byte, chacha20poly1305.NonceSize)
+	return aead.Open(nil, nonce, ciphertext, nil)
 }

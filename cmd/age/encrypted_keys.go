@@ -14,6 +14,7 @@ import (
 	"os"
 
 	"filippo.io/age/internal/age"
+	"filippo.io/age/internal/agessh"
 	"filippo.io/age/internal/format"
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/crypto/ssh/terminal"
@@ -62,9 +63,9 @@ func (i *EncryptedSSHIdentity) Unwrap(block *format.Recipient) (fileKey []byte, 
 
 	switch k := k.(type) {
 	case *ed25519.PrivateKey:
-		i.decrypted, err = age.NewSSHEd25519Identity(*k)
+		i.decrypted, err = agessh.NewEd25519Identity(*k)
 	case *rsa.PrivateKey:
-		i.decrypted, err = age.NewSSHRSAIdentity(k)
+		i.decrypted, err = agessh.NewRSAIdentity(k)
 	default:
 		return nil, fmt.Errorf("unexpected SSH key type: %T", k)
 	}

@@ -16,6 +16,7 @@ import (
 	"strings"
 
 	"filippo.io/age/internal/age"
+	"filippo.io/age/internal/agessh"
 	"golang.org/x/crypto/ssh"
 )
 
@@ -24,7 +25,7 @@ func parseRecipient(arg string) (age.Recipient, error) {
 	case strings.HasPrefix(arg, "age1"):
 		return age.ParseX25519Recipient(arg)
 	case strings.HasPrefix(arg, "ssh-"):
-		return age.ParseSSHRecipient(arg)
+		return agessh.ParseRecipient(arg)
 	}
 
 	return nil, fmt.Errorf("unknown recipient type: %q", arg)
@@ -82,7 +83,7 @@ func parseIdentitiesFile(name string) ([]age.Identity, error) {
 }
 
 func parseSSHIdentity(name string, pemBytes []byte) ([]age.Identity, error) {
-	id, err := age.ParseSSHIdentity(pemBytes)
+	id, err := agessh.ParseIdentity(pemBytes)
 	if sshErr, ok := err.(*ssh.PassphraseMissingError); ok {
 		pubKey := sshErr.PublicKey
 		if pubKey == nil {

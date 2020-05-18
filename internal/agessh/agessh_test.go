@@ -4,46 +4,40 @@
 // license that can be found in the LICENSE file or at
 // https://developers.google.com/open-source/licenses/bsd
 
-package age_test
+package agessh_test
 
 import (
 	"bytes"
+	"crypto/ed25519"
 	"crypto/rand"
+	"crypto/rsa"
 	"testing"
 
-	"filippo.io/age/internal/age"
-	"golang.org/x/crypto/curve25519"
+	"filippo.io/age/internal/agessh"
+	"golang.org/x/crypto/ssh"
 )
 
-func TestX25519RoundTrip(t *testing.T) {
-	secretKey := make([]byte, curve25519.ScalarSize)
-	if _, err := rand.Read(secretKey); err != nil {
-		t.Fatal(err)
-	}
-	publicKey, _ := curve25519.X25519(secretKey, curve25519.Basepoint)
-
-	r, err := age.NewX25519Recipient(publicKey)
+func TestSSHRSARoundTrip(t *testing.T) {
+	pk, err := rsa.GenerateKey(rand.Reader, 768)
 	if err != nil {
 		t.Fatal(err)
 	}
-	i, err := age.NewX25519Identity(secretKey)
+	pub, err := ssh.NewPublicKey(&pk.PublicKey)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if r.Type() != i.Type() || r.Type() != "X25519" {
+	r, err := agessh.NewRSARecipient(pub)
+	if err != nil {
+		t.Fatal(err)
+	}
+	i, err := agessh.NewRSAIdentity(pk)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if r.Type() != i.Type() || r.Type() != "ssh-rsa" {
 		t.Errorf("invalid Type values: %v, %v", r.Type(), i.Type())
-	}
-
-	if r1, err := age.ParseX25519Recipient(r.String()); err != nil {
-		t.Fatal(err)
-	} else if r1.String() != r.String() {
-		t.Errorf("recipient did not round-trip through parsing: got %q, want %q", r1, r)
-	}
-	if i1, err := age.ParseX25519Identity(i.String()); err != nil {
-		t.Fatal(err)
-	} else if i1.String() != i.String() {
-		t.Errorf("identity did not round-trip through parsing: got %q, want %q", i1, i)
 	}
 
 	fileKey := make([]byte, 16)
@@ -68,20 +62,26 @@ func TestX25519RoundTrip(t *testing.T) {
 	}
 }
 
-func TestScryptRoundTrip(t *testing.T) {
-	password := "twitch.tv/filosottile"
-
-	r, err := age.NewScryptRecipient(password)
+func TestSSHEd25519RoundTrip(t *testing.T) {
+	pub, priv, err := ed25519.GenerateKey(rand.Reader)
 	if err != nil {
 		t.Fatal(err)
 	}
-	r.SetWorkFactor(15)
-	i, err := age.NewScryptIdentity(password)
+	sshPubKey, err := ssh.NewPublicKey(pub)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if r.Type() != i.Type() || r.Type() != "scrypt" {
+	r, err := agessh.NewEd25519Recipient(sshPubKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+	i, err := agessh.NewEd25519Identity(priv)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if r.Type() != i.Type() || r.Type() != "ssh-ed25519" {
 		t.Errorf("invalid Type values: %v, %v", r.Type(), i.Type())
 	}
 
