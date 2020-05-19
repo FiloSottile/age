@@ -3,7 +3,7 @@ name: Interoperability tests
 on: push
 
 jobs:
-  ping-pong:
+  trigger:
     runs-on: ubuntu-latest
     steps:
       - name: Trigger interoperability tests in str4d/rage
