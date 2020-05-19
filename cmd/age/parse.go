@@ -100,7 +100,7 @@ func parseSSHIdentity(name string, pemBytes []byte) ([]age.Identity, error) {
 			}
 			return pass, nil
 		}
-		i, err := NewEncryptedSSHIdentity(pubKey, pemBytes, passphrasePrompt)
+		i, err := agessh.NewEncryptedSSHIdentity(pubKey, pemBytes, passphrasePrompt)
 		if err != nil {
 			return nil, err
 		}
