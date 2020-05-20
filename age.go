@@ -75,6 +75,9 @@ func Encrypt(dst io.Writer, recipients ...Recipient) (io.WriteCloser, error) {
 	if len(recipients) == 0 {
 		return nil, errors.New("no recipients specified")
 	}
+	if len(recipients) > 20 {
+		return nil, errors.New("too many recipients")
+	}
 
 	fileKey := make([]byte, 16)
 	if _, err := rand.Read(fileKey); err != nil {
