@@ -12,7 +12,6 @@ import (
 	"fmt"
 
 	"filippo.io/age/internal/age"
-	"filippo.io/age/internal/format"
 	"golang.org/x/crypto/ssh"
 )
 
@@ -65,7 +64,7 @@ func (i *EncryptedSSHIdentity) Type() string {
 // Unwrap implements age.Identity. If the private key is still encrypted, it
 // will request the passphrase. The decrypted private key will be cached after
 // the first successful invocation.
-func (i *EncryptedSSHIdentity) Unwrap(block *format.Recipient) (fileKey []byte, err error) {
+func (i *EncryptedSSHIdentity) Unwrap(block *age.Stanza) (fileKey []byte, err error) {
 	if i.decrypted != nil {
 		return i.decrypted.Unwrap(block)
 	}
@@ -99,7 +98,7 @@ func (i *EncryptedSSHIdentity) Unwrap(block *format.Recipient) (fileKey []byte, 
 
 // Match implements age.IdentityMatcher without decrypting the private key, to
 // ensure the passphrase is only obtained if necessary.
-func (i *EncryptedSSHIdentity) Match(block *format.Recipient) error {
+func (i *EncryptedSSHIdentity) Match(block *age.Stanza) error {
 	if block.Type != i.Type() {
 		return age.ErrIncorrectIdentity
 	}

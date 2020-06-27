@@ -61,7 +61,7 @@ func ParseX25519Recipient(s string) (*X25519Recipient, error) {
 	return r, nil
 }
 
-func (r *X25519Recipient) Wrap(fileKey []byte) (*format.Recipient, error) {
+func (r *X25519Recipient) Wrap(fileKey []byte) (*Stanza, error) {
 	ephemeral := make([]byte, curve25519.ScalarSize)
 	if _, err := rand.Read(ephemeral); err != nil {
 		return nil, err
@@ -76,7 +76,7 @@ func (r *X25519Recipient) Wrap(fileKey []byte) (*format.Recipient, error) {
 		return nil, err
 	}
 
-	l := &format.Recipient{
+	l := &Stanza{
 		Type: "X25519",
 		Args: []string{format.EncodeToString(ourPublicKey)},
 	}
@@ -153,7 +153,7 @@ func ParseX25519Identity(s string) (*X25519Identity, error) {
 	return r, nil
 }
 
-func (i *X25519Identity) Unwrap(block *format.Recipient) ([]byte, error) {
+func (i *X25519Identity) Unwrap(block *Stanza) ([]byte, error) {
 	if block.Type != "X25519" {
 		return nil, ErrIncorrectIdentity
 	}

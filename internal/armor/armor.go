@@ -21,8 +21,10 @@ import (
 	"filippo.io/age/internal/format"
 )
 
-const Header = "-----BEGIN AGE ENCRYPTED FILE-----"
-const Footer = "-----END AGE ENCRYPTED FILE-----"
+const (
+	Header = "-----BEGIN AGE ENCRYPTED FILE-----"
+	Footer = "-----END AGE ENCRYPTED FILE-----"
+)
 
 type armoredWriter struct {
 	started, closed bool

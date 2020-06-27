@@ -14,6 +14,7 @@ import (
 	"testing"
 
 	"filippo.io/age/internal/agessh"
+	"filippo.io/age/internal/format"
 	"golang.org/x/crypto/ssh"
 )
 
@@ -49,7 +50,7 @@ func TestSSHRSARoundTrip(t *testing.T) {
 		t.Fatal(err)
 	}
 	b := &bytes.Buffer{}
-	block.Marshal(b)
+	(*format.Stanza)(block).Marshal(b)
 	t.Logf("%s", b.Bytes())
 
 	out, err := i.Unwrap(block)
@@ -94,7 +95,7 @@ func TestSSHEd25519RoundTrip(t *testing.T) {
 		t.Fatal(err)
 	}
 	b := &bytes.Buffer{}
-	block.Marshal(b)
+	(*format.Stanza)(block).Marshal(b)
 	t.Logf("%s", b.Bytes())
 
 	out, err := i.Unwrap(block)

@@ -12,6 +12,7 @@ import (
 	"testing"
 
 	"filippo.io/age/internal/age"
+	"filippo.io/age/internal/format"
 	"golang.org/x/crypto/curve25519"
 )
 
@@ -55,7 +56,7 @@ func TestX25519RoundTrip(t *testing.T) {
 		t.Fatal(err)
 	}
 	b := &bytes.Buffer{}
-	block.Marshal(b)
+	(*format.Stanza)(block).Marshal(b)
 	t.Logf("%s", b.Bytes())
 
 	out, err := i.Unwrap(block)
@@ -94,7 +95,7 @@ func TestScryptRoundTrip(t *testing.T) {
 		t.Fatal(err)
 	}
 	b := &bytes.Buffer{}
-	block.Marshal(b)
+	(*format.Stanza)(block).Marshal(b)
 	t.Logf("%s", b.Bytes())
 
 	out, err := i.Unwrap(block)

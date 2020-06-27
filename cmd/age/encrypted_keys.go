@@ -11,7 +11,6 @@ import (
 	"os"
 
 	"filippo.io/age/internal/age"
-	"filippo.io/age/internal/format"
 	"golang.org/x/crypto/ssh/terminal"
 )
 
@@ -25,7 +24,7 @@ func (i *LazyScryptIdentity) Type() string {
 	return "scrypt"
 }
 
-func (i *LazyScryptIdentity) Unwrap(block *format.Recipient) (fileKey []byte, err error) {
+func (i *LazyScryptIdentity) Unwrap(block *age.Stanza) (fileKey []byte, err error) {
 	pass, err := i.Passphrase()
 	if err != nil {
 		return nil, fmt.Errorf("could not read passphrase: %v", err)

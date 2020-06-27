@@ -18,11 +18,13 @@ import (
 )
 
 type Header struct {
-	Recipients []*Recipient
+	Recipients []*Stanza
 	MAC        []byte
 }
 
-type Recipient struct {
+// Stanza is assignable to age.Stanza, and if this package is made public,
+// age.Stanza can be made a type alias of this type.
+type Stanza struct {
 	Type string
 	Args []string
 	Body []byte
@@ -83,7 +85,7 @@ const intro = "age-encryption.org/v1\n"
 var recipientPrefix = []byte("->")
 var footerPrefix = []byte("---")
 
-func (r *Recipient) Marshal(w io.Writer) error {
+func (r *Stanza) Marshal(w io.Writer) error {
 	if _, err := w.Write(recipientPrefix); err != nil {
 		return err
 	}
@@ -155,7 +157,7 @@ func Parse(input io.Reader) (*Header, io.Reader, error) {
 		return nil, nil, errorf("unexpected intro: %q", line)
 	}
 
-	var r *Recipient
+	var r *Stanza
 	for {
 		line, err := rr.ReadBytes('\n')
 		if err != nil {
@@ -174,7 +176,7 @@ func Parse(input io.Reader) (*Header, io.Reader, error) {
 			break
 
 		} else if bytes.HasPrefix(line, recipientPrefix) {
-			r = &Recipient{}
+			r = &Stanza{}
 			prefix, args := splitArgs(line)
 			if prefix != string(recipientPrefix) || len(args) < 1 {
 				return nil, nil, errorf("malformed recipient: %q", line)

@@ -25,7 +25,7 @@ import (
 // the identity, any other error might be considered fatal.
 type Identity interface {
 	Type() string
-	Unwrap(block *format.Recipient) (fileKey []byte, err error)
+	Unwrap(block *Stanza) (fileKey []byte, err error)
 }
 
 // IdentityMatcher can be optionally implemented by an Identity that can
@@ -37,7 +37,7 @@ type Identity interface {
 // other error might be considered fatal.
 type IdentityMatcher interface {
 	Identity
-	Match(block *format.Recipient) error
+	Match(block *Stanza) error
 }
 
 var ErrIncorrectIdentity = errors.New("incorrect identity for recipient block")
@@ -46,7 +46,15 @@ var ErrIncorrectIdentity = errors.New("incorrect identity for recipient block")
 // key to a recipient stanza.
 type Recipient interface {
 	Type() string
-	Wrap(fileKey []byte) (*format.Recipient, error)
+	Wrap(fileKey []byte) (*Stanza, error)
+}
+
+// A Stanza is a section of the age header that encapsulates the file key as
+// encrypted to a specific recipient.
+type Stanza struct {
+	Type string
+	Args []string
+	Body []byte
 }
 
 // Encrypt returns a WriteCloser. Writes to the returned value are encrypted and
@@ -74,7 +82,7 @@ func Encrypt(dst io.Writer, recipients ...Recipient) (io.WriteCloser, error) {
 		if err != nil {
 			return nil, fmt.Errorf("failed to wrap key for recipient #%d: %v", i, err)
 		}
-		hdr.Recipients = append(hdr.Recipients, block)
+		hdr.Recipients = append(hdr.Recipients, (*format.Stanza)(block))
 	}
 	if mac, err := headerMAC(fileKey, hdr); err != nil {
 		return nil, fmt.Errorf("failed to compute header MAC: %v", err)
@@ -123,7 +131,7 @@ RecipientsLoop:
 			}
 
 			if i, ok := i.(IdentityMatcher); ok {
-				err := i.Match(r)
+				err := i.Match((*Stanza)(r))
 				if err != nil {
 					if err == ErrIncorrectIdentity {
 						continue
@@ -132,7 +140,7 @@ RecipientsLoop:
 				}
 			}
 
-			fileKey, err = i.Unwrap(r)
+			fileKey, err = i.Unwrap((*Stanza)(r))
 			if err != nil {
 				if err == ErrIncorrectIdentity {
 					// TODO: we should collect these errors and return them as an

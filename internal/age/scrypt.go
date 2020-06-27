@@ -60,14 +60,14 @@ func (r *ScryptRecipient) SetWorkFactor(logN int) {
 	r.workFactor = logN
 }
 
-func (r *ScryptRecipient) Wrap(fileKey []byte) (*format.Recipient, error) {
+func (r *ScryptRecipient) Wrap(fileKey []byte) (*Stanza, error) {
 	salt := make([]byte, 16)
 	if _, err := rand.Read(salt[:]); err != nil {
 		return nil, err
 	}
 
 	logN := r.workFactor
-	l := &format.Recipient{
+	l := &Stanza{
 		Type: "scrypt",
 		Args: []string{format.EncodeToString(salt), strconv.Itoa(logN)},
 	}
@@ -122,7 +122,7 @@ func (i *ScryptIdentity) SetMaxWorkFactor(logN int) {
 	i.maxWorkFactor = logN
 }
 
-func (i *ScryptIdentity) Unwrap(block *format.Recipient) ([]byte, error) {
+func (i *ScryptIdentity) Unwrap(block *Stanza) ([]byte, error) {
 	if block.Type != "scrypt" {
 		return nil, ErrIncorrectIdentity
 	}

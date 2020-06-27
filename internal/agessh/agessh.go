@@ -67,8 +67,8 @@ func NewRSARecipient(pk ssh.PublicKey) (*RSARecipient, error) {
 	return r, nil
 }
 
-func (r *RSARecipient) Wrap(fileKey []byte) (*format.Recipient, error) {
-	l := &format.Recipient{
+func (r *RSARecipient) Wrap(fileKey []byte) (*age.Stanza, error) {
+	l := &age.Stanza{
 		Type: "ssh-rsa",
 		Args: []string{sshFingerprint(r.sshKey)},
 	}
@@ -103,7 +103,7 @@ func NewRSAIdentity(key *rsa.PrivateKey) (*RSAIdentity, error) {
 	return i, nil
 }
 
-func (i *RSAIdentity) Unwrap(block *format.Recipient) ([]byte, error) {
+func (i *RSAIdentity) Unwrap(block *age.Stanza) ([]byte, error) {
 	if block.Type != "ssh-rsa" {
 		return nil, age.ErrIncorrectIdentity
 	}
@@ -207,7 +207,7 @@ func ed25519PublicKeyToCurve25519(pk ed25519.PublicKey) []byte {
 
 const ed25519Label = "age-encryption.org/v1/ssh-ed25519"
 
-func (r *Ed25519Recipient) Wrap(fileKey []byte) (*format.Recipient, error) {
+func (r *Ed25519Recipient) Wrap(fileKey []byte) (*age.Stanza, error) {
 	ephemeral := make([]byte, curve25519.ScalarSize)
 	if _, err := rand.Read(ephemeral); err != nil {
 		return nil, err
@@ -229,7 +229,7 @@ func (r *Ed25519Recipient) Wrap(fileKey []byte) (*format.Recipient, error) {
 	}
 	sharedSecret, _ = curve25519.X25519(tweak, sharedSecret)
 
-	l := &format.Recipient{
+	l := &age.Stanza{
 		Type: "ssh-ed25519",
 		Args: []string{sshFingerprint(r.sshKey),
 			format.EncodeToString(ourPublicKey[:])},
@@ -298,7 +298,7 @@ func ed25519PrivateKeyToCurve25519(pk ed25519.PrivateKey) []byte {
 	return out[:curve25519.ScalarSize]
 }
 
-func (i *Ed25519Identity) Unwrap(block *format.Recipient) ([]byte, error) {
+func (i *Ed25519Identity) Unwrap(block *age.Stanza) ([]byte, error) {
 	if block.Type != "ssh-ed25519" {
 		return nil, age.ErrIncorrectIdentity
 	}
