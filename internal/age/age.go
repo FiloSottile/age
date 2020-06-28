@@ -4,7 +4,16 @@
 // license that can be found in the LICENSE file or at
 // https://developers.google.com/open-source/licenses/bsd
 
-// Package age implements file encryption according to age-encryption.org/v1.
+// Package age implements file encryption according to the age-encryption.org/v1
+// specification.
+//
+// For most use cases, use the Encrypt and Decrypt functions with
+// X25519Recipient and X25519Identity. If passphrase encryption is required, use
+// ScryptRecipient and ScryptIdentity. For compatibility with existing SSH keys
+// use the filippo.io/age/internal/agessh package.
+//
+// Age encrypted files are binary and not malleable, for encoding them as text,
+// use the filippo.io/age/internal/armor package.
 package age
 
 import (
