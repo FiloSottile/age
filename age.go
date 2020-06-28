@@ -10,7 +10,7 @@
 // For most use cases, use the Encrypt and Decrypt functions with
 // X25519Recipient and X25519Identity. If passphrase encryption is required, use
 // ScryptRecipient and ScryptIdentity. For compatibility with existing SSH keys
-// use the filippo.io/agessh package.
+// use the filippo.io/age/agessh package.
 //
 // Age encrypted files are binary and not malleable, for encoding them as text,
 // use the filippo.io/age/armor package.
