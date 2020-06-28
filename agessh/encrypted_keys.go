@@ -11,7 +11,7 @@ import (
 	"crypto/rsa"
 	"fmt"
 
-	"filippo.io/age/age"
+	"filippo.io/age"
 	"golang.org/x/crypto/ssh"
 )
 

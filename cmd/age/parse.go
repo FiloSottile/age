@@ -15,7 +15,7 @@ import (
 	"os"
 	"strings"
 
-	"filippo.io/age/age"
+	"filippo.io/age"
 	"filippo.io/age/agessh"
 	"golang.org/x/crypto/ssh"
 )

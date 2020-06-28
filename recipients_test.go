@@ -11,7 +11,7 @@ import (
 	"crypto/rand"
 	"testing"
 
-	"filippo.io/age/age"
+	"filippo.io/age"
 	"filippo.io/age/internal/format"
 )
 

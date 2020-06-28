@@ -10,7 +10,7 @@ import (
 	"fmt"
 	"os"
 
-	"filippo.io/age/age"
+	"filippo.io/age"
 	"golang.org/x/crypto/ssh/terminal"
 )
 
