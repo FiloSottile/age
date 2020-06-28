@@ -201,3 +201,8 @@ func (i *X25519Identity) String() string {
 	s, _ := bech32.Encode("AGE-SECRET-KEY-", i.secretKey)
 	return strings.ToUpper(s)
 }
+
+// GetSecretKey returns the secret key of X25519Identity.
+func (i *X25519Identity) GetSecretKey() []byte {
+	return i.secretKey
+}
