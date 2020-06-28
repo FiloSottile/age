@@ -1,0 +1,27 @@
+.Dd June 28, 2020
+.Dt AGE-KEYGEN 1
+.Os
+.Sh NAME
+.Nm age-keygen
+.Nd generate an age secret key
+.Sh SYNOPSIS
+.Nm
+.Op Fl o Ar file
+.Sh DESCRIPTION
+.Nm
+generates an
+.Nm age
+secret key.
+.Pp
+If the
+.Fl o
+flag is specified, the key is written to
+.Ar file ,
+otherwise it is written to standard output.
+.Pp
+When
+.Nm
+is redirected to a file or output to a pipe, the public key is emitted on
+standard error.
+.Sh SEE ALSO
+.Xr age 1
