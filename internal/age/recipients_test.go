@@ -71,12 +71,12 @@ func TestX25519RoundTrip(t *testing.T) {
 func TestScryptRoundTrip(t *testing.T) {
 	password := "twitch.tv/filosottile"
 
-	r, err := age.NewScryptRecipient(password)
+	r, err := age.NewScryptRecipient([]byte(password))
 	if err != nil {
 		t.Fatal(err)
 	}
 	r.SetWorkFactor(15)
-	i, err := age.NewScryptIdentity(password)
+	i, err := age.NewScryptIdentity([]byte(password))
 	if err != nil {
 		t.Fatal(err)
 	}

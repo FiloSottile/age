@@ -15,6 +15,7 @@ import (
 	"os"
 	"strings"
 
+	"filippo.io/age/cmd/internal/passphrase"
 	"filippo.io/age/internal/age"
 	"filippo.io/age/internal/agessh"
 	"golang.org/x/crypto/ssh"
@@ -92,15 +93,7 @@ func parseSSHIdentity(name string, pemBytes []byte) ([]age.Identity, error) {
 				return nil, err
 			}
 		}
-		passphrasePrompt := func() ([]byte, error) {
-			fmt.Fprintf(os.Stderr, "Enter passphrase for %q: ", name)
-			pass, err := readPassphrase()
-			if err != nil {
-				return nil, fmt.Errorf("could not read passphrase for %q: %v", name, err)
-			}
-			return pass, nil
-		}
-		i, err := agessh.NewEncryptedSSHIdentity(pubKey, pemBytes, passphrasePrompt)
+		i, err := agessh.NewEncryptedSSHIdentity(pubKey, pemBytes, passphrase.PromptForDecryption)
 		if err != nil {
 			return nil, err
 		}

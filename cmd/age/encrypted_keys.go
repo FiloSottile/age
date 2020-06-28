@@ -8,15 +8,13 @@ package main
 
 import (
 	"fmt"
-	"os"
 
 	"filippo.io/age/internal/age"
 	"filippo.io/age/internal/format"
-	"golang.org/x/crypto/ssh/terminal"
 )
 
 type LazyScryptIdentity struct {
-	Passphrase func() (string, error)
+	Passphrase func() ([]byte, error)
 }
 
 var _ age.Identity = &LazyScryptIdentity{}
@@ -43,25 +41,4 @@ func (i *LazyScryptIdentity) Unwrap(block *format.Recipient) (fileKey []byte, er
 		return nil, fmt.Errorf("incorrect passphrase")
 	}
 	return fileKey, err
-}
-
-// stdinInUse is set in main. It's a singleton like os.Stdin.
-var stdinInUse bool
-
-func readPassphrase() ([]byte, error) {
-	fd := int(os.Stdin.Fd())
-	if !terminal.IsTerminal(fd) || stdinInUse {
-		tty, err := os.Open("/dev/tty")
-		if err != nil {
-			return nil, fmt.Errorf("standard input is not available or not a terminal, and opening /dev/tty failed: %v", err)
-		}
-		defer tty.Close()
-		fd = int(tty.Fd())
-	}
-	defer fmt.Fprintf(os.Stderr, "\n")
-	p, err := terminal.ReadPassword(fd)
-	if err != nil {
-		return nil, err
-	}
-	return p, nil
 }

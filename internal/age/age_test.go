@@ -71,7 +71,7 @@ func TestEncryptDecryptX25519(t *testing.T) {
 func TestEncryptDecryptScrypt(t *testing.T) {
 	password := "twitch.tv/filosottile"
 
-	r, err := age.NewScryptRecipient(password)
+	r, err := age.NewScryptRecipient([]byte(password))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -88,7 +88,7 @@ func TestEncryptDecryptScrypt(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	i, err := age.NewScryptIdentity(password)
+	i, err := age.NewScryptIdentity([]byte(password))
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -37,12 +37,12 @@ var _ Recipient = &ScryptRecipient{}
 func (*ScryptRecipient) Type() string { return "scrypt" }
 
 // NewScryptRecipient returns a new ScryptRecipient with the provided password.
-func NewScryptRecipient(password string) (*ScryptRecipient, error) {
+func NewScryptRecipient(password []byte) (*ScryptRecipient, error) {
 	if len(password) == 0 {
 		return nil, errors.New("passphrase can't be empty")
 	}
 	r := &ScryptRecipient{
-		password: []byte(password),
+		password: password,
 		// TODO: automatically scale this to 1s (with a min) in the CLI.
 		workFactor: 18, // 1s on a modern machine
 	}
@@ -98,12 +98,12 @@ var _ Identity = &ScryptIdentity{}
 func (*ScryptIdentity) Type() string { return "scrypt" }
 
 // NewScryptIdentity returns a new ScryptIdentity with the provided password.
-func NewScryptIdentity(password string) (*ScryptIdentity, error) {
+func NewScryptIdentity(password []byte) (*ScryptIdentity, error) {
 	if len(password) == 0 {
 		return nil, errors.New("passphrase can't be empty")
 	}
 	i := &ScryptIdentity{
-		password:      []byte(password),
+		password:      password,
 		maxWorkFactor: 22, // 15s on a modern machine
 	}
 	return i, nil
