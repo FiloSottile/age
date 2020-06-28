@@ -8,7 +8,6 @@ package age_test
 
 import (
 	"bytes"
-	"crypto/rand"
 	"encoding/hex"
 	"fmt"
 	"io"
@@ -17,7 +16,6 @@ import (
 	"testing"
 
 	"filippo.io/age/internal/age"
-	"golang.org/x/crypto/curve25519"
 )
 
 func ExampleEncrypt() {
@@ -95,27 +93,16 @@ func ExampleGenerateX25519Identity() {
 const helloWorld = "Hello, Twitch!"
 
 func TestEncryptDecryptX25519(t *testing.T) {
-	secretKeyA := make([]byte, curve25519.ScalarSize)
-	secretKeyB := make([]byte, curve25519.ScalarSize)
-	if _, err := rand.Read(secretKeyA); err != nil {
-		t.Fatal(err)
-	}
-	if _, err := rand.Read(secretKeyB); err != nil {
-		t.Fatal(err)
-	}
-	publicKeyA, _ := curve25519.X25519(secretKeyA, curve25519.Basepoint)
-	publicKeyB, _ := curve25519.X25519(secretKeyB, curve25519.Basepoint)
-
-	rA, err := age.NewX25519Recipient(publicKeyA)
+	a, err := age.GenerateX25519Identity()
 	if err != nil {
 		t.Fatal(err)
 	}
-	rB, err := age.NewX25519Recipient(publicKeyB)
+	b, err := age.GenerateX25519Identity()
 	if err != nil {
 		t.Fatal(err)
 	}
 	buf := &bytes.Buffer{}
-	w, err := age.Encrypt(buf, rA, rB)
+	w, err := age.Encrypt(buf, a.Recipient(), b.Recipient())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -126,11 +113,7 @@ func TestEncryptDecryptX25519(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	i, err := age.NewX25519Identity(secretKeyB)
-	if err != nil {
-		t.Fatal(err)
-	}
-	out, err := age.Decrypt(buf, i)
+	out, err := age.Decrypt(buf, b)
 	if err != nil {
 		t.Fatal(err)
 	}

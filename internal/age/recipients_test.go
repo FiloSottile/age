@@ -13,24 +13,14 @@ import (
 
 	"filippo.io/age/internal/age"
 	"filippo.io/age/internal/format"
-	"golang.org/x/crypto/curve25519"
 )
 
 func TestX25519RoundTrip(t *testing.T) {
-	secretKey := make([]byte, curve25519.ScalarSize)
-	if _, err := rand.Read(secretKey); err != nil {
-		t.Fatal(err)
-	}
-	publicKey, _ := curve25519.X25519(secretKey, curve25519.Basepoint)
-
-	r, err := age.NewX25519Recipient(publicKey)
+	i, err := age.GenerateX25519Identity()
 	if err != nil {
 		t.Fatal(err)
 	}
-	i, err := age.NewX25519Identity(secretKey)
-	if err != nil {
-		t.Fatal(err)
-	}
+	r := i.Recipient()
 
 	if r.Type() != i.Type() || r.Type() != "X25519" {
 		t.Errorf("invalid Type values: %v, %v", r.Type(), i.Type())

@@ -32,8 +32,8 @@ var _ Recipient = &X25519Recipient{}
 
 func (*X25519Recipient) Type() string { return "X25519" }
 
-// NewX25519Recipient returns a new X25519Recipient from a raw Curve25519 point.
-func NewX25519Recipient(publicKey []byte) (*X25519Recipient, error) {
+// newX25519RecipientFromPoint returns a new X25519Recipient from a raw Curve25519 point.
+func newX25519RecipientFromPoint(publicKey []byte) (*X25519Recipient, error) {
 	if len(publicKey) != curve25519.PointSize {
 		return nil, errors.New("invalid X25519 public key")
 	}
@@ -54,7 +54,7 @@ func ParseX25519Recipient(s string) (*X25519Recipient, error) {
 	if t != "age" {
 		return nil, fmt.Errorf("malformed recipient %q: invalid type %q", s, t)
 	}
-	r, err := NewX25519Recipient(k)
+	r, err := newX25519RecipientFromPoint(k)
 	if err != nil {
 		return nil, fmt.Errorf("malformed recipient %q: %v", s, err)
 	}
@@ -114,8 +114,8 @@ var _ Identity = &X25519Identity{}
 
 func (*X25519Identity) Type() string { return "X25519" }
 
-// NewX25519Identity returns a new X25519Identity from a raw Curve25519 scalar.
-func NewX25519Identity(secretKey []byte) (*X25519Identity, error) {
+// newX25519IdentityFromScalar returns a new X25519Identity from a raw Curve25519 scalar.
+func newX25519IdentityFromScalar(secretKey []byte) (*X25519Identity, error) {
 	if len(secretKey) != curve25519.ScalarSize {
 		return nil, errors.New("invalid X25519 secret key")
 	}
@@ -127,13 +127,13 @@ func NewX25519Identity(secretKey []byte) (*X25519Identity, error) {
 	return i, nil
 }
 
-// GenerateX25519Identity generates a fresh X25519Identity.
+// GenerateX25519Identity randomly generates a new X25519Identity.
 func GenerateX25519Identity() (*X25519Identity, error) {
 	secretKey := make([]byte, curve25519.ScalarSize)
 	if _, err := rand.Read(secretKey); err != nil {
 		return nil, fmt.Errorf("internal error: %v", err)
 	}
-	return NewX25519Identity(secretKey)
+	return newX25519IdentityFromScalar(secretKey)
 }
 
 // ParseX25519Identity returns a new X25519Recipient from a Bech32 private key
@@ -146,7 +146,7 @@ func ParseX25519Identity(s string) (*X25519Identity, error) {
 	if t != "AGE-SECRET-KEY-" {
 		return nil, fmt.Errorf("malformed secret key %q: invalid type %q", s, t)
 	}
-	r, err := NewX25519Identity(k)
+	r, err := newX25519IdentityFromScalar(k)
 	if err != nil {
 		return nil, fmt.Errorf("malformed secret key %q: %v", s, err)
 	}
