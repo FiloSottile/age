@@ -16,5 +16,7 @@ class Age < Formula
     mkdir bin
     system "go", "build", "-trimpath", "-o", bin, "filippo.io/age/cmd/..."
     prefix.install_metafiles
+    man1.install "cmd/age/age.1"
+    man1.install "cmd/age-keygen/age-keygen.1"
   end
 end
