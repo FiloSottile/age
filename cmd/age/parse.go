@@ -15,6 +15,7 @@ import (
 	"os"
 	"strings"
 
+	"filippo.io/age/cmd/internal/keywrap"
 	"filippo.io/age/cmd/internal/passphrase"
 	"filippo.io/age/internal/age"
 	"filippo.io/age/internal/agessh"
@@ -63,7 +64,7 @@ func parseIdentitiesFile(name string) ([]age.Identity, error) {
 		if ageParsingError != nil {
 			continue
 		}
-		i, err := age.ParseX25519Identity(line)
+		i, err := keywrap.ParseProtectedX25519Identity(line)
 		if err != nil {
 			ageParsingError = fmt.Errorf("malformed secret keys file %q: %v", name, err)
 			continue

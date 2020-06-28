@@ -13,7 +13,7 @@ import (
 	"os"
 	"time"
 
-	"filippo.io/age/internal/age"
+	"filippo.io/age/cmd/internal/keywrap"
 	"golang.org/x/crypto/ssh/terminal"
 )
 
@@ -47,7 +47,7 @@ func main() {
 }
 
 func generate(out *os.File) {
-	k, err := age.GenerateX25519Identity()
+	k, err := keywrap.GenerateProtectedX25519Identity()
 	if err != nil {
 		log.Fatalf("Internal error: %v", err)
 	}
