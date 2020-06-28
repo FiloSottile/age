@@ -16,8 +16,8 @@ import (
 	"strings"
 	"testing"
 
-	"filippo.io/age/internal/age"
-	"filippo.io/age/internal/armor"
+	"filippo.io/age/age"
+	"filippo.io/age/armor"
 )
 
 func ExampleNewWriter() {

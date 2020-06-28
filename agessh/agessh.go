@@ -23,7 +23,7 @@ import (
 	"io"
 	"math/big"
 
-	"filippo.io/age/internal/age"
+	"filippo.io/age/age"
 	"filippo.io/age/internal/format"
 	"golang.org/x/crypto/chacha20poly1305"
 	"golang.org/x/crypto/curve25519"

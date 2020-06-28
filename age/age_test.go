@@ -15,7 +15,7 @@ import (
 	"log"
 	"testing"
 
-	"filippo.io/age/internal/age"
+	"filippo.io/age/age"
 )
 
 func ExampleEncrypt() {
