@@ -136,7 +136,7 @@ func GenerateX25519Identity() (*X25519Identity, error) {
 	return newX25519IdentityFromScalar(secretKey)
 }
 
-// ParseX25519Identity returns a new X25519Recipient from a Bech32 private key
+// ParseX25519Identity returns a new X25519Identity from a Bech32 private key
 // encoding with the "AGE-SECRET-KEY-1" prefix.
 func ParseX25519Identity(s string) (*X25519Identity, error) {
 	t, k, err := bech32.Decode(s)
