@@ -141,14 +141,14 @@ func GenerateX25519Identity() (*X25519Identity, error) {
 func ParseX25519Identity(s string) (*X25519Identity, error) {
 	t, k, err := bech32.Decode(s)
 	if err != nil {
-		return nil, fmt.Errorf("malformed secret key %q: %v", s, err)
+		return nil, fmt.Errorf("malformed secret key: %v", err)
 	}
 	if t != "AGE-SECRET-KEY-" {
-		return nil, fmt.Errorf("malformed secret key %q: invalid type %q", s, t)
+		return nil, fmt.Errorf("malformed secret key: invalid type %q", t)
 	}
 	r, err := newX25519IdentityFromScalar(k)
 	if err != nil {
-		return nil, fmt.Errorf("malformed secret key %q: %v", s, err)
+		return nil, fmt.Errorf("malformed secret key: %v", err)
 	}
 	return r, nil
 }
