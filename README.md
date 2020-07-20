@@ -1,6 +1,8 @@
 # age
 
-age is a simple, modern and secure file encryption tool.
+[![pkg.go.dev](https://pkg.go.dev/badge/filippo.io/age)](https://pkg.go.dev/filippo.io/age)
+
+age is a simple, modern and secure file encryption tool, format, and library.
 
 It features small explicit keys, no config options, and UNIX-style composability.
 
