@@ -124,8 +124,8 @@ func Decrypt(src io.Reader, identities ...Identity) (io.Reader, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to read header: %v", err)
 	}
-	if len(hdr.Recipients) > 20 {
-		return nil, errors.New("too many recipients")
+	if len(hdr.Recipients) > 1000 {
+		return nil, errors.New("refusing to decrypt for more than 1000 recipients")
 	}
 
 	var fileKey []byte
