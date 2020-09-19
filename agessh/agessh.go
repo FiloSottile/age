@@ -5,11 +5,14 @@
 // https://developers.google.com/open-source/licenses/bsd
 
 // Package agessh provides age.Identity and age.Recipient implementations of
-// types "ssh-rsa" and "ssh-ed25519", which allow reusing existing SSH key files
-// for encryption with age-encryption.org/v1.
+// types "ssh-rsa" and "ssh-ed25519", which allow reusing existing SSH keys for
+// encryption with age-encryption.org/v1.
 //
-// These should only be used for compatibility with existing keys, and native
-// X25519 keys should be preferred otherwise.
+// These recipient types should only be used for compatibility with existing
+// keys, and native X25519 keys should be preferred otherwise.
+//
+// Note that these recipient types are not anonymous: the encrypted message will
+// include a short 32-bit ID of the public key,
 package agessh
 
 import (
@@ -346,6 +349,12 @@ func (i *Ed25519Identity) Unwrap(block *age.Stanza) ([]byte, error) {
 }
 
 // aeadEncrypt and aeadDecrypt are copied from package age.
+//
+// They don't limit the file key size because multi-key attacks are irrelevant
+// against the ssh-ed25519 recipient. Being an asymmetric recipient, it would
+// only allow a more efficient search for accepted public keys against a
+// decryption oracle, but the ssh-X recipients are not anonymous (they have a
+// short recipient hash).
 
 func aeadEncrypt(key, plaintext []byte) ([]byte, error) {
 	aead, err := chacha20poly1305.New(key)

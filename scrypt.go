@@ -19,7 +19,8 @@ import (
 
 const scryptLabel = "age-encryption.org/v1/scrypt"
 
-// ScryptRecipient is a password-based recipient.
+// ScryptRecipient is a password-based recipient. Anyone with the password can
+// decrypt the message.
 //
 // If a ScryptRecipient is used, it must be the only recipient for the file: it
 // can't be mixed with other recipient types and can't be used multiple times
@@ -60,8 +61,10 @@ func (r *ScryptRecipient) SetWorkFactor(logN int) {
 	r.workFactor = logN
 }
 
+const scryptSaltSize = 16
+
 func (r *ScryptRecipient) Wrap(fileKey []byte) (*Stanza, error) {
-	salt := make([]byte, 16)
+	salt := make([]byte, scryptSaltSize)
 	if _, err := rand.Read(salt[:]); err != nil {
 		return nil, err
 	}
@@ -133,7 +136,7 @@ func (i *ScryptIdentity) Unwrap(block *Stanza) ([]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse scrypt salt: %v", err)
 	}
-	if len(salt) != 16 {
+	if len(salt) != scryptSaltSize {
 		return nil, errors.New("invalid scrypt recipient block")
 	}
 	logN, err := strconv.Atoi(block.Args[1])
@@ -153,7 +156,14 @@ func (i *ScryptIdentity) Unwrap(block *Stanza) ([]byte, error) {
 		return nil, fmt.Errorf("failed to generate scrypt hash: %v", err)
 	}
 
-	fileKey, err := aeadDecrypt(k, block.Body)
+	// This AEAD is not robust, so an attacker could craft a message that
+	// decrypts under two different keys (meaning two different passphrases) and
+	// then use an error side-channel in an online decryption oracle to learn if
+	// either key is correct. This is deemed acceptable because the usa case (an
+	// online decryption oracle) is not recommended, and the security loss is
+	// only one bit. This also does not bypass any scrypt work, but that work
+	// can be precomputed in an online oracle scenario.
+	fileKey, err := aeadDecrypt(k, fileKeySize, block.Body)
 	if err != nil {
 		return nil, ErrIncorrectIdentity
 	}

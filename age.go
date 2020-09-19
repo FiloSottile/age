@@ -66,6 +66,9 @@ type Stanza struct {
 	Body []byte
 }
 
+const fileKeySize = 16
+const streamNonceSize = 16
+
 // Encrypt returns a WriteCloser. Writes to the returned value are encrypted and
 // written to dst as an age file. Every recipient will be able to decrypt the file.
 //
@@ -76,7 +79,7 @@ func Encrypt(dst io.Writer, recipients ...Recipient) (io.WriteCloser, error) {
 		return nil, errors.New("no recipients specified")
 	}
 
-	fileKey := make([]byte, 16)
+	fileKey := make([]byte, fileKeySize)
 	if _, err := rand.Read(fileKey); err != nil {
 		return nil, err
 	}
@@ -102,7 +105,7 @@ func Encrypt(dst io.Writer, recipients ...Recipient) (io.WriteCloser, error) {
 		return nil, fmt.Errorf("failed to write header: %v", err)
 	}
 
-	nonce := make([]byte, 16)
+	nonce := make([]byte, streamNonceSize)
 	if _, err := rand.Read(nonce); err != nil {
 		return nil, err
 	}
@@ -173,7 +176,7 @@ RecipientsLoop:
 		return nil, errors.New("bad header MAC")
 	}
 
-	nonce := make([]byte, 16)
+	nonce := make([]byte, streamNonceSize)
 	if _, err := io.ReadFull(payload, nonce); err != nil {
 		return nil, fmt.Errorf("failed to read nonce: %v", err)
 	}

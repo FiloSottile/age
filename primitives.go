@@ -9,6 +9,7 @@ package age
 import (
 	"crypto/hmac"
 	"crypto/sha256"
+	"fmt"
 	"io"
 
 	"filippo.io/age/internal/format"
@@ -16,6 +17,7 @@ import (
 	"golang.org/x/crypto/hkdf"
 )
 
+// aeadEncrypt encrypts a message with a one-time key.
 func aeadEncrypt(key, plaintext []byte) ([]byte, error) {
 	aead, err := chacha20poly1305.New(key)
 	if err != nil {
@@ -30,10 +32,18 @@ func aeadEncrypt(key, plaintext []byte) ([]byte, error) {
 	return aead.Seal(nil, nonce, plaintext, nil), nil
 }
 
-func aeadDecrypt(key, ciphertext []byte) ([]byte, error) {
+// aeadDecrypt decrypts a message of an expected fixed size.
+//
+// The message size is limited to mitigate multi-key attacks, where a ciphertext
+// can be crafted that decrypts successfully under multiple keys. Short
+// ciphertexts can only target two keys, which has limited impact.
+func aeadDecrypt(key []byte, size int, ciphertext []byte) ([]byte, error) {
 	aead, err := chacha20poly1305.New(key)
 	if err != nil {
 		return nil, err
+	}
+	if len(ciphertext) != size+aead.Overhead() {
+		return nil, fmt.Errorf("encrypted message has unexpected length")
 	}
 	nonce := make([]byte, chacha20poly1305.NonceSize)
 	return aead.Open(nil, nonce, ciphertext, nil)

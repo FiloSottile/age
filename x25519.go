@@ -23,7 +23,11 @@ import (
 
 const x25519Label = "age-encryption.org/v1/X25519"
 
-// X25519Recipient is the standard age public key, based on a Curve25519 point.
+// X25519Recipient is the standard age public key. Messages encrypted to this
+// recipient can be decrypted with the corresponding X25519Identity.
+//
+// This recipient is anonymous, in the sense that an attacker can't tell from
+// the message alone if it is encrypted to a certain recipient.
 type X25519Recipient struct {
 	theirPublicKey []byte
 }
@@ -105,7 +109,8 @@ func (r *X25519Recipient) String() string {
 	return s
 }
 
-// X25519Identity is the standard age private key, based on a Curve25519 scalar.
+// X25519Identity is the standard age private key, which can decrypt messages
+// encrypted to the corresponding X25519Recipient.
 type X25519Identity struct {
 	secretKey, ourPublicKey []byte
 }
@@ -136,7 +141,7 @@ func GenerateX25519Identity() (*X25519Identity, error) {
 	return newX25519IdentityFromScalar(secretKey)
 }
 
-// ParseX25519Identity returns a new X25519Recipient from a Bech32 private key
+// ParseX25519Identity returns a new X25519Identity from a Bech32 private key
 // encoding with the "AGE-SECRET-KEY-1" prefix.
 func ParseX25519Identity(s string) (*X25519Identity, error) {
 	t, k, err := bech32.Decode(s)
@@ -182,7 +187,7 @@ func (i *X25519Identity) Unwrap(block *Stanza) ([]byte, error) {
 		return nil, err
 	}
 
-	fileKey, err := aeadDecrypt(wrappingKey, block.Body)
+	fileKey, err := aeadDecrypt(wrappingKey, fileKeySize, block.Body)
 	if err != nil {
 		return nil, ErrIncorrectIdentity
 	}

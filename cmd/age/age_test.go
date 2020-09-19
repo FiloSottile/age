@@ -20,13 +20,20 @@ func TestVectors(t *testing.T) {
 	files, _ := filepath.Glob("testdata/*.age")
 	for _, f := range files {
 		name := strings.TrimSuffix(strings.TrimPrefix(f, "testdata/"), ".age")
+		expectFailure := strings.HasPrefix(name, "fail_")
 		t.Run(name, func(t *testing.T) {
-			identities, err := parseIdentitiesFile("testdata/" + name + "_key.txt")
-			if err != nil {
-				t.Fatal(err)
+			var identities []age.Identity
+			ids, err := parseIdentitiesFile("testdata/" + name + "_key.txt")
+			if err == nil {
+				identities = append(identities, ids...)
 			}
-			for _, i := range identities {
-				t.Logf("%s", i.Type())
+			password, err := ioutil.ReadFile("testdata/" + name + "_password.txt")
+			if err == nil {
+				i, err := age.NewScryptIdentity(string(password))
+				if err != nil {
+					t.Fatal(err)
+				}
+				identities = append(identities, i)
 			}
 
 			in, err := os.Open("testdata/" + name + ".age")
@@ -34,14 +41,20 @@ func TestVectors(t *testing.T) {
 				t.Fatal(err)
 			}
 			r, err := age.Decrypt(in, identities...)
-			if err != nil {
-				t.Fatal(err)
+			if expectFailure {
+				if err == nil {
+					t.Fatal("expected Decrypt failure")
+				}
+			} else {
+				if err != nil {
+					t.Fatal(err)
+				}
+				out, err := ioutil.ReadAll(r)
+				if err != nil {
+					t.Fatal(err)
+				}
+				t.Logf("%s", out)
 			}
-			out, err := ioutil.ReadAll(r)
-			if err != nil {
-				t.Fatal(err)
-			}
-			t.Logf("%s", out)
 		})
 	}
 }
