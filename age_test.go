@@ -8,7 +8,6 @@ package age_test
 
 import (
 	"bytes"
-	"encoding/hex"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -45,31 +44,30 @@ func ExampleEncrypt() {
 	// Encrypted file size: 219
 }
 
-var fileContents, _ = hex.DecodeString("6167652d656e6372797074696f6e2e6f72" +
-	"672f76310a2d3e20583235353139203868726c4d2b5a4247334464346646322b61353" +
-	"8337a64544957446b382f5234316b43595a7376775457340a794f345059646c4d5744" +
-	"4a2b437867554e527159355a30542f6d2b6733464368356a4978474c62435658630a2" +
-	"d2d2d20492f696d65765a7a79383132304a537a6d4a6e6d6e2f4b4d6b337035413131" +
-	"5638334e6b34316d394e50450a70c5e53624a1520753f92c5ad10ecab273ba4d61178" +
-	"07713e83820417a1df2ca08182272c8f85c857734a1311a3b75e98d0eaf")
+// DO NOT hardcode the private key. Store it in a secret storage solution,
+// on disk if the local machine is trusted, or have the user provide it.
+var privateKey string
 
-var privateKey = "AGE-SECRET-KEY-184JMZMVQH3E6U0PSL869004Y3U2NYV7R30EU99CSEDNPH02YUVFSZW44VU"
+func init() {
+	privateKey = "AGE-SECRET-KEY-184JMZMVQH3E6U0PSL869004Y3U2NYV7R30EU99CSEDNPH02YUVFSZW44VU"
+}
 
 func ExampleDecrypt() {
-	// DO NOT hardcode the private key. Store it in a secret storage solution,
-	// on disk if the local machine is trusted, or have the user provide it.
 	identity, err := age.ParseX25519Identity(privateKey)
 	if err != nil {
-		log.Fatalf("Failed to parse private key %q: %v", privateKey, err)
+		log.Fatalf("Failed to parse private key: %v", err)
 	}
 
-	out := &bytes.Buffer{}
-	f := bytes.NewReader(fileContents)
+	f, err := os.Open("testdata/example.age")
+	if err != nil {
+		log.Fatalf("Failed to open file: %v", err)
+	}
 
 	r, err := age.Decrypt(f, identity)
 	if err != nil {
 		log.Fatalf("Failed to open encrypted file: %v", err)
 	}
+	out := &bytes.Buffer{}
 	if _, err := io.Copy(out, r); err != nil {
 		log.Fatalf("Failed to read encrypted file: %v", err)
 	}
@@ -86,16 +84,19 @@ func ExampleParseIdentities() {
 	}
 	identities, err := age.ParseIdentities(keyFile)
 	if err != nil {
-		log.Fatalf("Failed to parse private key %q: %v", privateKey, err)
+		log.Fatalf("Failed to parse private key: %v", err)
 	}
 
-	out := &bytes.Buffer{}
-	f := bytes.NewReader(fileContents)
+	f, err := os.Open("testdata/example.age")
+	if err != nil {
+		log.Fatalf("Failed to open file: %v", err)
+	}
 
 	r, err := age.Decrypt(f, identities...)
 	if err != nil {
 		log.Fatalf("Failed to open encrypted file: %v", err)
 	}
+	out := &bytes.Buffer{}
 	if _, err := io.Copy(out, r); err != nil {
 		log.Fatalf("Failed to read encrypted file: %v", err)
 	}
