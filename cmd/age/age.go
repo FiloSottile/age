@@ -239,12 +239,12 @@ func decrypt(keys []string, in io.Reader, out io.Writer) {
 		&LazyScryptIdentity{passphrasePrompt},
 	}
 
-	// TODO: use the default location if no arguments are provided:
-	// os.UserConfigDir()/age/keys.txt, ~/.ssh/id_rsa, ~/.ssh/id_ed25519
+	// TODO: check the default SSH location if no arguments are provided
+	// (~/.ssh/id_rsa, ~/.ssh/id_ed25519).
 	for _, name := range keys {
 		ids, err := parseIdentitiesFile(name)
 		if err != nil {
-			logFatalf("Error: %v", err)
+			logFatalf("Error reading %q: %v", name, err)
 		}
 		identities = append(identities, ids...)
 	}

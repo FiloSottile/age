@@ -8,7 +8,6 @@ package main
 
 import (
 	"bufio"
-	"bytes"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -31,8 +30,6 @@ func parseRecipient(arg string) (age.Recipient, error) {
 	return nil, fmt.Errorf("unknown recipient type: %q", arg)
 }
 
-const privateKeySizeLimit = 1 << 24 // 16 MiB
-
 func parseIdentitiesFile(name string) ([]age.Identity, error) {
 	f, err := os.Open(name)
 	if err != nil {
@@ -40,46 +37,29 @@ func parseIdentitiesFile(name string) ([]age.Identity, error) {
 	}
 	defer f.Close()
 
-	contents, err := ioutil.ReadAll(io.LimitReader(f, privateKeySizeLimit))
+	b := bufio.NewReader(f)
+	const pemHeader = "-----BEGIN"
+	if peeked, _ := b.Peek(len(pemHeader)); string(peeked) == pemHeader {
+		const privateKeySizeLimit = 1 << 14 // 16 KiB
+		contents, err := ioutil.ReadAll(io.LimitReader(b, privateKeySizeLimit))
+		if err != nil {
+			return nil, fmt.Errorf("failed to read %q: %v", name, err)
+		}
+		if len(contents) == privateKeySizeLimit {
+			return nil, fmt.Errorf("failed to read %q: file too long", name)
+		}
+		return parseSSHIdentity(name, contents)
+	}
+
+	ids, err := age.ParseX25519Identities(b)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read %q: %v", name, err)
 	}
-	if len(contents) == privateKeySizeLimit {
-		return nil, fmt.Errorf("failed to read %q: file too long", name)
+	res := make([]age.Identity, 0, len(ids))
+	for _, id := range ids {
+		res = append(res, id)
 	}
-
-	var ids []age.Identity
-	var ageParsingError error
-	scanner := bufio.NewScanner(bytes.NewReader(contents))
-	for scanner.Scan() {
-		line := scanner.Text()
-		if strings.HasPrefix(line, "#") || line == "" {
-			continue
-		}
-		if strings.HasPrefix(line, "-----BEGIN") {
-			return parseSSHIdentity(name, contents)
-		}
-		if ageParsingError != nil {
-			continue
-		}
-		i, err := age.ParseX25519Identity(line)
-		if err != nil {
-			ageParsingError = fmt.Errorf("malformed secret keys file %q: %v", name, err)
-			continue
-		}
-		ids = append(ids, i)
-	}
-	if err := scanner.Err(); err != nil {
-		return nil, fmt.Errorf("failed to read %q: %v", name, err)
-	}
-	if ageParsingError != nil {
-		return nil, ageParsingError
-	}
-
-	if len(ids) == 0 {
-		return nil, fmt.Errorf("no secret keys found in %q", name)
-	}
-	return ids, nil
+	return res, nil
 }
 
 func parseSSHIdentity(name string, pemBytes []byte) ([]age.Identity, error) {

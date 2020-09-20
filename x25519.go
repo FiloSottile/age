@@ -7,6 +7,7 @@
 package age
 
 import (
+	"bufio"
 	"crypto/rand"
 	"crypto/sha256"
 	"errors"
@@ -146,16 +147,47 @@ func GenerateX25519Identity() (*X25519Identity, error) {
 func ParseX25519Identity(s string) (*X25519Identity, error) {
 	t, k, err := bech32.Decode(s)
 	if err != nil {
-		return nil, fmt.Errorf("malformed secret key %q: %v", s, err)
+		return nil, fmt.Errorf("malformed secret key: %v", err)
 	}
 	if t != "AGE-SECRET-KEY-" {
-		return nil, fmt.Errorf("malformed secret key %q: invalid type %q", s, t)
+		return nil, fmt.Errorf("malformed secret key: invalid type %q", t)
 	}
 	r, err := newX25519IdentityFromScalar(k)
 	if err != nil {
-		return nil, fmt.Errorf("malformed secret key %q: %v", s, err)
+		return nil, fmt.Errorf("malformed secret key: %v", err)
 	}
 	return r, nil
+}
+
+// ParseX25519Identities parses a file with one or more Bech32 private key
+// encodings, one per line. Empty lines and lines starting with "#" are ignored.
+//
+// This is the same syntax as the private key files accepted by the CLI, except
+// the CLI also accepts SSH private keys, which are not recommended for the
+// average application.
+func ParseX25519Identities(f io.Reader) ([]*X25519Identity, error) {
+	const privateKeySizeLimit = 1 << 24 // 16 MiB
+	var ids []*X25519Identity
+	scanner := bufio.NewScanner(io.LimitReader(f, privateKeySizeLimit))
+	var n int
+	for scanner.Scan() {
+		line := scanner.Text()
+		if strings.HasPrefix(line, "#") || line == "" {
+			continue
+		}
+		i, err := ParseX25519Identity(line)
+		if err != nil {
+			return nil, fmt.Errorf("error at line %d: %v", n, err)
+		}
+		ids = append(ids, i)
+	}
+	if err := scanner.Err(); err != nil {
+		return nil, fmt.Errorf("failed to read secret keys file: %v", err)
+	}
+	if len(ids) == 0 {
+		return nil, fmt.Errorf("no secret keys found")
+	}
+	return ids, nil
 }
 
 func (i *X25519Identity) Unwrap(block *Stanza) ([]byte, error) {

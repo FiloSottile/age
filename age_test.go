@@ -13,6 +13,7 @@ import (
 	"io"
 	"io/ioutil"
 	"log"
+	"strings"
 	"testing"
 
 	"filippo.io/age"
@@ -160,5 +161,37 @@ func TestEncryptDecryptScrypt(t *testing.T) {
 	}
 	if string(outBytes) != helloWorld {
 		t.Errorf("wrong data: %q, excepted %q", outBytes, helloWorld)
+	}
+}
+
+func TestParseX25519Identities(t *testing.T) {
+	tests := []struct {
+		name      string
+		wantCount int
+		wantErr   bool
+		file      string
+	}{
+		{"valid", 2, false, `
+# this is a comment
+# AGE-SECRET-KEY-1705XN76M8EYQ8M9PY4E2G3KA8DN7NSCGT3V4HMN20H3GCX4AS6HSSTG8D3
+#
+
+AGE-SECRET-KEY-1D6K0SGAX3NU66R4GYFZY0UQWCLM3UUSF3CXLW4KXZM342WQSJ82QKU59QJ
+AGE-SECRET-KEY-19WUMFE89H3928FRJ5U3JYRNHM6CERQGKSQ584AQ8QY7T7R09D32SWE4DYH`},
+		{"invalid", 0, true, `
+AGE-SECRET-KEY-1705XN76M8EYQ8M9PY4E2G3KA8DN7NSCGT3V4HMN20H3GCX4AS6HSSTG8D3
+AGE-SECRET-KEY--1D6K0SGAX3NU66R4GYFZY0UQWCLM3UUSF3CXLW4KXZM342WQSJ82QKU59Q`},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := age.ParseX25519Identities(strings.NewReader(tt.file))
+			if (err != nil) != tt.wantErr {
+				t.Errorf("ParseX25519Identities() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if len(got) != tt.wantCount {
+				t.Errorf("ParseX25519Identities() returned %d identities, want %d", len(got), tt.wantCount)
+			}
+		})
 	}
 }

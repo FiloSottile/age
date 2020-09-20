@@ -12,8 +12,29 @@
 // ScryptRecipient and ScryptIdentity. For compatibility with existing SSH keys
 // use the filippo.io/age/agessh package.
 //
-// Age encrypted files are binary and not malleable, for encoding them as text,
+// Age encrypted files are binary and not malleable. For encoding them as text,
 // use the filippo.io/age/armor package.
+//
+// Key management
+//
+// Age does not have a global keyring. Instead, since age keys are small,
+// textual, and cheap, you are encoraged to generate dedicated keys for each
+// task and application.
+//
+// Recipient public keys can be passed around as command line flags and in
+// config files, while secret keys should be stored in dedicated files, through
+// secret management systems, or as environment variables.
+//
+// There is no default path for age keys. Instead, they should be stored at
+// application-specific paths. The CLI supports files where private keys are
+// listed one per line, ignoring empty lines and lines starting with "#". These
+// files can be parsed with ParseX25519Identities.
+//
+// When integrating age into a new system, it's recommended that you only
+// support X25519 keys, and not SSH keys. The latter are supported for manual
+// encryption operations. If you need to tie into existing key management
+// infrastructure, you might want to consider implementing your own Recipient
+// and Identity.
 package age
 
 import (
