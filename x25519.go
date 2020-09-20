@@ -150,7 +150,7 @@ func ParseX25519Identity(s string) (*X25519Identity, error) {
 		return nil, fmt.Errorf("malformed secret key: %v", err)
 	}
 	if t != "AGE-SECRET-KEY-" {
-		return nil, fmt.Errorf("malformed secret key: invalid type %q", t)
+		return nil, fmt.Errorf("malformed secret key: unknown type %q", t)
 	}
 	r, err := newX25519IdentityFromScalar(k)
 	if err != nil {
@@ -159,15 +159,18 @@ func ParseX25519Identity(s string) (*X25519Identity, error) {
 	return r, nil
 }
 
-// ParseX25519Identities parses a file with one or more Bech32 private key
-// encodings, one per line. Empty lines and lines starting with "#" are ignored.
+// ParseIdentities parses a file with one or more private key encodings, one per
+// line. Empty lines and lines starting with "#" are ignored.
 //
 // This is the same syntax as the private key files accepted by the CLI, except
 // the CLI also accepts SSH private keys, which are not recommended for the
 // average application.
-func ParseX25519Identities(f io.Reader) ([]*X25519Identity, error) {
+//
+// Currently, all returned values are of type X25519Identity, but different
+// types might be returned in the future.
+func ParseIdentities(f io.Reader) ([]Identity, error) {
 	const privateKeySizeLimit = 1 << 24 // 16 MiB
-	var ids []*X25519Identity
+	var ids []Identity
 	scanner := bufio.NewScanner(io.LimitReader(f, privateKeySizeLimit))
 	var n int
 	for scanner.Scan() {

@@ -13,6 +13,7 @@ import (
 	"io"
 	"io/ioutil"
 	"log"
+	"os"
 	"strings"
 	"testing"
 
@@ -66,6 +67,32 @@ func ExampleDecrypt() {
 	f := bytes.NewReader(fileContents)
 
 	r, err := age.Decrypt(f, identity)
+	if err != nil {
+		log.Fatalf("Failed to open encrypted file: %v", err)
+	}
+	if _, err := io.Copy(out, r); err != nil {
+		log.Fatalf("Failed to read encrypted file: %v", err)
+	}
+
+	fmt.Printf("File contents: %q\n", out.Bytes())
+	// Output:
+	// File contents: "Black lives matter."
+}
+
+func ExampleParseIdentities() {
+	keyFile, err := os.Open("testdata/keys.txt")
+	if err != nil {
+		log.Fatalf("Failed to open private keys file: %v", err)
+	}
+	identities, err := age.ParseIdentities(keyFile)
+	if err != nil {
+		log.Fatalf("Failed to parse private key %q: %v", privateKey, err)
+	}
+
+	out := &bytes.Buffer{}
+	f := bytes.NewReader(fileContents)
+
+	r, err := age.Decrypt(f, identities...)
 	if err != nil {
 		log.Fatalf("Failed to open encrypted file: %v", err)
 	}
@@ -164,7 +191,7 @@ func TestEncryptDecryptScrypt(t *testing.T) {
 	}
 }
 
-func TestParseX25519Identities(t *testing.T) {
+func TestParseIdentities(t *testing.T) {
 	tests := []struct {
 		name      string
 		wantCount int
@@ -184,13 +211,13 @@ AGE-SECRET-KEY--1D6K0SGAX3NU66R4GYFZY0UQWCLM3UUSF3CXLW4KXZM342WQSJ82QKU59Q`},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := age.ParseX25519Identities(strings.NewReader(tt.file))
+			got, err := age.ParseIdentities(strings.NewReader(tt.file))
 			if (err != nil) != tt.wantErr {
-				t.Errorf("ParseX25519Identities() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("ParseIdentities() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 			if len(got) != tt.wantCount {
-				t.Errorf("ParseX25519Identities() returned %d identities, want %d", len(got), tt.wantCount)
+				t.Errorf("ParseIdentities() returned %d identities, want %d", len(got), tt.wantCount)
 			}
 		})
 	}

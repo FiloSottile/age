@@ -28,7 +28,7 @@
 // There is no default path for age keys. Instead, they should be stored at
 // application-specific paths. The CLI supports files where private keys are
 // listed one per line, ignoring empty lines and lines starting with "#". These
-// files can be parsed with ParseX25519Identities.
+// files can be parsed with ParseIdentities.
 //
 // When integrating age into a new system, it's recommended that you only
 // support X25519 keys, and not SSH keys. The latter are supported for manual
@@ -90,11 +90,13 @@ type Stanza struct {
 const fileKeySize = 16
 const streamNonceSize = 16
 
-// Encrypt returns a WriteCloser. Writes to the returned value are encrypted and
-// written to dst as an age file. Every recipient will be able to decrypt the file.
+// Encrypt encrypts a file to one or more recipients.
 //
-// The caller must call Close on the returned value when done for the last chunk
-// to be encrypted and flushed to dst.
+// Writes to the returned WriteCloser are encrypted and written to dst as an age
+// file. Every recipient will be able to decrypt the file.
+//
+// The caller must call Close on the WriteCloser when done for the last chunk to
+// be encrypted and flushed to dst.
 func Encrypt(dst io.Writer, recipients ...Recipient) (io.WriteCloser, error) {
 	if len(recipients) == 0 {
 		return nil, errors.New("no recipients specified")
@@ -137,7 +139,9 @@ func Encrypt(dst io.Writer, recipients ...Recipient) (io.WriteCloser, error) {
 	return stream.NewWriter(streamKey(fileKey, nonce), dst)
 }
 
-// Decrypt returns a Reader reading the decrypted plaintext of the age file read
+// Decrypt decrypts a file encrypted to one or more identities.
+//
+// It returns a Reader reading the decrypted plaintext of the age file read
 // from src. All identities will be tried until one successfully decrypts the file.
 func Decrypt(src io.Reader, identities ...Identity) (io.Reader, error) {
 	if len(identities) == 0 {

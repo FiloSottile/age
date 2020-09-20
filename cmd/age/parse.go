@@ -51,15 +51,11 @@ func parseIdentitiesFile(name string) ([]age.Identity, error) {
 		return parseSSHIdentity(name, contents)
 	}
 
-	ids, err := age.ParseX25519Identities(b)
+	ids, err := age.ParseIdentities(b)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read %q: %v", name, err)
 	}
-	res := make([]age.Identity, 0, len(ids))
-	for _, id := range ids {
-		res = append(res, id)
-	}
-	return res, nil
+	return ids, nil
 }
 
 func parseSSHIdentity(name string, pemBytes []byte) ([]age.Identity, error) {
