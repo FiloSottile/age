@@ -31,11 +31,20 @@ func parseRecipient(arg string) (age.Recipient, error) {
 }
 
 func parseIdentitiesFile(name string) ([]age.Identity, error) {
-	f, err := os.Open(name)
-	if err != nil {
-		return nil, fmt.Errorf("failed to open file: %v", err)
+	var f *os.File
+	if name == "-" && stdinInUse {
+		return nil, fmt.Errorf("standard input is used more than once")
+	} else if name == "-" {
+		stdinInUse = true
+		f = os.Stdin
+	} else {
+		var err error
+		f, err = os.Open(name)
+		if err != nil {
+			return nil, fmt.Errorf("failed to open file: %v", err)
+		}
+		defer f.Close()
 	}
-	defer f.Close()
 
 	b := bufio.NewReader(f)
 	const pemHeader = "-----BEGIN"
@@ -43,17 +52,17 @@ func parseIdentitiesFile(name string) ([]age.Identity, error) {
 		const privateKeySizeLimit = 1 << 14 // 16 KiB
 		contents, err := ioutil.ReadAll(io.LimitReader(b, privateKeySizeLimit))
 		if err != nil {
-			return nil, fmt.Errorf("failed to read %q: %v", name, err)
+			return nil, fmt.Errorf("failed to read %q: %v", f.Name(), err)
 		}
 		if len(contents) == privateKeySizeLimit {
-			return nil, fmt.Errorf("failed to read %q: file too long", name)
+			return nil, fmt.Errorf("failed to read %q: file too long", f.Name())
 		}
-		return parseSSHIdentity(name, contents)
+		return parseSSHIdentity(f.Name(), contents)
 	}
 
 	ids, err := age.ParseIdentities(b)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read %q: %v", name, err)
+		return nil, fmt.Errorf("failed to read %q: %v", f.Name(), err)
 	}
 	return ids, nil
 }
@@ -94,16 +103,16 @@ func readPubFile(name string) (ssh.PublicKey, error) {
 	if err != nil {
 		return nil, fmt.Errorf(`failed to obtain public key for %q SSH key: %v
 
-    Ensure %q exists, or convert the private key %q to a modern format with "ssh-keygen -p -m RFC4716"`, name, err, name+".pub", name)
+    Ensure %q exists, or convert the private key %q to a modern format with "ssh-keygen -p -m RFC4716"`, name, err, f.Name(), name)
 	}
 	defer f.Close()
 	contents, err := ioutil.ReadAll(f)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read %q: %v", name+".pub", err)
+		return nil, fmt.Errorf("failed to read %q: %v", f.Name(), err)
 	}
 	pubKey, _, _, _, err := ssh.ParseAuthorizedKey(contents)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse %q: %v", name+".pub", err)
+		return nil, fmt.Errorf("failed to parse %q: %v", f.Name(), err)
 	}
 	return pubKey, nil
 }
