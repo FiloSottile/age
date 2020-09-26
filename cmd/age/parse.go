@@ -93,11 +93,21 @@ func sshKeyType(s string) (string, bool) {
 }
 
 func parseIdentitiesFile(name string) ([]age.Identity, error) {
-	f, err := os.Open(name)
-	if err != nil {
-		return nil, fmt.Errorf("failed to open file: %v", err)
+	var f *os.File
+	if name == "-" {
+		if stdinInUse {
+			return nil, fmt.Errorf("standard input is used for multiple purposes")
+		}
+		stdinInUse = true
+		f = os.Stdin
+	} else {
+		var err error
+		f, err = os.Open(name)
+		if err != nil {
+			return nil, fmt.Errorf("failed to open file: %v", err)
+		}
+		defer f.Close()
 	}
-	defer f.Close()
 
 	b := bufio.NewReader(f)
 	const pemHeader = "-----BEGIN"
@@ -152,11 +162,16 @@ func parseSSHIdentity(name string, pemBytes []byte) ([]age.Identity, error) {
 }
 
 func readPubFile(name string) (ssh.PublicKey, error) {
+	if name == "-" {
+		return nil, fmt.Errorf(`failed to obtain public key for "-" SSH key
+
+Use a file for which the corresponding ".pub" file exists, or convert the private key to a modern format with "ssh-keygen -p -m RFC4716"`)
+	}
 	f, err := os.Open(name + ".pub")
 	if err != nil {
 		return nil, fmt.Errorf(`failed to obtain public key for %q SSH key: %v
 
-    Ensure %q exists, or convert the private key %q to a modern format with "ssh-keygen -p -m RFC4716"`, name, err, name+".pub", name)
+Ensure %q exists, or convert the private key %q to a modern format with "ssh-keygen -p -m RFC4716"`, name, err, name+".pub", name)
 	}
 	defer f.Close()
 	contents, err := ioutil.ReadAll(f)
