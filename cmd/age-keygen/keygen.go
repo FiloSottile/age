@@ -21,6 +21,7 @@ func main() {
 	log.SetFlags(0)
 
 	outFlag := flag.String("o", "", "output to `FILE` (default stdout)")
+	pubkeyFlag := flag.Bool("pubkey", false, "Read the private key file from standard input and print the corresponding public key.")
 	flag.Parse()
 	if len(flag.Args()) != 0 {
 		log.Fatalf("age-keygen takes no arguments")
@@ -36,6 +37,15 @@ func main() {
 		out = f
 	}
 
+	if *pubkeyFlag {
+		in := os.Stdin
+		generatePubkey(out, in)
+	} else {
+		generatePrivkey(out)
+	}
+}
+
+func generatePrivkey(out *os.File) {
 	if fi, err := out.Stat(); err == nil {
 		if fi.Mode().IsRegular() && fi.Mode().Perm()&0004 != 0 {
 			fmt.Fprintf(os.Stderr, "Warning: writing to a world-readable file.\n"+
@@ -43,10 +53,6 @@ func main() {
 		}
 	}
 
-	generate(out)
-}
-
-func generate(out *os.File) {
 	k, err := age.GenerateX25519Identity()
 	if err != nil {
 		log.Fatalf("Internal error: %v", err)
@@ -59,4 +65,24 @@ func generate(out *os.File) {
 	fmt.Fprintf(out, "# created: %s\n", time.Now().Format(time.RFC3339))
 	fmt.Fprintf(out, "# public key: %s\n", k.Recipient())
 	fmt.Fprintf(out, "%s\n", k)
+}
+
+func generatePubkey(out *os.File, in *os.File) {
+	ids, err := age.ParseIdentities(in)
+	if err != nil {
+		log.Fatalf("failed to read %q: %v", in.Name(), err)
+	}
+	if len(ids) == 0 {
+		log.Fatalln("no identities found in input")
+	} else if len(ids) > 1 {
+		log.Fatalln("more than one identity provided in input")
+	}
+	id := ids[0]
+
+	k, ok := id.(*age.X25519Identity)
+	if !ok {
+		log.Fatalf("identity is not an X25519 identity (but %q)", id.Type())
+	}
+
+	fmt.Fprintf(out, "%s\n", k.Recipient())
 }
