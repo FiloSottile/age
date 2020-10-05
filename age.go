@@ -139,6 +139,10 @@ func Encrypt(dst io.Writer, recipients ...Recipient) (io.WriteCloser, error) {
 	return stream.NewWriter(streamKey(fileKey, nonce), dst)
 }
 
+// ErrNoMatchedIdentities is the error given when attempting to decrypt a file where no
+// identities match the recipient(s) it was encrypted for.
+var ErrNoMatchedIdentities = errors.New("no identity matched a recipient")
+
 // Decrypt decrypts a file encrypted to one or more identities.
 //
 // It returns a Reader reading the decrypted plaintext of the age file read
@@ -192,7 +196,7 @@ RecipientsLoop:
 		}
 	}
 	if fileKey == nil {
-		return nil, errors.New("no identity matched a recipient")
+		return nil, ErrNoMatchedIdentities
 	}
 
 	if mac, err := headerMAC(fileKey, hdr); err != nil {
