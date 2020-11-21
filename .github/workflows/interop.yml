@@ -1,7 +1,5 @@
 name: Interoperability tests
- 
 on: push
-
 jobs:
   trigger:
     runs-on: ubuntu-latest
