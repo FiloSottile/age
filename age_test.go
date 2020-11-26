@@ -17,6 +17,7 @@ import (
 	"testing"
 
 	"filippo.io/age"
+	"filippo.io/age/armor"
 )
 
 func ExampleEncrypt() {
@@ -221,5 +222,85 @@ AGE-SECRET-KEY--1D6K0SGAX3NU66R4GYFZY0UQWCLM3UUSF3CXLW4KXZM342WQSJ82QKU59Q`},
 				t.Errorf("ParseIdentities() returned %d identities, want %d", len(got), tt.wantCount)
 			}
 		})
+	}
+}
+
+func TestParseRecipientsEncryptDecrypt(t *testing.T) {
+	data := "Black lives matter."
+	keyFilePath := "testdata/keys2.txt"
+	dataFile := "testdata/example2.age"
+
+	defer os.Remove(dataFile)
+
+	// Open age-keygen generated file
+	keyFile, err := os.Open(keyFilePath)
+	if err != nil {
+		t.Fatalf("Failed to open private keys file: %v", err)
+	}
+
+	// Parse recipients from key file
+	recipients, err := age.ParseRecipients(keyFile)
+	if err != nil {
+		t.Fatalf("Failed to parse public key: %v", err)
+	}
+	keyFile.Close()
+
+	// Create file containing encrypted data
+	f, err := os.Create(dataFile)
+	if err != nil {
+		t.Fatalf("Failed to open file: %v", err)
+	}
+
+	// Write encrypted data
+	aw := armor.NewWriter(f)
+	w, err := age.Encrypt(aw, recipients...)
+	if err != nil {
+		t.Fatalf("Failed to create Encrypt: %v", err)
+	}
+
+	_, err = w.Write([]byte(data))
+
+	if err != nil {
+		t.Fatalf("Failed to write: %v", err)
+	}
+
+	// Close everything
+	w.Close()
+	aw.Close()
+
+	// Reopen key file
+	keyFile, err = os.Open(keyFilePath)
+	if err != nil {
+		t.Fatalf("Failed to open private keys file: %v", err)
+	}
+
+	// Parse identities
+	identities, err := age.ParseIdentities(keyFile)
+	if err != nil {
+		t.Fatalf("Failed to parse private key: %v", err)
+	}
+	keyFile.Close()
+
+	// Reopen data file for reading
+	f, err = os.Open(dataFile)
+	if err != nil {
+		t.Fatalf("Failed to open file: %v", err)
+	}
+
+	// Read encrypted data
+	ar := armor.NewReader(f)
+	r, err := age.Decrypt(ar, identities...)
+	if err != nil {
+		t.Fatalf("Failed to open encrypted file: %v", err)
+	}
+
+	out := &bytes.Buffer{}
+	if _, err := io.Copy(out, r); err != nil {
+		t.Fatalf("Failed to read encrypted file: %v", err)
+	}
+
+	actual := out.String()
+	if data != actual {
+		t.Fatalf("Decrypted data differs from original: expected '%s', actual '%s'", data, actual)
 	}
 }
