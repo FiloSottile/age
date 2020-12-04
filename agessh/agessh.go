@@ -24,10 +24,10 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"math/big"
 
 	"filippo.io/age"
 	"filippo.io/age/internal/format"
+	"filippo.io/edwards25519"
 	"golang.org/x/crypto/chacha20poly1305"
 	"golang.org/x/crypto/curve25519"
 	"golang.org/x/crypto/hkdf"
@@ -139,20 +139,24 @@ func NewEd25519Recipient(pk ssh.PublicKey) (*Ed25519Recipient, error) {
 	if pk.Type() != "ssh-ed25519" {
 		return nil, errors.New("SSH public key is not an Ed25519 key")
 	}
-	r := &Ed25519Recipient{
-		sshKey: pk,
-	}
 
-	if pk, ok := pk.(ssh.CryptoPublicKey); ok {
-		if pk, ok := pk.CryptoPublicKey().(ed25519.PublicKey); ok {
-			r.theirPublicKey = ed25519PublicKeyToCurve25519(pk)
-		} else {
-			return nil, errors.New("unexpected public key type")
-		}
-	} else {
+	cpk, ok := pk.(ssh.CryptoPublicKey)
+	if !ok {
 		return nil, errors.New("pk does not implement ssh.CryptoPublicKey")
 	}
-	return r, nil
+	epk, ok := cpk.CryptoPublicKey().(ed25519.PublicKey)
+	if !ok {
+		return nil, errors.New("unexpected public key type")
+	}
+	mpk, err := ed25519PublicKeyToCurve25519(epk)
+	if err != nil {
+		return nil, fmt.Errorf("invalid Ed25519 public key: %v", err)
+	}
+
+	return &Ed25519Recipient{
+		sshKey:         pk,
+		theirPublicKey: mpk,
+	}, nil
 }
 
 func ParseRecipient(s string) (age.Recipient, error) {
@@ -177,35 +181,14 @@ func ParseRecipient(s string) (age.Recipient, error) {
 	return r, nil
 }
 
-var curve25519P, _ = new(big.Int).SetString("57896044618658097711785492504343953926634992332820282019728792003956564819949", 10)
-
-func ed25519PublicKeyToCurve25519(pk ed25519.PublicKey) []byte {
-	// ed25519.PublicKey is a little endian representation of the y-coordinate,
-	// with the most significant bit set based on the sign of the x-coordinate.
-	bigEndianY := make([]byte, ed25519.PublicKeySize)
-	for i, b := range pk {
-		bigEndianY[ed25519.PublicKeySize-i-1] = b
+func ed25519PublicKeyToCurve25519(pk ed25519.PublicKey) ([]byte, error) {
+	// See https://blog.filippo.io/using-ed25519-keys-for-encryption and
+	// https://pkg.go.dev/filippo.io/edwards25519#Point.BytesMontgomery.
+	p, err := (&edwards25519.Point{}).SetBytes(pk)
+	if err != nil {
+		return nil, err
 	}
-	bigEndianY[0] &= 0b0111_1111
-
-	// The Montgomery u-coordinate is derived through the bilinear map
-	//
-	//     u = (1 + y) / (1 - y)
-	//
-	// See https://blog.filippo.io/using-ed25519-keys-for-encryption.
-	y := new(big.Int).SetBytes(bigEndianY)
-	denom := big.NewInt(1)
-	denom.ModInverse(denom.Sub(denom, y), curve25519P) // 1 / (1 - y)
-	u := y.Mul(y.Add(y, big.NewInt(1)), denom)
-	u.Mod(u, curve25519P)
-
-	out := make([]byte, curve25519.PointSize)
-	uBytes := u.Bytes()
-	for i, b := range uBytes {
-		out[len(uBytes)-i-1] = b
-	}
-
-	return out
+	return p.BytesMontgomery(), nil
 }
 
 const ed25519Label = "age-encryption.org/v1/ssh-ed25519"
