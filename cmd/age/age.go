@@ -91,6 +91,9 @@ func main() {
 			"age accepts a single optional argument for the input file.")
 	}
 	switch {
+	case len(identityFlags) > 0:
+		decryptFlag = true
+		fallthrough
 	case decryptFlag:
 		if armorFlag {
 			logFatalf("Error: -a/--armor can't be used with -d/--decrypt.\n" +
