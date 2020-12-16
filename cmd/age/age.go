@@ -12,6 +12,7 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"io/ioutil"
 	_log "log"
 	"os"
 	"strings"
@@ -39,6 +40,7 @@ Options:
     -a, --armor                 Encrypt to a PEM encoded format.
     -p, --passphrase            Encrypt with a passphrase.
     -r, --recipient RECIPIENT   Encrypt to the specified RECIPIENT. Can be repeated.
+                                Can either be the public key string or a file.
     -d, --decrypt               Decrypt the input to the output.
     -i, --identity KEY          Use the private key file at path KEY. Can be repeated.
 
@@ -55,7 +57,10 @@ Example:
     $ age-keygen -o key.txt
     Public key: age1ql3z7hjy54pw3hyww5ayyfg7zqgvc7w3j2elw8zmrj2kg5sfn9aqmcac8p
     $ tar cvz ~/data | age -r age1ql3z7hjy54pw3hyww5ayyfg7zqgvc7w3j2elw8zmrj2kg5sfn9aqmcac8p > data.tar.gz.age
-    $ age -d -i key.txt -o data.tar.gz data.tar.gz.age`
+    $ age -d -i key.txt -o data.tar.gz data.tar.gz.age
+
+    $ age -r ~/.ssh/id_rsa.pub passwords.txt > passwords.txt.age
+    $ age -i ~/.ssh/id_rsa passwords.txt.age`
 
 func main() {
 	_log.SetFlags(0)
@@ -192,6 +197,17 @@ func passphrasePromptForEncryption() (string, error) {
 func encryptKeys(keys []string, in io.Reader, out io.Writer, armor bool) {
 	var recipients []age.Recipient
 	for _, arg := range keys {
+		// Try to treat keys as a filename
+		if f, err := os.Stat(arg); err == nil {
+			if !f.IsDir() {
+				content, err := ioutil.ReadFile(arg)
+				if err != nil {
+					logFatalf("Error: %v", err)
+				}
+				arg = string(content)
+			}
+		}
+
 		r, err := parseRecipient(arg)
 		if err != nil {
 			logFatalf("Error: %v", err)
