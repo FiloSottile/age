@@ -21,7 +21,7 @@ An alternative interoperable Rust implementation is available at [github.com/str
 
 ```
 Usage:
-    age -r RECIPIENT [-a] [-o OUTPUT] [INPUT]
+    age -r RECIPIENT [-a] [-p] [-o OUTPUT] [INPUT]
     age --decrypt [-i KEY] [-o OUTPUT] [INPUT]
 
 Options:
