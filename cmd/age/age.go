@@ -113,7 +113,7 @@ func main() {
 		}
 	}
 
-	var in, out io.ReadWriter = os.Stdin, os.Stdout
+	in := os.Stdin
 	if name := flag.Arg(0); name != "" && name != "-" {
 		f, err := os.Open(name)
 		if err != nil {
@@ -124,23 +124,10 @@ func main() {
 	} else {
 		stdinInUse = true
 	}
-	if name := outFlag; name != "" && name != "-" {
-		f, err := os.OpenFile(name, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0666)
-		if err != nil {
-			logFatalf("Error: failed to open output file %q: %v", name, err)
-		}
-		defer f.Close()
-		out = f
-	} else if terminal.IsTerminal(int(os.Stdout.Fd())) {
-		if armorFlag {
-			// If the output will go to a TTY, and it will be armored, buffer it
-			// up so it doesn't get in the way of typing the input.
-			buf := &bytes.Buffer{}
-			defer func() { io.Copy(os.Stdout, buf) }()
-			out = buf
-		} else if decryptFlag && name != "-" {
+	if outFlag == "" && terminal.IsTerminal(int(os.Stdout.Fd())) && !armorFlag {
+		if decryptFlag {
 			// TODO: buffer the output and check it's printable.
-		} else if name != "-" {
+		} else {
 			// If the output wouldn't be armored, refuse to send binary to the
 			// terminal unless explicitly requested with "-o -".
 			logFatalf("Error: refusing to output binary to the terminal.\n" +
@@ -150,15 +137,15 @@ func main() {
 
 	switch {
 	case decryptFlag:
-		decrypt(identityFlags, in, out)
+		decrypt(identityFlags, in, outFlag, armorFlag)
 	case passFlag:
 		pass, err := passphrasePromptForEncryption()
 		if err != nil {
 			logFatalf("Error: %v", err)
 		}
-		encryptPass(pass, in, out, armorFlag)
+		encryptPass(pass, in, outFlag, armorFlag)
 	default:
-		encryptKeys(recipientFlags, in, out, armorFlag)
+		encryptKeys(recipientFlags, in, outFlag, armorFlag)
 	}
 }
 
@@ -189,7 +176,7 @@ func passphrasePromptForEncryption() (string, error) {
 	return p, nil
 }
 
-func encryptKeys(keys []string, in io.Reader, out io.Writer, armor bool) {
+func encryptKeys(keys []string, in io.Reader, outFlag string, armor bool) {
 	var recipients []age.Recipient
 	for _, arg := range keys {
 		r, err := parseRecipient(arg)
@@ -198,18 +185,31 @@ func encryptKeys(keys []string, in io.Reader, out io.Writer, armor bool) {
 		}
 		recipients = append(recipients, r)
 	}
-	encrypt(recipients, in, out, armor)
+	encrypt(recipients, in, outFlag, armor)
 }
 
-func encryptPass(pass string, in io.Reader, out io.Writer, armor bool) {
+func encryptPass(pass string, in io.Reader, outFlag string, armor bool) {
 	r, err := age.NewScryptRecipient(pass)
 	if err != nil {
 		logFatalf("Error: %v", err)
 	}
-	encrypt([]age.Recipient{r}, in, out, armor)
+	encrypt([]age.Recipient{r}, in, outFlag, armor)
 }
 
-func encrypt(recipients []age.Recipient, in io.Reader, out io.Writer, withArmor bool) {
+func encrypt(recipients []age.Recipient, in io.Reader, outFlag string, withArmor bool) {
+	var out io.Writer = os.Stdout
+	if outFlag != "" && outFlag != "-" {
+		f := getOutFile(outFlag)
+		defer f.Close()
+		out = f
+	} else if terminal.IsTerminal(int(os.Stdout.Fd())) && withArmor {
+		// If the output will go to a TTY, and it will be armored, buffer it
+		// up so it doesn't get in the way of typing the input.
+		buf := &bytes.Buffer{}
+		defer func() { io.Copy(os.Stdout, buf) }()
+		out = buf
+	}
+
 	ageEncrypt := age.Encrypt
 	if withArmor {
 		a := armor.NewWriter(out)
@@ -232,7 +232,7 @@ func encrypt(recipients []age.Recipient, in io.Reader, out io.Writer, withArmor 
 	}
 }
 
-func decrypt(keys []string, in io.Reader, out io.Writer) {
+func decrypt(keys []string, in io.Reader, outFlag string, withArmor bool) {
 	identities := []age.Identity{
 		// If there is an scrypt recipient (it will have to be the only one and)
 		// this identity will be invoked.
@@ -260,9 +260,30 @@ func decrypt(keys []string, in io.Reader, out io.Writer) {
 	if err != nil {
 		logFatalf("Error: %v", err)
 	}
+
+	var out io.Writer = os.Stdout
+	if outFlag != "" && outFlag != "-" {
+		f := getOutFile(outFlag)
+		defer f.Close()
+		out = f
+	} else if terminal.IsTerminal(int(os.Stdout.Fd())) && withArmor {
+		// If the output will go to a TTY, and it will be armored, buffer it
+		// up so it doesn't get in the way of typing the input.
+		buf := &bytes.Buffer{}
+		defer func() { io.Copy(os.Stdout, buf) }()
+		out = buf
+	}
 	if _, err := io.Copy(out, r); err != nil {
 		logFatalf("Error: %v", err)
 	}
+}
+
+func getOutFile(name string) *os.File {
+	f, err := os.OpenFile(name, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0666)
+	if err != nil {
+		logFatalf("Error: failed to open output file %q: %v", name, err)
+	}
+	return f
 }
 
 func passphrasePrompt() (string, error) {
