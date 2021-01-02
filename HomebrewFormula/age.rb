@@ -14,7 +14,7 @@ class Age < Formula
 
   def install
     mkdir bin
-    system "go", "build", "-trimpath", "-o", bin, "filippo.io/age/cmd/..."
+    system "go", "build", "-trimpath", "-o", bin, "-ldflags", "-X main.Version=v#{version}", "filippo.io/age/cmd/..."
     prefix.install_metafiles
   end
 end
