@@ -154,7 +154,8 @@ func main() {
 		}
 	}
 
-	var in, out io.ReadWriter = os.Stdin, os.Stdout
+	var in io.Reader = os.Stdin
+	var out io.Writer = os.Stdout
 	if name := flag.Arg(0); name != "" && name != "-" {
 		f, err := os.Open(name)
 		if err != nil {
