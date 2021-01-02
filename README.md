@@ -69,6 +69,8 @@ age1lggyhqrw2nlhcxprm67z43rta597azn8gknawjehu9d9dl0jq3yqqvfafg
 $ age -R recipients.txt example.jpg > example.jpg.age
 ```
 
+If the argument to `-R` (or `-i`) is `-`, the file is read from standard input.
+
 ### Passphrases
 
 Files can be encrypted with a passphrase by using `-p/--passphrase`. By default age will automatically generate a secure passphrase. Passphrase protected files are automatically detected at decrypt time.
@@ -91,6 +93,16 @@ $ age -d -i ~/.ssh/id_ed25519 example.jpg.age > example.jpg
 ```
 
 Note that SSH key support employs more complex cryptography, and embeds a public key tag in the encrypted file, making it possible to track files that are encrypted to a specific public key.
+
+#### Encrypting to a GitHub user
+
+Combining SSH key support and `-R`, you can easily encrypt a file to the SSH keys listed on a GitHub profile.
+
+```
+$ curl https://github.com/benjojo.keys | age -R - example.jpg > example.jpg.age
+```
+
+Keep in mind that people might not protect SSH keys long-term, since they are revokable when used only for authentication, and that SSH keys held on YubiKeys can't be used to decrypt files.
 
 ## Installation
 

@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"log"
 	"os"
 	"strings"
 
@@ -32,7 +33,23 @@ func parseRecipient(arg string) (age.Recipient, error) {
 	return nil, fmt.Errorf("unknown recipient type: %q", arg)
 }
 
-func parseRecipients(f io.Reader, warnf func(string, ...interface{})) ([]age.Recipient, error) {
+func parseRecipientsFile(name string) ([]age.Recipient, error) {
+	var f *os.File
+	if name == "-" {
+		if stdinInUse {
+			return nil, fmt.Errorf("standard input is used for multiple purposes")
+		}
+		stdinInUse = true
+		f = os.Stdin
+	} else {
+		var err error
+		f, err = os.Open(name)
+		if err != nil {
+			return nil, fmt.Errorf("failed to open recipient file: %v", err)
+		}
+		defer f.Close()
+	}
+
 	const recipientFileSizeLimit = 16 << 20 // 16 MiB
 	const lineLengthLimit = 8 << 10         // 8 KiB, same as sshd(8)
 	var recs []age.Recipient
@@ -45,26 +62,26 @@ func parseRecipients(f io.Reader, warnf func(string, ...interface{})) ([]age.Rec
 			continue
 		}
 		if len(line) > lineLengthLimit {
-			return nil, fmt.Errorf("line %d is too long", n)
+			return nil, fmt.Errorf("%q: line %d is too long", name, n)
 		}
 		r, err := parseRecipient(line)
 		if err != nil {
 			if t, ok := sshKeyType(line); ok {
 				// Skip unsupported but valid SSH public keys with a warning.
-				warnf("ignoring unsupported SSH key of type %q at line %d", t, n)
+				log.Printf("Warning: recipients file %q: ignoring unsupported SSH key of type %q at line %d", name, t, n)
 				continue
 			}
 			// Hide the error since it might unintentionally leak the contents
 			// of confidential files.
-			return nil, fmt.Errorf("malformed recipient at line %d", n)
+			return nil, fmt.Errorf("%q: malformed recipient at line %d", name, n)
 		}
 		recs = append(recs, r)
 	}
 	if err := scanner.Err(); err != nil {
-		return nil, fmt.Errorf("failed to read recipients file: %v", err)
+		return nil, fmt.Errorf("%q: failed to read recipients file: %v", name, err)
 	}
 	if len(recs) == 0 {
-		return nil, fmt.Errorf("no recipients found")
+		return nil, fmt.Errorf("%q: no recipients found", name)
 	}
 	return recs, nil
 }
