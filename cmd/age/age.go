@@ -72,6 +72,11 @@ func main() {
 	_log.SetFlags(0)
 	flag.Usage = func() { fmt.Fprintf(os.Stderr, "%s\n", usage) }
 
+	if len(os.Args) == 1 {
+		flag.Usage()
+		os.Exit(1)
+	}
+
 	var (
 		outFlag                       string
 		decryptFlag, armorFlag        bool
