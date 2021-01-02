@@ -55,29 +55,33 @@ func NewlineWriter(dst io.Writer) io.Writer {
 type newlineWriter struct {
 	dst     io.Writer
 	written int
+	buf     bytes.Buffer
 }
 
-func (w *newlineWriter) Write(p []byte) (n int, err error) {
+func (w *newlineWriter) Write(p []byte) (int, error) {
+	if w.buf.Len() != 0 {
+		panic("age: internal error: non-empty newlineWriter.buf")
+	}
 	for len(p) > 0 {
 		remainingInLine := ColumnsPerLine - (w.written % ColumnsPerLine)
 		if remainingInLine == ColumnsPerLine && w.written != 0 {
-			if _, err := w.dst.Write([]byte("\n")); err != nil {
-				return n, err
-			}
+			w.buf.Write([]byte("\n"))
 		}
 		toWrite := remainingInLine
 		if toWrite > len(p) {
 			toWrite = len(p)
 		}
-		nn, err := w.dst.Write(p[:toWrite])
-		n += nn
-		w.written += nn
-		p = p[nn:]
-		if err != nil {
-			return n, err
-		}
+		n, _ := w.buf.Write(p[:toWrite])
+		w.written += n
+		p = p[n:]
 	}
-	return n, nil
+	if _, err := w.buf.WriteTo(w.dst); err != nil {
+		// We always return n = 0 on error because it's hard to work back to the
+		// input length that ended up written out. Not ideal, but Write errors
+		// are not recoverable anyway.
+		return 0, err
+	}
+	return len(p), nil
 }
 
 const intro = "age-encryption.org/v1\n"
