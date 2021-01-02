@@ -18,6 +18,28 @@ import (
 	"golang.org/x/crypto/ssh/terminal"
 )
 
+const usage = `Usage:
+    age-keygen [-o OUTPUT]
+
+Options:
+    -o, --output OUTPUT       Write the key to the file at path OUTPUT.
+
+age-keygen generates a new standard X25519 key pair, and outputs it to
+standard output or to the OUTPUT file.
+
+If an OUTPUT file is specified, the public key is printed to standard error.
+If OUTPUT already exists, it is not overwritten.
+
+Examples:
+
+    $ age-keygen
+    # created: 2021-01-02T15:30:45+01:00
+    # public key: age1lvyvwawkr0mcnnnncaghunadrqkmuf9e6507x9y920xxpp866cnql7dp2z
+    AGE-SECRET-KEY-1N9JEPW6DWJ0ZQUDX63F5A03GX8QUW7PXDE39N8UYF82VZ9PC8UFS3M7XA9
+
+    $ age-keygen -o key.txt
+    Public key: age1ql3z7hjy54pw3hyww5ayyfg7zqgvc7w3j2elw8zmrj2kg5sfn9aqmcac8p`
+
 // Version can be set at link time to override debug.BuildInfo.Main.Version,
 // which is "(devel)" when building from within the module. See
 // golang.org/issue/29814 and golang.org/issue/29228.
@@ -26,6 +48,7 @@ var Version string
 func main() {
 	log.SetFlags(0)
 
+	flag.Usage = func() { fmt.Fprintf(os.Stderr, "%s\n", usage) }
 	outFlag := flag.String("o", "", "output to `FILE` (default stdout)")
 	versionFlag := flag.Bool("version", false, "print the version")
 	flag.Parse()
