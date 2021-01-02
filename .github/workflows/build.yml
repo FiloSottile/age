@@ -1,0 +1,69 @@
+on:
+  release:
+    types: [published]
+  push:
+  pull_request:
+name: Build binaries
+jobs:
+  binaries:
+    name: Build and upload
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.x
+      - name: Checkout repository
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - name: Build binaries
+        run: |
+          VERSION=$(git describe --tags)
+          function build_age() {
+            DIR="$(mktemp -d)"
+            mkdir "$DIR/age"
+            go build -o "$DIR/age" -ldflags "-X main.Version=$VERSION" ./cmd/...
+            if [ "$GOOS" == "windows" ]; then
+              ( cd "$DIR"; zip age.zip -r age )
+              mv "$DIR/age.zip" "age-$VERSION-$GOOS-$GOARCH.zip"
+            else
+              tar -cvzf "age-$VERSION-$GOOS-$GOARCH.tar.gz" -C "$DIR" age
+            fi
+          }
+          export CGO_ENABLED=0
+          GOOS=linux GOARCH=amd64 build_age
+          GOOS=linux GOARCH=arm GOARM=6 build_age
+          GOOS=linux GOARCH=arm64 build_age
+          GOOS=darwin GOARCH=amd64 build_age
+          GOOS=windows GOARCH=amd64 build_age
+      - name: Upload workflow artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: age-binaries
+          path: age-*
+      - name: Upload release artifacts
+        uses: actions/github-script@v3
+        if: ${{ github.event_name == 'release' }}
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const fs = require("fs").promises;
+            const { repo: { owner, repo }, sha } = context;
+
+            const release = await github.repos.getReleaseByTag({
+              owner, repo,
+              tag: process.env.GITHUB_REF.replace("refs/tags/", ""),
+            });
+            console.log("Release:", { release });
+
+            for (let file of await fs.readdir(".")) {
+              if (!file.startsWith("age-")) continue;
+              console.log("Uploading", file);
+              await github.repos.uploadReleaseAsset({
+                owner, repo,
+                release_id: release.data.id,
+                name: file,
+                data: await fs.readFile(file),
+              });            
+            }
