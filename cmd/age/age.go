@@ -167,11 +167,11 @@ func main() {
 		stdinInUse = true
 	}
 	if name := outFlag; name != "" && name != "-" {
-		f, err := os.OpenFile(name, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0666)
-		if err != nil {
-			logFatalf("Error: failed to open output file %q: %v", name, err)
+		if _, err := os.Stat(name); err == nil {
+			logFatalf("Error: output file %q exists", name)
 		}
-		defer f.Close()
+		f, close := lazyOpener(name)
+		defer close()
 		out = f
 	} else if terminal.IsTerminal(int(os.Stdout.Fd())) {
 		if armorFlag {
@@ -328,6 +328,33 @@ func passphrasePrompt() (string, error) {
 		return "", fmt.Errorf("could not read passphrase: %v", err)
 	}
 	return string(pass), nil
+}
+
+type WriterFunc func(p []byte) (n int, err error)
+
+func (f WriterFunc) Write(p []byte) (n int, err error) { return f(p) }
+
+// lazyOpener returns a Writer that opens the named file upon the first Write,
+// and a function that calls Close on the file if it has been successfully
+// opened, and returns nil otherwise.
+func lazyOpener(name string) (w io.Writer, close func() error) {
+	var f *os.File
+	var openErr error
+	write := func(p []byte) (n int, err error) {
+		if f == nil && openErr == nil {
+			f, openErr = os.OpenFile(name, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0666)
+		}
+		if openErr != nil {
+			return 0, openErr
+		}
+		return f.Write(p)
+	}
+	return WriterFunc(write), func() error {
+		if f != nil {
+			return f.Close()
+		}
+		return nil
+	}
 }
 
 func logFatalf(format string, v ...interface{}) {
