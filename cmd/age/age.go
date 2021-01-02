@@ -33,6 +33,7 @@ func (f *multiFlag) Set(value string) error {
 
 const usage = `Usage:
     age -r RECIPIENT [-a] [-o OUTPUT] [INPUT]
+    age --passphrase [-a] [-o OUTPUT] [INPUT]
     age --decrypt [-i KEY] [-o OUTPUT] [INPUT]
 
 Options:
