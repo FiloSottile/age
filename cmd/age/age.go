@@ -241,14 +241,7 @@ func encryptKeys(keys, files []string, in io.Reader, out io.Writer, armor bool) 
 		recipients = append(recipients, r)
 	}
 	for _, name := range files {
-		f, err := os.Open(name)
-		if err != nil {
-			logFatalf("Error: failed to open recipient file: %v", err)
-		}
-		recs, err := parseRecipients(f, func(format string, a ...interface{}) {
-			a = append([]interface{}{name}, a...)
-			_log.Printf("Warning: recipients file %q: "+format, a...)
-		})
+		recs, err := parseRecipientsFile(name)
 		if err != nil {
 			logFatalf("Error: failed to parse recipient file %q: %v", name, err)
 		}
