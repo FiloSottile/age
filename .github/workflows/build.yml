@@ -5,8 +5,8 @@ on:
   pull_request:
 name: Build binaries
 jobs:
-  release:
-    name: Upload Release Asset
+  binaries:
+    name: Build and upload
     runs-on: ubuntu-latest
     steps:
       - name: Install Go
