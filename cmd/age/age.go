@@ -14,6 +14,7 @@ import (
 	"io"
 	_log "log"
 	"os"
+	"runtime/debug"
 	"strings"
 
 	"filippo.io/age"
@@ -61,17 +62,24 @@ Example:
     $ tar cvz ~/data | age -r age1ql3z7hjy54pw3hyww5ayyfg7zqgvc7w3j2elw8zmrj2kg5sfn9aqmcac8p > data.tar.gz.age
     $ age -d -i key.txt -o data.tar.gz data.tar.gz.age`
 
+// Version can be set at link time to override debug.BuildInfo.Main.Version,
+// which is "(devel)" when building from within the module. See
+// golang.org/issue/29814 and golang.org/issue/29228.
+var Version string
+
 func main() {
 	_log.SetFlags(0)
 	flag.Usage = func() { fmt.Fprintf(os.Stderr, "%s\n", usage) }
 
 	var (
-		outFlag                          string
-		decryptFlag, armorFlag, passFlag bool
-		recipientFlags, identityFlags    multiFlag
-		recipientsFileFlags              multiFlag
+		outFlag                       string
+		decryptFlag, armorFlag        bool
+		passFlag, versionFlag         bool
+		recipientFlags, identityFlags multiFlag
+		recipientsFileFlags           multiFlag
 	)
 
+	flag.BoolVar(&versionFlag, "version", false, "print the version")
 	flag.BoolVar(&decryptFlag, "d", false, "decrypt the input")
 	flag.BoolVar(&decryptFlag, "decrypt", false, "decrypt the input")
 	flag.BoolVar(&passFlag, "p", false, "use a passphrase")
@@ -87,6 +95,19 @@ func main() {
 	flag.Var(&identityFlags, "i", "identity (can be repeated)")
 	flag.Var(&identityFlags, "identity", "identity (can be repeated)")
 	flag.Parse()
+
+	if versionFlag {
+		if Version != "" {
+			fmt.Println(Version)
+			return
+		}
+		if buildInfo, ok := debug.ReadBuildInfo(); ok {
+			fmt.Println(buildInfo.Main.Version)
+			return
+		}
+		fmt.Println("(unknown)")
+		return
+	}
 
 	if flag.NArg() > 1 {
 		logFatalf("Error: too many arguments.\n" +

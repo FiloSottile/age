@@ -11,19 +11,38 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"runtime/debug"
 	"time"
 
 	"filippo.io/age"
 	"golang.org/x/crypto/ssh/terminal"
 )
 
+// Version can be set at link time to override debug.BuildInfo.Main.Version,
+// which is "(devel)" when building from within the module. See
+// golang.org/issue/29814 and golang.org/issue/29228.
+var Version string
+
 func main() {
 	log.SetFlags(0)
 
 	outFlag := flag.String("o", "", "output to `FILE` (default stdout)")
+	versionFlag := flag.Bool("version", false, "print the version")
 	flag.Parse()
 	if len(flag.Args()) != 0 {
 		log.Fatalf("age-keygen takes no arguments")
+	}
+	if *versionFlag {
+		if Version != "" {
+			fmt.Println(Version)
+			return
+		}
+		if buildInfo, ok := debug.ReadBuildInfo(); ok {
+			fmt.Println(buildInfo.Main.Version)
+			return
+		}
+		fmt.Println("(unknown)")
+		return
 	}
 
 	out := os.Stdout
