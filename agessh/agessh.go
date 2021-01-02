@@ -12,7 +12,7 @@
 // keys, and native X25519 keys should be preferred otherwise.
 //
 // Note that these recipient types are not anonymous: the encrypted message will
-// include a short 32-bit ID of the public key,
+// include a short 32-bit ID of the public key.
 package agessh
 
 import (

@@ -8,6 +8,7 @@ package main
 
 import (
 	"bufio"
+	"encoding/base64"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -16,6 +17,7 @@ import (
 
 	"filippo.io/age"
 	"filippo.io/age/agessh"
+	"golang.org/x/crypto/cryptobyte"
 	"golang.org/x/crypto/ssh"
 )
 
@@ -28,6 +30,66 @@ func parseRecipient(arg string) (age.Recipient, error) {
 	}
 
 	return nil, fmt.Errorf("unknown recipient type: %q", arg)
+}
+
+func parseRecipients(f io.Reader, warnf func(string, ...interface{})) ([]age.Recipient, error) {
+	const recipientFileSizeLimit = 16 << 20 // 16 MiB
+	const lineLengthLimit = 8 << 10         // 8 KiB, same as sshd(8)
+	var recs []age.Recipient
+	scanner := bufio.NewScanner(io.LimitReader(f, recipientFileSizeLimit))
+	var n int
+	for scanner.Scan() {
+		n++
+		line := scanner.Text()
+		if strings.HasPrefix(line, "#") || line == "" {
+			continue
+		}
+		if len(line) > lineLengthLimit {
+			return nil, fmt.Errorf("line %d is too long", n)
+		}
+		r, err := parseRecipient(line)
+		if err != nil {
+			if t, ok := sshKeyType(line); ok {
+				// Skip unsupported but valid SSH public keys with a warning.
+				warnf("ignoring unsupported SSH key of type %q at line %d", t, n)
+				continue
+			}
+			// Hide the error since it might unintentionally leak the contents
+			// of confidential files.
+			return nil, fmt.Errorf("malformed recipient at line %d", n)
+		}
+		recs = append(recs, r)
+	}
+	if err := scanner.Err(); err != nil {
+		return nil, fmt.Errorf("failed to read recipients file: %v", err)
+	}
+	if len(recs) == 0 {
+		return nil, fmt.Errorf("no recipients found")
+	}
+	return recs, nil
+}
+
+func sshKeyType(s string) (string, bool) {
+	// TODO: also ignore options? And maybe support multiple spaces and tabs as
+	// field separators like OpenSSH?
+	fields := strings.Split(s, " ")
+	if len(fields) < 2 {
+		return "", false
+	}
+	key, err := base64.StdEncoding.DecodeString(fields[1])
+	if err != nil {
+		return "", false
+	}
+	k := cryptobyte.String(key)
+	var typeLen uint32
+	var typeBytes []byte
+	if !k.ReadUint32(&typeLen) || !k.ReadBytes(&typeBytes, int(typeLen)) {
+		return "", false
+	}
+	if t := fields[0]; t == string(typeBytes) {
+		return t, true
+	}
+	return "", false
 }
 
 func parseIdentitiesFile(name string) ([]age.Identity, error) {
