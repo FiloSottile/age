@@ -19,7 +19,8 @@ import (
 func TestVectors(t *testing.T) {
 	files, _ := filepath.Glob("testdata/*.age")
 	for _, f := range files {
-		name := strings.TrimSuffix(strings.TrimPrefix(f, "testdata/"), ".age")
+		_, name := filepath.Split(f)
+		name = strings.TrimSuffix(name, ".age")
 		expectFailure := strings.HasPrefix(name, "fail_")
 		t.Run(name, func(t *testing.T) {
 			var identities []age.Identity
