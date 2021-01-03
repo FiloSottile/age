@@ -107,12 +107,11 @@ func (w *WrappedBase64Encoder) LastLineIsEmpty() bool {
 
 const intro = "age-encryption.org/v1\n"
 
-var recipientPrefix = []byte("->")
-
+var stanzaPrefix = []byte("->")
 var footerPrefix = []byte("---")
 
 func (r *Stanza) Marshal(w io.Writer) error {
-	if _, err := w.Write(recipientPrefix); err != nil {
+	if _, err := w.Write(stanzaPrefix); err != nil {
 		return err
 	}
 	for _, a := range append([]string{r.Type}, r.Args...) {
@@ -156,6 +155,67 @@ func (h *Header) Marshal(w io.Writer) error {
 	return err
 }
 
+type StanzaReader struct {
+	r   *bufio.Reader
+	err error
+}
+
+func NewStanzaReader(r *bufio.Reader) *StanzaReader {
+	return &StanzaReader{r: r}
+}
+
+func (r *StanzaReader) ReadStanza() (s *Stanza, err error) {
+	// Read errors are unrecoverable.
+	if r.err != nil {
+		return nil, r.err
+	}
+	defer func() { r.err = err }()
+
+	s = &Stanza{}
+
+	line, err := r.r.ReadBytes('\n')
+	if err != nil {
+		return nil, fmt.Errorf("failed to read line: %v", err)
+	}
+	if !bytes.HasPrefix(line, stanzaPrefix) {
+		return nil, fmt.Errorf("malformed stanza opening line: %q", line)
+	}
+	prefix, args := splitArgs(line)
+	if prefix != string(stanzaPrefix) || len(args) < 1 {
+		return nil, fmt.Errorf("malformed stanza: %q", line)
+	}
+	for _, a := range args {
+		if !isValidString(a) {
+			return nil, fmt.Errorf("malformed stanza: %q", line)
+		}
+	}
+	s.Type = args[0]
+	s.Args = args[1:]
+
+	for {
+		line, err := r.r.ReadBytes('\n')
+		if err != nil {
+			return nil, fmt.Errorf("failed to read line: %v", err)
+		}
+
+		b, err := DecodeString(strings.TrimSuffix(string(line), "\n"))
+		if err != nil {
+			if bytes.HasPrefix(line, footerPrefix) || bytes.HasPrefix(line, stanzaPrefix) {
+				return nil, fmt.Errorf("malformed body line %q: stanza ended without a short line\nNote: this might be a file encrypted with an old beta version of age or rage. Use age v1.0.0-beta6 or rage to decrypt it.", line)
+			}
+			return nil, errorf("malformed body line %q: %v", line, err)
+		}
+		if len(b) > BytesPerLine {
+			return nil, errorf("malformed body line %q: too long", line)
+		}
+		s.Body = append(s.Body, b...)
+		if len(b) < BytesPerLine {
+			// A stanza body always ends with a short line.
+			return s, nil
+		}
+	}
+}
+
 type ParseError string
 
 func (e ParseError) Error() string {
@@ -180,17 +240,19 @@ func Parse(input io.Reader) (*Header, io.Reader, error) {
 		return nil, nil, errorf("unexpected intro: %q", line)
 	}
 
-	var r *Stanza
+	sr := NewStanzaReader(rr)
 	for {
-		line, err := rr.ReadBytes('\n')
+		peek, err := rr.Peek(len(footerPrefix))
 		if err != nil {
 			return nil, nil, errorf("failed to read header: %v", err)
 		}
 
-		if bytes.HasPrefix(line, footerPrefix) {
-			if r != nil {
-				return nil, nil, errorf("malformed body line %q: reached footer without previous stanza being closed\nNote: this might be a file encrypted with an old beta version of age or rage. Use age v1.0.0-beta6 or rage to decrypt it.", line)
+		if bytes.Equal(peek, footerPrefix) {
+			line, err := rr.ReadBytes('\n')
+			if err != nil {
+				return nil, nil, fmt.Errorf("failed to read header: %v", err)
 			}
+
 			prefix, args := splitArgs(line)
 			if prefix != string(footerPrefix) || len(args) != 1 {
 				return nil, nil, errorf("malformed closing line: %q", line)
@@ -200,42 +262,13 @@ func Parse(input io.Reader) (*Header, io.Reader, error) {
 				return nil, nil, errorf("malformed closing line %q: %v", line, err)
 			}
 			break
-
-		} else if bytes.HasPrefix(line, recipientPrefix) {
-			if r != nil {
-				return nil, nil, errorf("malformed body line %q: new stanza started without previous stanza being closed\nNote: this might be a file encrypted with an old beta version of age or rage. Use age v1.0.0-beta6 or rage to decrypt it.", line)
-			}
-			r = &Stanza{}
-			prefix, args := splitArgs(line)
-			if prefix != string(recipientPrefix) || len(args) < 1 {
-				return nil, nil, errorf("malformed recipient: %q", line)
-			}
-			for _, a := range args {
-				if !isValidString(a) {
-					return nil, nil, errorf("malformed recipient: %q", line)
-				}
-			}
-			r.Type = args[0]
-			r.Args = args[1:]
-			h.Recipients = append(h.Recipients, r)
-
-		} else if r != nil {
-			b, err := DecodeString(strings.TrimSuffix(string(line), "\n"))
-			if err != nil {
-				return nil, nil, errorf("malformed body line %q: %v", line, err)
-			}
-			if len(b) > BytesPerLine {
-				return nil, nil, errorf("malformed body line %q: too long", line)
-			}
-			r.Body = append(r.Body, b...)
-			if len(b) < BytesPerLine {
-				// Only the last line of a body can be short.
-				r = nil
-			}
-
-		} else {
-			return nil, nil, errorf("unexpected line: %q", line)
 		}
+
+		s, err := sr.ReadStanza()
+		if err != nil {
+			return nil, nil, fmt.Errorf("failed to parse header: %v", err)
+		}
+		h.Recipients = append(h.Recipients, s)
 	}
 
 	// If input is a bufio.Reader, rr might be equal to input because
