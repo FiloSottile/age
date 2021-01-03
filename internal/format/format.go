@@ -47,7 +47,8 @@ const BytesPerLine = ColumnsPerLine / 4 * 3
 
 // NewlineWriter returns a Writer that writes to dst, inserting an LF character
 // every ColumnsPerLine bytes. It does not insert a newline neither at the
-// beginning nor at the end of the stream.
+// beginning nor at the end of the stream, but it ensures the last line is
+// shorter than ColumnsPerLine, which means it might be empty.
 func NewlineWriter(dst io.Writer) io.Writer {
 	return &newlineWriter{dst: dst}
 }
@@ -63,17 +64,16 @@ func (w *newlineWriter) Write(p []byte) (int, error) {
 		panic("age: internal error: non-empty newlineWriter.buf")
 	}
 	for len(p) > 0 {
-		remainingInLine := ColumnsPerLine - (w.written % ColumnsPerLine)
-		if remainingInLine == ColumnsPerLine && w.written != 0 {
-			w.buf.Write([]byte("\n"))
-		}
-		toWrite := remainingInLine
+		toWrite := ColumnsPerLine - (w.written % ColumnsPerLine)
 		if toWrite > len(p) {
 			toWrite = len(p)
 		}
 		n, _ := w.buf.Write(p[:toWrite])
 		w.written += n
 		p = p[n:]
+		if w.written%ColumnsPerLine == 0 {
+			w.buf.Write([]byte("\n"))
+		}
 	}
 	if _, err := w.buf.WriteTo(w.dst); err != nil {
 		// We always return n = 0 on error because it's hard to work back to the
@@ -100,9 +100,6 @@ func (r *Stanza) Marshal(w io.Writer) error {
 	}
 	if _, err := io.WriteString(w, "\n"); err != nil {
 		return err
-	}
-	if len(r.Body) == 0 {
-		return nil
 	}
 	ww := base64.NewEncoder(b64, NewlineWriter(w))
 	if _, err := ww.Write(r.Body); err != nil {
@@ -169,6 +166,9 @@ func Parse(input io.Reader) (*Header, io.Reader, error) {
 		}
 
 		if bytes.HasPrefix(line, footerPrefix) {
+			if r != nil {
+				return nil, nil, errorf("malformed body line %q: reached footer without previous stanza being closed\nNote: this might be a file encrypted with an old beta version of rage. Use rage to decrypt it.", line)
+			}
 			prefix, args := splitArgs(line)
 			if prefix != string(footerPrefix) || len(args) != 1 {
 				return nil, nil, errorf("malformed closing line: %q", line)
@@ -180,6 +180,9 @@ func Parse(input io.Reader) (*Header, io.Reader, error) {
 			break
 
 		} else if bytes.HasPrefix(line, recipientPrefix) {
+			if r != nil {
+				return nil, nil, errorf("malformed body line %q: new stanza started without previous stanza being closed\nNote: this might be a file encrypted with an old beta version of rage. Use rage to decrypt it.", line)
+			}
 			r = &Stanza{}
 			prefix, args := splitArgs(line)
 			if prefix != string(recipientPrefix) || len(args) < 1 {
@@ -201,9 +204,6 @@ func Parse(input io.Reader) (*Header, io.Reader, error) {
 			}
 			if len(b) > BytesPerLine {
 				return nil, nil, errorf("malformed body line %q: too long", line)
-			}
-			if len(b) == 0 {
-				return nil, nil, errorf("malformed body line %q: line is empty", line)
 			}
 			r.Body = append(r.Body, b...)
 			if len(b) < BytesPerLine {
