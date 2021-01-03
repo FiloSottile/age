@@ -23,6 +23,9 @@ jobs:
           function build_age() {
             DIR="$(mktemp -d)"
             mkdir "$DIR/age"
+            cp LICENSE "$DIR/age"
+            echo -e "\n---\n" >> "$DIR/age/LICENSE"
+            curl "https://golang.org/LICENSE?m=text" >> "$DIR/age/LICENSE"
             go build -o "$DIR/age" -ldflags "-X main.Version=$VERSION" ./cmd/...
             if [ "$GOOS" == "windows" ]; then
               ( cd "$DIR"; zip age.zip -r age )
