@@ -249,7 +249,7 @@ func main() {
 		}
 		encryptPass(pass, in, out, armorFlag)
 	default:
-		encryptKeys(recipientFlags, recipientsFileFlags, identityFlags, in, out, armorFlag)
+		encryptNotPass(recipientFlags, recipientsFileFlags, identityFlags, in, out, armorFlag)
 	}
 }
 
@@ -279,7 +279,7 @@ func passphrasePromptForEncryption() (string, error) {
 	return p, nil
 }
 
-func encryptKeys(keys, files, identities []string, in io.Reader, out io.Writer, armor bool) {
+func encryptNotPass(keys, files, identities []string, in io.Reader, out io.Writer, armor bool) {
 	var recipients []age.Recipient
 	for _, arg := range keys {
 		r, err := parseRecipient(arg)
