@@ -37,10 +37,6 @@ func TestSSHRSARoundTrip(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if r.Type() != i.Type() || r.Type() != "ssh-rsa" {
-		t.Errorf("invalid Type values: %v, %v", r.Type(), i.Type())
-	}
-
 	fileKey := make([]byte, 16)
 	if _, err := rand.Read(fileKey); err != nil {
 		t.Fatal(err)
@@ -80,10 +76,6 @@ func TestSSHEd25519RoundTrip(t *testing.T) {
 	i, err := agessh.NewEd25519Identity(priv)
 	if err != nil {
 		t.Fatal(err)
-	}
-
-	if r.Type() != i.Type() || r.Type() != "ssh-ed25519" {
-		t.Errorf("invalid Type values: %v, %v", r.Type(), i.Type())
 	}
 
 	fileKey := make([]byte, 16)

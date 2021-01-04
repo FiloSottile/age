@@ -20,11 +20,10 @@ type LazyScryptIdentity struct {
 
 var _ age.Identity = &LazyScryptIdentity{}
 
-func (i *LazyScryptIdentity) Type() string {
-	return "scrypt"
-}
-
 func (i *LazyScryptIdentity) Unwrap(block *age.Stanza) (fileKey []byte, err error) {
+	if block.Type != "scrypt" {
+		return nil, age.ErrIncorrectIdentity
+	}
 	pass, err := i.Passphrase()
 	if err != nil {
 		return nil, fmt.Errorf("could not read passphrase: %v", err)

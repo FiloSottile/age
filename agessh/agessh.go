@@ -48,8 +48,6 @@ type RSARecipient struct {
 
 var _ age.Recipient = &RSARecipient{}
 
-func (*RSARecipient) Type() string { return "ssh-rsa" }
-
 func NewRSARecipient(pk ssh.PublicKey) (*RSARecipient, error) {
 	if pk.Type() != "ssh-rsa" {
 		return nil, errors.New("SSH public key is not an RSA key")
@@ -93,8 +91,6 @@ type RSAIdentity struct {
 
 var _ age.Identity = &RSAIdentity{}
 
-func (*RSAIdentity) Type() string { return "ssh-rsa" }
-
 func NewRSAIdentity(key *rsa.PrivateKey) (*RSAIdentity, error) {
 	s, err := ssh.NewSignerFromKey(key)
 	if err != nil {
@@ -132,8 +128,6 @@ type Ed25519Recipient struct {
 }
 
 var _ age.Recipient = &Ed25519Recipient{}
-
-func (*Ed25519Recipient) Type() string { return "ssh-ed25519" }
 
 func NewEd25519Recipient(pk ssh.PublicKey) (*Ed25519Recipient, error) {
 	if pk.Type() != "ssh-ed25519" {
@@ -245,8 +239,6 @@ type Ed25519Identity struct {
 }
 
 var _ age.Identity = &Ed25519Identity{}
-
-func (*Ed25519Identity) Type() string { return "ssh-ed25519" }
 
 func NewEd25519Identity(key ed25519.PrivateKey) (*Ed25519Identity, error) {
 	s, err := ssh.NewSignerFromKey(key)

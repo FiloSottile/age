@@ -22,10 +22,6 @@ func TestX25519RoundTrip(t *testing.T) {
 	}
 	r := i.Recipient()
 
-	if r.Type() != i.Type() || r.Type() != "X25519" {
-		t.Errorf("invalid Type values: %v, %v", r.Type(), i.Type())
-	}
-
 	if r1, err := age.ParseX25519Recipient(r.String()); err != nil {
 		t.Fatal(err)
 	} else if r1.String() != r.String() {
@@ -70,10 +66,6 @@ func TestScryptRoundTrip(t *testing.T) {
 	i, err := age.NewScryptIdentity(password)
 	if err != nil {
 		t.Fatal(err)
-	}
-
-	if r.Type() != i.Type() || r.Type() != "scrypt" {
-		t.Errorf("invalid Type values: %v, %v", r.Type(), i.Type())
 	}
 
 	fileKey := make([]byte, 16)

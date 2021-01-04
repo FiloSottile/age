@@ -35,8 +35,6 @@ type ScryptRecipient struct {
 
 var _ Recipient = &ScryptRecipient{}
 
-func (*ScryptRecipient) Type() string { return "scrypt" }
-
 // NewScryptRecipient returns a new ScryptRecipient with the provided password.
 func NewScryptRecipient(password string) (*ScryptRecipient, error) {
 	if len(password) == 0 {
@@ -97,8 +95,6 @@ type ScryptIdentity struct {
 }
 
 var _ Identity = &ScryptIdentity{}
-
-func (*ScryptIdentity) Type() string { return "scrypt" }
 
 // NewScryptIdentity returns a new ScryptIdentity with the provided password.
 func NewScryptIdentity(password string) (*ScryptIdentity, error) {

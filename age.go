@@ -51,10 +51,9 @@ import (
 // An Identity is a private key or other value that can decrypt an opaque file
 // key from a recipient stanza.
 //
-// Unwrap must return ErrIncorrectIdentity for recipient blocks that don't match
-// the identity, any other error might be considered fatal.
+// Unwrap must return ErrIncorrectIdentity for recipient stanzas that don't
+// match the identity, any other error might be considered fatal.
 type Identity interface {
-	Type() string
 	Unwrap(block *Stanza) (fileKey []byte, err error)
 }
 
@@ -75,7 +74,6 @@ var ErrIncorrectIdentity = errors.New("incorrect identity for recipient block")
 // A Recipient is a public key or other value that can encrypt an opaque file
 // key to a recipient stanza.
 type Recipient interface {
-	Type() string
 	Wrap(fileKey []byte) (*Stanza, error)
 }
 
@@ -109,15 +107,15 @@ func Encrypt(dst io.Writer, recipients ...Recipient) (io.WriteCloser, error) {
 
 	hdr := &format.Header{}
 	for i, r := range recipients {
-		if r.Type() == "scrypt" && len(recipients) != 1 {
-			return nil, errors.New("an scrypt recipient must be the only one")
-		}
-
 		block, err := r.Wrap(fileKey)
 		if err != nil {
 			return nil, fmt.Errorf("failed to wrap key for recipient #%d: %v", i, err)
 		}
 		hdr.Recipients = append(hdr.Recipients, (*format.Stanza)(block))
+
+		if block.Type == "scrypt" && len(recipients) != 1 {
+			return nil, errors.New("an scrypt recipient must be the only one")
+		}
 	}
 	if mac, err := headerMAC(fileKey, hdr); err != nil {
 		return nil, fmt.Errorf("failed to compute header MAC: %v", err)
@@ -163,10 +161,6 @@ RecipientsLoop:
 			return nil, errors.New("an scrypt recipient must be the only one")
 		}
 		for _, i := range identities {
-			if i.Type() != r.Type {
-				continue
-			}
-
 			if i, ok := i.(IdentityMatcher); ok {
 				err := i.Match((*Stanza)(r))
 				if err != nil {

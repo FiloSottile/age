@@ -34,8 +34,6 @@ type X25519Recipient struct {
 
 var _ Recipient = &X25519Recipient{}
 
-func (*X25519Recipient) Type() string { return "X25519" }
-
 // newX25519RecipientFromPoint returns a new X25519Recipient from a raw Curve25519 point.
 func newX25519RecipientFromPoint(publicKey []byte) (*X25519Recipient, error) {
 	if len(publicKey) != curve25519.PointSize {
@@ -116,8 +114,6 @@ type X25519Identity struct {
 }
 
 var _ Identity = &X25519Identity{}
-
-func (*X25519Identity) Type() string { return "X25519" }
 
 // newX25519IdentityFromScalar returns a new X25519Identity from a raw Curve25519 scalar.
 func newX25519IdentityFromScalar(secretKey []byte) (*X25519Identity, error) {

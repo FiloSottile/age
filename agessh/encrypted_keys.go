@@ -56,11 +56,6 @@ func NewEncryptedSSHIdentity(pubKey ssh.PublicKey, pemBytes []byte, passphrase f
 
 var _ age.IdentityMatcher = &EncryptedSSHIdentity{}
 
-// Type returns the type of the underlying private key, "ssh-ed25519" or "ssh-rsa".
-func (i *EncryptedSSHIdentity) Type() string {
-	return i.pubKey.Type()
-}
-
 // Unwrap implements age.Identity. If the private key is still encrypted, it
 // will request the passphrase. The decrypted private key will be cached after
 // the first successful invocation.
@@ -81,16 +76,19 @@ func (i *EncryptedSSHIdentity) Unwrap(block *age.Stanza) (fileKey []byte, err er
 	switch k := k.(type) {
 	case *ed25519.PrivateKey:
 		i.decrypted, err = NewEd25519Identity(*k)
+		if i.pubKey.Type() != ssh.KeyAlgoED25519 {
+			return nil, fmt.Errorf("mismatched SSH key type: got %q, expected %q", ssh.KeyAlgoED25519, i.pubKey.Type())
+		}
 	case *rsa.PrivateKey:
 		i.decrypted, err = NewRSAIdentity(k)
+		if i.pubKey.Type() != ssh.KeyAlgoRSA {
+			return nil, fmt.Errorf("mismatched SSH key type: got %q, expected %q", ssh.KeyAlgoRSA, i.pubKey.Type())
+		}
 	default:
 		return nil, fmt.Errorf("unexpected SSH key type: %T", k)
 	}
 	if err != nil {
 		return nil, fmt.Errorf("invalid SSH key: %v", err)
-	}
-	if i.decrypted.Type() != i.pubKey.Type() {
-		return nil, fmt.Errorf("mismatched SSH key type: got %q, expected %q", i.decrypted.Type(), i.pubKey.Type())
 	}
 
 	return i.decrypted.Unwrap(block)
@@ -99,11 +97,11 @@ func (i *EncryptedSSHIdentity) Unwrap(block *age.Stanza) (fileKey []byte, err er
 // Match implements age.IdentityMatcher without decrypting the private key, to
 // ensure the passphrase is only obtained if necessary.
 func (i *EncryptedSSHIdentity) Match(block *age.Stanza) error {
-	if block.Type != i.Type() {
+	if block.Type != i.pubKey.Type() {
 		return age.ErrIncorrectIdentity
 	}
 	if len(block.Args) < 1 {
-		return fmt.Errorf("invalid %v recipient block", i.Type())
+		return fmt.Errorf("invalid %v recipient block", i.pubKey.Type())
 	}
 
 	if block.Args[0] != sshFingerprint(i.pubKey) {
