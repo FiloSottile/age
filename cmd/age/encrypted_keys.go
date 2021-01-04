@@ -99,7 +99,7 @@ func (i *EncryptedIdentity) decrypt() error {
 	if err != nil {
 		return fmt.Errorf("failed to decrypt identity file: %v", err)
 	}
-	i.identities, err = age.ParseIdentities(d)
+	i.identities, err = parseIdentities(d)
 	return err
 }
 
