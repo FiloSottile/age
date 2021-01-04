@@ -57,18 +57,6 @@ type Identity interface {
 	Unwrap(block *Stanza) (fileKey []byte, err error)
 }
 
-// IdentityMatcher can be optionally implemented by an Identity that can
-// communicate whether it can decrypt a recipient stanza without decrypting it.
-//
-// If an Identity implements IdentityMatcher, its Unwrap method will only be
-// invoked on blocks for which Match returned nil. Match must return
-// ErrIncorrectIdentity for recipient blocks that don't match the identity, any
-// other error might be considered fatal.
-type IdentityMatcher interface {
-	Identity
-	Match(block *Stanza) error
-}
-
 var ErrIncorrectIdentity = errors.New("incorrect identity for recipient block")
 
 // A Recipient is a public key or other value that can encrypt an opaque file
@@ -161,24 +149,11 @@ RecipientsLoop:
 			return nil, errors.New("an scrypt recipient must be the only one")
 		}
 		for _, i := range identities {
-			if i, ok := i.(IdentityMatcher); ok {
-				err := i.Match((*Stanza)(r))
-				if err != nil {
-					if err == ErrIncorrectIdentity {
-						continue
-					}
-					return nil, err
-				}
-			}
-
 			fileKey, err = i.Unwrap((*Stanza)(r))
+			if errors.Is(err, ErrIncorrectIdentity) {
+				continue
+			}
 			if err != nil {
-				if err == ErrIncorrectIdentity {
-					// TODO: we should collect these errors and return them as an
-					// []error type with an Error method. That will require turning
-					// ErrIncorrectIdentity into an interface or wrapper error.
-					continue
-				}
 				return nil, err
 			}
 
@@ -186,7 +161,7 @@ RecipientsLoop:
 		}
 	}
 	if fileKey == nil {
-		return nil, errors.New("no identity matched a recipient")
+		return nil, errors.New("no identity matched any of the recipients")
 	}
 
 	if mac, err := headerMAC(fileKey, hdr); err != nil {
