@@ -180,13 +180,16 @@ func main() {
 			buf := &bytes.Buffer{}
 			defer func() { io.Copy(os.Stdout, buf) }()
 			out = buf
-		} else if decryptFlag && name != "-" {
-			// TODO: buffer the output and check it's printable.
-		} else if name != "-" {
-			// If the output wouldn't be armored, refuse to send binary to the
-			// terminal unless explicitly requested with "-o -".
-			logFatalf("Error: refusing to output binary to the terminal.\n" +
-				`Did you mean to use -a/--armor? Force with "-o -".`)
+		}
+		if name != "-" {
+			if decryptFlag {
+				// TODO: buffer the output and check it's printable.
+			} else if !armorFlag  {
+				// If the output wouldn't be armored, refuse to send binary to
+				// the terminal unless explicitly requested with "-o -".
+				logFatalf("Error: refusing to output binary to the terminal.\n" +
+					`Did you mean to use -a/--armor? Force with "-o -".`)
+			}
 		}
 	}
 
