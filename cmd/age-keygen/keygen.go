@@ -47,15 +47,21 @@ var Version string
 
 func main() {
 	log.SetFlags(0)
-
 	flag.Usage = func() { fmt.Fprintf(os.Stderr, "%s\n", usage) }
-	outFlag := flag.String("o", "", "output to `FILE` (default stdout)")
-	versionFlag := flag.Bool("version", false, "print the version")
+
+	var (
+		versionFlag bool
+		outFlag     string
+	)
+
+	flag.BoolVar(&versionFlag, "version", false, "print the version")
+	flag.StringVar(&outFlag, "o", "", "output to `FILE` (default stdout)")
+	flag.StringVar(&outFlag, "output", "", "output to `FILE` (default stdout)")
 	flag.Parse()
 	if len(flag.Args()) != 0 {
 		log.Fatalf("age-keygen takes no arguments")
 	}
-	if *versionFlag {
+	if versionFlag {
 		if Version != "" {
 			fmt.Println(Version)
 			return
@@ -69,10 +75,10 @@ func main() {
 	}
 
 	out := os.Stdout
-	if name := *outFlag; name != "" {
-		f, err := os.OpenFile(name, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0600)
+	if outFlag != "" {
+		f, err := os.OpenFile(outFlag, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0600)
 		if err != nil {
-			log.Fatalf("Failed to open output file %q: %v", name, err)
+			log.Fatalf("Failed to open output file %q: %v", outFlag, err)
 		}
 		defer f.Close()
 		out = f
