@@ -155,9 +155,9 @@ func (i *ScryptIdentity) Unwrap(block *Stanza) ([]byte, error) {
 	// This AEAD is not robust, so an attacker could craft a message that
 	// decrypts under two different keys (meaning two different passphrases) and
 	// then use an error side-channel in an online decryption oracle to learn if
-	// either key is correct. This is deemed acceptable because the usa case (an
+	// either key is correct. This is deemed acceptable because the use case (an
 	// online decryption oracle) is not recommended, and the security loss is
-	// only one bit. This also does not bypass any scrypt work, but that work
+	// only one bit. This also does not bypass any scrypt work, although that work
 	// can be precomputed in an online oracle scenario.
 	fileKey, err := aeadDecrypt(k, fileKeySize, block.Body)
 	if err != nil {

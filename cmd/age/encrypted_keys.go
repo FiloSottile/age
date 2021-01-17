@@ -7,6 +7,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"os"
 
@@ -33,11 +34,12 @@ func (i *LazyScryptIdentity) Unwrap(block *age.Stanza) (fileKey []byte, err erro
 		return nil, err
 	}
 	fileKey, err = ii.Unwrap(block)
-	if err == age.ErrIncorrectIdentity {
-		// The API will just ignore the identity if the passphrase is wrong, and
-		// move on, eventually returning "no identity matched a recipient".
-		// Since we only supply one identity from the CLI, make it a fatal
-		// error with a better message.
+	if errors.Is(err, age.ErrIncorrectIdentity) {
+		// ScryptIdentity returns ErrIncorrectIdentity for an incorrect
+		// passphrase, which would lead Decrypt to returning "no identity
+		// matched any recipient". That makes sense in the API, where there
+		// might be multiple configured ScryptIdentity. Since in cmd/age there
+		// can be only one, return a better error message.
 		return nil, fmt.Errorf("incorrect passphrase")
 	}
 	return fileKey, err

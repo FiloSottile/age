@@ -51,8 +51,9 @@ import (
 // An Identity is a private key or other value that can decrypt an opaque file
 // key from a recipient stanza.
 //
-// Unwrap must return ErrIncorrectIdentity for recipient stanzas that don't
-// match the identity, any other error might be considered fatal.
+// Unwrap must return an error wrapping ErrIncorrectIdentity for recipient
+// stanzas that don't match the identity, any other error will be considered
+// fatal.
 type Identity interface {
 	Unwrap(block *Stanza) (fileKey []byte, err error)
 }
@@ -125,6 +126,18 @@ func Encrypt(dst io.Writer, recipients ...Recipient) (io.WriteCloser, error) {
 	return stream.NewWriter(streamKey(fileKey, nonce), dst)
 }
 
+// NoIdentityMatchError is returned by Decrypt when none of the supplied
+// identities match the encrypted file.
+type NoIdentityMatchError struct {
+	// Errors is a slice of all the errors returned to Decrypt by the Unwrap
+	// calls it made. They all wrap ErrIncorrectIdentity.
+	Errors []error
+}
+
+func (*NoIdentityMatchError) Error() string {
+	return "no identity matched any of the recipients"
+}
+
 // Decrypt decrypts a file encrypted to one or more identities.
 //
 // It returns a Reader reading the decrypted plaintext of the age file read
@@ -142,6 +155,7 @@ func Decrypt(src io.Reader, identities ...Identity) (io.Reader, error) {
 		return nil, errors.New("too many recipients")
 	}
 
+	errNoMatch := &NoIdentityMatchError{}
 	var fileKey []byte
 RecipientsLoop:
 	for _, r := range hdr.Recipients {
@@ -151,6 +165,7 @@ RecipientsLoop:
 		for _, i := range identities {
 			fileKey, err = i.Unwrap((*Stanza)(r))
 			if errors.Is(err, ErrIncorrectIdentity) {
+				errNoMatch.Errors = append(errNoMatch.Errors, err)
 				continue
 			}
 			if err != nil {
@@ -161,7 +176,7 @@ RecipientsLoop:
 		}
 	}
 	if fileKey == nil {
-		return nil, errors.New("no identity matched any of the recipients")
+		return nil, errNoMatch
 	}
 
 	if mac, err := headerMAC(fileKey, hdr); err != nil {
