@@ -21,6 +21,8 @@ import (
 	"filippo.io/age"
 	"filippo.io/age/armor"
 	"golang.org/x/crypto/ssh/terminal"
+	yage "sylr.dev/yaml/age/v3"
+	"sylr.dev/yaml/v3"
 )
 
 type multiFlag []string
@@ -45,6 +47,8 @@ Options:
     -R, --recipients-file PATH  Encrypt to recipients listed at PATH. Can be repeated.
     -d, --decrypt               Decrypt the input to the output.
     -i, --identity PATH         Use the identity file at PATH. Can be repeated.
+    -y, --yaml                  Treat input as YAML and perform in-place encryption / decryption.
+        --yaml-discard-notag    Does not honour NoTag attribute when decrypting (useful for re-keying).
 
 INPUT defaults to standard input, and OUTPUT defaults to standard output.
 
@@ -64,7 +68,12 @@ Example:
     $ age-keygen -o key.txt
     Public key: age1ql3z7hjy54pw3hyww5ayyfg7zqgvc7w3j2elw8zmrj2kg5sfn9aqmcac8p
     $ tar cvz ~/data | age -r age1ql3z7hjy54pw3hyww5ayyfg7zqgvc7w3j2elw8zmrj2kg5sfn9aqmcac8p > data.tar.gz.age
-    $ age --decrypt -i key.txt -o data.tar.gz data.tar.gz.age`
+    $ age --decrypt -i key.txt -o data.tar.gz data.tar.gz.age
+
+    # only yaml keys tagged with !crypto/age will be encrypted
+    $ age -r age1ql3z7hjy54pw3hyww5ayyfg7zqgvc7w3j2elw8zmrj2kg5sfn9aqmcac8p -y config.yaml > config.yaml.age
+    $ age --decrypt -i key.txt -y config.yaml.age
+`
 
 // Version can be set at link time to override debug.BuildInfo.Main.Version,
 // which is "(devel)" when building from within the module. See
@@ -81,11 +90,12 @@ func main() {
 	}
 
 	var (
-		outFlag                       string
-		decryptFlag, armorFlag        bool
-		passFlag, versionFlag         bool
-		recipientFlags, identityFlags multiFlag
-		recipientsFileFlags           multiFlag
+		outFlag                        string
+		decryptFlag, armorFlag         bool
+		passFlag, versionFlag          bool
+		yamlFlag, yamlDiscardNotagFlag bool
+		recipientFlags, identityFlags  multiFlag
+		recipientsFileFlags            multiFlag
 	)
 
 	flag.BoolVar(&versionFlag, "version", false, "print the version")
@@ -103,6 +113,9 @@ func main() {
 	flag.Var(&recipientsFileFlags, "recipients-file", "recipients file (can be repeated)")
 	flag.Var(&identityFlags, "i", "identity (can be repeated)")
 	flag.Var(&identityFlags, "identity", "identity (can be repeated)")
+	flag.BoolVar(&yamlFlag, "y", false, "in-place yaml encrypting/decrypting")
+	flag.BoolVar(&yamlFlag, "yaml", false, "in-place yaml encrypting/decrypting")
+	flag.BoolVar(&yamlDiscardNotagFlag, "yaml-discard-notag", false, "do not honour NoTag YAML tag attribute")
 	flag.Parse()
 
 	if versionFlag {
@@ -155,10 +168,14 @@ func main() {
 		if len(recipientsFileFlags) > 0 && passFlag {
 			logFatalf("Error: -p/--passphrase can't be combined with -R/--recipients-file.")
 		}
+		if yamlFlag {
+			armorFlag = true
+		}
 	}
 
 	var in io.Reader = os.Stdin
 	var out io.Writer = os.Stdout
+
 	if name := flag.Arg(0); name != "" && name != "-" {
 		f, err := os.Open(name)
 		if err != nil {
@@ -198,15 +215,19 @@ func main() {
 
 	switch {
 	case decryptFlag:
-		decrypt(identityFlags, in, out)
+		if yamlFlag {
+			decryptYAML(identityFlags, in, out, yamlDiscardNotagFlag)
+		} else {
+			decrypt(identityFlags, in, out)
+		}
 	case passFlag:
 		pass, err := passphrasePromptForEncryption()
 		if err != nil {
 			logFatalf("Error: %v", err)
 		}
-		encryptPass(pass, in, out, armorFlag)
+		encryptPass(pass, in, out, armorFlag, yamlFlag)
 	default:
-		encryptKeys(recipientFlags, recipientsFileFlags, in, out, armorFlag)
+		encryptKeys(recipientFlags, recipientsFileFlags, in, out, armorFlag, yamlFlag)
 	}
 }
 
@@ -237,7 +258,7 @@ func passphrasePromptForEncryption() (string, error) {
 	return p, nil
 }
 
-func encryptKeys(keys, files []string, in io.Reader, out io.Writer, armor bool) {
+func encryptKeys(keys, files []string, in io.Reader, out io.Writer, armor bool, yaml bool) {
 	var recipients []age.Recipient
 	for _, arg := range keys {
 		r, err := parseRecipient(arg)
@@ -253,15 +274,26 @@ func encryptKeys(keys, files []string, in io.Reader, out io.Writer, armor bool) 
 		}
 		recipients = append(recipients, recs...)
 	}
-	encrypt(recipients, in, out, armor)
+
+	if yaml {
+		encryptYAML(recipients, in, out)
+	} else {
+		encrypt(recipients, in, out, armor)
+	}
 }
 
-func encryptPass(pass string, in io.Reader, out io.Writer, armor bool) {
+func encryptPass(pass string, in io.Reader, out io.Writer, armor bool, yaml bool) {
 	r, err := age.NewScryptRecipient(pass)
 	if err != nil {
 		logFatalf("Error: %v", err)
 	}
 	encrypt([]age.Recipient{r}, in, out, armor)
+
+	if yaml {
+		encryptYAML([]age.Recipient{r}, in, out)
+	} else {
+		encrypt([]age.Recipient{r}, in, out, armor)
+	}
 }
 
 func encrypt(recipients []age.Recipient, in io.Reader, out io.Writer, withArmor bool) {
@@ -287,13 +319,39 @@ func encrypt(recipients []age.Recipient, in io.Reader, out io.Writer, withArmor 
 	}
 }
 
-func decrypt(keys []string, in io.Reader, out io.Writer) {
-	identities := []age.Identity{
-		// If there is an scrypt recipient (it will have to be the only one and)
-		// this identity will be invoked.
-		&LazyScryptIdentity{passphrasePrompt},
-	}
+func encryptYAML(recipients []age.Recipient, in io.Reader, out io.Writer) {
+	node := yaml.Node{}
+	w := yage.Wrapper{Value: &node}
 
+	decoder := yaml.NewDecoder(in)
+	encoder := yaml.NewEncoder(out)
+	encoder.SetIndent(2)
+	defer encoder.Close()
+
+	for {
+		err := decoder.Decode(&w)
+		if err == io.EOF {
+			break
+		} else if err != nil {
+			logFatalf("Error: %v", err)
+		}
+
+		// Encrypt the Nodes with the !crypto/age tag
+		encNode, err := yage.MarshalYAML(&node, recipients)
+
+		if err != nil {
+			logFatalf("Error: %v", err)
+		}
+
+		err = encoder.Encode(&encNode)
+
+		if err != nil {
+			logFatalf("Error: %v", err)
+		}
+	}
+}
+
+func addOpenSSHIdentities(identities *[]age.Identity) {
 	// If they exist and are well-formed, load the default SSH keys. If they are
 	// passphrase protected, the passphrase will only be requested if the
 	// identity matches a recipient stanza.
@@ -311,8 +369,18 @@ func decrypt(keys []string, in io.Reader, out io.Writer) {
 			// below, otherwise ignore it silently.
 			continue
 		}
-		identities = append(identities, ids...)
+		*identities = append(*identities, ids...)
 	}
+}
+
+func decrypt(keys []string, in io.Reader, out io.Writer) {
+	identities := []age.Identity{
+		// If there is an scrypt recipient (it will have to be the only one and)
+		// this identity will be invoked.
+		&LazyScryptIdentity{passphrasePrompt},
+	}
+
+	addOpenSSHIdentities(&identities)
 
 	for _, name := range keys {
 		ids, err := parseIdentitiesFile(name)
@@ -336,6 +404,52 @@ func decrypt(keys []string, in io.Reader, out io.Writer) {
 	if _, err := io.Copy(out, r); err != nil {
 		logFatalf("Error: %v", err)
 	}
+}
+
+func decryptYAML(keys []string, in io.Reader, out io.Writer, discardNoTag bool) {
+	identities := []age.Identity{
+		// If there is an scrypt recipient (it will have to be the only one and)
+		// this identity will be invoked.
+		&LazyScryptIdentity{passphrasePrompt},
+	}
+
+	addOpenSSHIdentities(&identities)
+
+	for _, name := range keys {
+		ids, err := parseIdentitiesFile(name)
+		if err != nil {
+			logFatalf("Error reading %q: %v", name, err)
+		}
+		identities = append(identities, ids...)
+	}
+
+	node := yaml.Node{}
+	w := yage.Wrapper{
+		Value:        &node,
+		Identities:   identities,
+		DiscardNoTag: discardNoTag,
+	}
+
+	decoder := yaml.NewDecoder(in)
+	encoder := yaml.NewEncoder(out)
+	encoder.SetIndent(2)
+
+	for {
+		err := decoder.Decode(&w)
+		if err == io.EOF {
+			break
+		} else if err != nil {
+			logFatalf("Error: %v", err)
+		}
+
+		err = encoder.Encode(&node)
+
+		if err != nil {
+			logFatalf("Error: %v", err)
+		}
+	}
+
+	encoder.Close()
 }
 
 func passphrasePrompt() (string, error) {
