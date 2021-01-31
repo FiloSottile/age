@@ -56,20 +56,28 @@ func NewEncryptedSSHIdentity(pubKey ssh.PublicKey, pemBytes []byte, passphrase f
 var _ age.Identity = &EncryptedSSHIdentity{}
 
 // Unwrap implements age.Identity. If the private key is still encrypted, and
-// the block matches the public key, it will request the passphrase. The
+// any of the stanzas match the public key, it will request the passphrase. The
 // decrypted private key will be cached after the first successful invocation.
-func (i *EncryptedSSHIdentity) Unwrap(block *age.Stanza) (fileKey []byte, err error) {
+func (i *EncryptedSSHIdentity) Unwrap(stanzas []*age.Stanza) (fileKey []byte, err error) {
 	if i.decrypted != nil {
-		return i.decrypted.Unwrap(block)
+		return i.decrypted.Unwrap(stanzas)
 	}
 
-	if block.Type != i.pubKey.Type() {
-		return nil, age.ErrIncorrectIdentity
+	var match bool
+	for _, s := range stanzas {
+		if s.Type != i.pubKey.Type() {
+			continue
+		}
+		if len(s.Args) < 1 {
+			return nil, fmt.Errorf("invalid %v recipient block", i.pubKey.Type())
+		}
+		if s.Args[0] != sshFingerprint(i.pubKey) {
+			continue
+		}
+		match = true
+		break
 	}
-	if len(block.Args) < 1 {
-		return nil, fmt.Errorf("invalid %v recipient block", i.pubKey.Type())
-	}
-	if block.Args[0] != sshFingerprint(i.pubKey) {
+	if !match {
 		return nil, age.ErrIncorrectIdentity
 	}
 
@@ -85,6 +93,8 @@ func (i *EncryptedSSHIdentity) Unwrap(block *age.Stanza) (fileKey []byte, err er
 	switch k := k.(type) {
 	case *ed25519.PrivateKey:
 		i.decrypted, err = NewEd25519Identity(*k)
+		// TODO: here and below, better check that the two public keys match,
+		// rather than just the type.
 		if i.pubKey.Type() != ssh.KeyAlgoED25519 {
 			return nil, fmt.Errorf("mismatched private (%s) and public (%s) SSH key types", ssh.KeyAlgoED25519, i.pubKey.Type())
 		}
@@ -100,5 +110,5 @@ func (i *EncryptedSSHIdentity) Unwrap(block *age.Stanza) (fileKey []byte, err er
 		return nil, fmt.Errorf("invalid SSH key: %v", err)
 	}
 
-	return i.decrypted.Unwrap(block)
+	return i.decrypted.Unwrap(stanzas)
 }

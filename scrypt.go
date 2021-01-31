@@ -61,7 +61,7 @@ func (r *ScryptRecipient) SetWorkFactor(logN int) {
 
 const scryptSaltSize = 16
 
-func (r *ScryptRecipient) Wrap(fileKey []byte) (*Stanza, error) {
+func (r *ScryptRecipient) Wrap(fileKey []byte) ([]*Stanza, error) {
 	salt := make([]byte, scryptSaltSize)
 	if _, err := rand.Read(salt[:]); err != nil {
 		return nil, err
@@ -85,7 +85,7 @@ func (r *ScryptRecipient) Wrap(fileKey []byte) (*Stanza, error) {
 	}
 	l.Body = wrappedKey
 
-	return l, nil
+	return []*Stanza{l}, nil
 }
 
 // ScryptIdentity is a password-based identity.
@@ -121,7 +121,11 @@ func (i *ScryptIdentity) SetMaxWorkFactor(logN int) {
 	i.maxWorkFactor = logN
 }
 
-func (i *ScryptIdentity) Unwrap(block *Stanza) ([]byte, error) {
+func (i *ScryptIdentity) Unwrap(stanzas []*Stanza) ([]byte, error) {
+	return multiUnwrap(i.unwrap, stanzas)
+}
+
+func (i *ScryptIdentity) unwrap(block *Stanza) ([]byte, error) {
 	if block.Type != "scrypt" {
 		return nil, ErrIncorrectIdentity
 	}

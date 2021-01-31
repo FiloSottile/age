@@ -21,8 +21,8 @@ type LazyScryptIdentity struct {
 
 var _ age.Identity = &LazyScryptIdentity{}
 
-func (i *LazyScryptIdentity) Unwrap(block *age.Stanza) (fileKey []byte, err error) {
-	if block.Type != "scrypt" {
+func (i *LazyScryptIdentity) Unwrap(stanzas []*age.Stanza) (fileKey []byte, err error) {
+	if len(stanzas) != 1 || stanzas[0].Type != "scrypt" {
 		return nil, age.ErrIncorrectIdentity
 	}
 	pass, err := i.Passphrase()
@@ -33,7 +33,7 @@ func (i *LazyScryptIdentity) Unwrap(block *age.Stanza) (fileKey []byte, err erro
 	if err != nil {
 		return nil, err
 	}
-	fileKey, err = ii.Unwrap(block)
+	fileKey, err = ii.Unwrap(stanzas)
 	if errors.Is(err, age.ErrIncorrectIdentity) {
 		// ScryptIdentity returns ErrIncorrectIdentity for an incorrect
 		// passphrase, which would lead Decrypt to returning "no identity

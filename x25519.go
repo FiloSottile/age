@@ -63,7 +63,7 @@ func ParseX25519Recipient(s string) (*X25519Recipient, error) {
 	return r, nil
 }
 
-func (r *X25519Recipient) Wrap(fileKey []byte) (*Stanza, error) {
+func (r *X25519Recipient) Wrap(fileKey []byte) ([]*Stanza, error) {
 	ephemeral := make([]byte, curve25519.ScalarSize)
 	if _, err := rand.Read(ephemeral); err != nil {
 		return nil, err
@@ -98,7 +98,7 @@ func (r *X25519Recipient) Wrap(fileKey []byte) (*Stanza, error) {
 	}
 	l.Body = wrappedKey
 
-	return l, nil
+	return []*Stanza{l}, nil
 }
 
 // String returns the Bech32 public key encoding of r.
@@ -154,7 +154,11 @@ func ParseX25519Identity(s string) (*X25519Identity, error) {
 	return r, nil
 }
 
-func (i *X25519Identity) Unwrap(block *Stanza) ([]byte, error) {
+func (i *X25519Identity) Unwrap(stanzas []*Stanza) ([]byte, error) {
+	return multiUnwrap(i.unwrap, stanzas)
+}
+
+func (i *X25519Identity) unwrap(block *Stanza) ([]byte, error) {
 	if block.Type != "X25519" {
 		return nil, ErrIncorrectIdentity
 	}

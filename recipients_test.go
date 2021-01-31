@@ -12,7 +12,6 @@ import (
 	"testing"
 
 	"filippo.io/age"
-	"filippo.io/age/internal/format"
 )
 
 func TestX25519RoundTrip(t *testing.T) {
@@ -37,15 +36,12 @@ func TestX25519RoundTrip(t *testing.T) {
 	if _, err := rand.Read(fileKey); err != nil {
 		t.Fatal(err)
 	}
-	block, err := r.Wrap(fileKey)
+	stanzas, err := r.Wrap(fileKey)
 	if err != nil {
 		t.Fatal(err)
 	}
-	b := &bytes.Buffer{}
-	(*format.Stanza)(block).Marshal(b)
-	t.Logf("%s", b.Bytes())
 
-	out, err := i.Unwrap(block)
+	out, err := i.Unwrap(stanzas)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -72,15 +68,12 @@ func TestScryptRoundTrip(t *testing.T) {
 	if _, err := rand.Read(fileKey); err != nil {
 		t.Fatal(err)
 	}
-	block, err := r.Wrap(fileKey)
+	stanzas, err := r.Wrap(fileKey)
 	if err != nil {
 		t.Fatal(err)
 	}
-	b := &bytes.Buffer{}
-	(*format.Stanza)(block).Marshal(b)
-	t.Logf("%s", b.Bytes())
 
-	out, err := i.Unwrap(block)
+	out, err := i.Unwrap(stanzas)
 	if err != nil {
 		t.Fatal(err)
 	}
