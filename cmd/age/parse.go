@@ -201,11 +201,18 @@ func parseIdentitiesFile(name string) ([]age.Identity, error) {
 func parseIdentity(s string) (age.Identity, error) {
 	switch {
 	case strings.HasPrefix(s, "AGE-PLUGIN-"):
-		return plugin.NewIdentity(s)
+		i, err := plugin.NewIdentity(s)
+		if err != nil {
+			return nil, err
+		}
+		i.DisplayMessage = pluginDisplayMessage(i.Name())
+		i.RequestSecret = pluginRequestSecret(i.Name())
+		return i, nil
 	case strings.HasPrefix(s, "AGE-SECRET-KEY-1"):
 		return age.ParseX25519Identity(s)
+	default:
+		return nil, fmt.Errorf("unknown identity type")
 	}
-	return nil, fmt.Errorf("unknown identity type")
 }
 
 // parseIdentities is like age.ParseIdentities, but supports plugin identities.
@@ -289,4 +296,24 @@ Ensure %q exists, or convert the private key %q to a modern format with "ssh-key
 		return nil, fmt.Errorf("failed to parse %q: %v", name+".pub", err)
 	}
 	return pubKey, nil
+}
+
+func pluginDisplayMessage(name string) func(string) error {
+	return func(message string) error {
+		fmt.Fprintf(os.Stderr, "[age-plugin-%s] %v\n", name, message)
+		return nil
+	}
+}
+
+func pluginRequestSecret(name string) func(string) (string, error) {
+	return func(message string) (string, error) {
+		fmt.Fprintf(os.Stderr, "[age-plugin-%s] %v\n", name, message)
+		prompt := fmt.Sprintf("[age-plugin-%s] Enter value:", name)
+		secret, err := readPassphrase(prompt)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Could not read value for age-plugin-%s: %v", name, err)
+			return "", err
+		}
+		return string(secret), nil
+	}
 }

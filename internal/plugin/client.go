@@ -11,10 +11,12 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
-	"os/exec"
-	"path/filepath"
+	"io"
+	"os"
 	"strconv"
 	"strings"
+
+	exec "golang.org/x/sys/execabs"
 
 	"filippo.io/age"
 	"filippo.io/age/internal/bech32"
@@ -49,29 +51,25 @@ func (r *Recipient) Name() string {
 	return r.name
 }
 
-func (r *Recipient) Wrap(fileKey []byte) ([]*age.Stanza, error) {
-	cmd := exec.Command("age-plugin-"+r.name, "--age-plugin=recipient-v1")
-	stderr := &bytes.Buffer{}
-	cmd.Stderr = stderr
-	stdout, err := cmd.StdoutPipe()
+func (r *Recipient) Wrap(fileKey []byte) (stanzas []*age.Stanza, err error) {
+	defer func() {
+		if err != nil {
+			err = fmt.Errorf("age-plugin-%s: %w", r.name, err)
+		}
+	}()
+
+	conn, err := openClientConnection(r.name, "recipient-v1")
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("couldn't start plugin: %v", err)
 	}
-	stdin, err := cmd.StdinPipe()
-	if err != nil {
-		return nil, err
-	}
-	cmd.Dir = filepath.Clean("/") // TODO: does this work on Windows
-	if err := cmd.Start(); err != nil {
-		return nil, err
-	}
+	defer conn.Close()
 
 	// Phase 1: client sends recipient and file key
 	s := &format.Stanza{
 		Type: "add-recipient",
 		Args: []string{r.encoding},
 	}
-	if err := s.Marshal(stdin); err != nil {
+	if err := s.Marshal(conn); err != nil {
 		return nil, err
 	}
 
@@ -79,20 +77,19 @@ func (r *Recipient) Wrap(fileKey []byte) ([]*age.Stanza, error) {
 		Type: "wrap-file-key",
 		Body: fileKey,
 	}
-	if err := s.Marshal(stdin); err != nil {
+	if err := s.Marshal(conn); err != nil {
 		return nil, err
 	}
 
 	s = &format.Stanza{
 		Type: "done",
 	}
-	if err := s.Marshal(stdin); err != nil {
+	if err := s.Marshal(conn); err != nil {
 		return nil, err
 	}
 
 	// Phase 2: plugin responds with stanzas
-	var out []*age.Stanza
-	sr := format.NewStanzaReader(bufio.NewReader(stdout))
+	sr := format.NewStanzaReader(bufio.NewReader(conn))
 ReadLoop:
 	for {
 		s, err := sr.ReadStanza()
@@ -103,24 +100,24 @@ ReadLoop:
 		switch s.Type {
 		case "recipient-stanza":
 			if len(s.Args) < 2 {
-				return nil, fmt.Errorf("plugin error: received malformed recipient stanza")
+				return nil, fmt.Errorf("received malformed recipient stanza")
 			}
 			n, err := strconv.Atoi(s.Args[0])
 			if err != nil {
-				return nil, fmt.Errorf("plugin error: received malformed recipient stanza")
+				return nil, fmt.Errorf("received malformed recipient stanza")
 			}
-			// Currently, we only send a single file key, so the index must be 0.
+			// We only send a single file key, so the index must be 0.
 			if n != 0 {
-				return nil, fmt.Errorf("plugin error: received malformed recipient stanza")
+				return nil, fmt.Errorf("received malformed recipient stanza")
 			}
 
-			out = append(out, &age.Stanza{
+			stanzas = append(stanzas, &age.Stanza{
 				Type: s.Args[1],
 				Args: s.Args[2:],
 				Body: s.Body,
 			})
 		case "error":
-			return nil, fmt.Errorf("plugin error: %q", s.Body)
+			return nil, fmt.Errorf("%q", s.Body)
 		case "done":
 			break ReadLoop
 		default:
@@ -128,23 +125,25 @@ ReadLoop:
 		}
 	}
 
-	if len(out) == 0 {
-		return nil, fmt.Errorf("plugin error: received zero recipient stanzas")
+	if len(stanzas) == 0 {
+		return nil, fmt.Errorf("received zero recipient stanzas")
 	}
 
-	if err := stdin.Close(); err != nil {
-		return nil, err
-	}
-	if err := cmd.Wait(); err != nil {
-		return nil, err
-	}
-
-	return out, nil
+	return stanzas, nil
 }
 
 type Identity struct {
 	name     string
 	encoding string
+
+	// DisplayMessage is a callback that will be invoked by Unwrap if the plugin
+	// wishes to display a message to the user. If DisplayMessage is nil or
+	// returns an error, failure will be reported to the plugin.
+	DisplayMessage func(message string) error
+	// RequestSecret is a callback that will be invoked by Unwrap if the plugin
+	// wishes to request a secret from the user. If RequestSecret is nil or
+	// returns an error, failure will be reported to the plugin.
+	RequestSecret func(message string) (string, error)
 }
 
 var _ age.Identity = &Identity{}
@@ -172,30 +171,24 @@ func (i *Identity) Name() string {
 }
 
 func (i *Identity) Unwrap(stanzas []*age.Stanza) (fileKey []byte, err error) {
-	// TODO: DRY up connection management into a connection type, and defer
-	// closing the connection.
-	cmd := exec.Command("age-plugin-"+i.name, "--age-plugin=identity-v1")
-	stderr := &bytes.Buffer{}
-	cmd.Stderr = stderr
-	stdout, err := cmd.StdoutPipe()
+	defer func() {
+		if err != nil {
+			err = fmt.Errorf("age-plugin-%s: %w", i.name, err)
+		}
+	}()
+
+	conn, err := openClientConnection(i.name, "identity-v1")
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("couldn't start plugin: %v", err)
 	}
-	stdin, err := cmd.StdinPipe()
-	if err != nil {
-		return nil, err
-	}
-	cmd.Dir = filepath.Clean("/") // TODO: does this work on Windows
-	if err := cmd.Start(); err != nil {
-		return nil, err
-	}
+	defer conn.Close()
 
 	// Phase 1: client sends the plugin the identity string and the stanzas
 	s := &format.Stanza{
 		Type: "add-identity",
 		Args: []string{i.encoding},
 	}
-	if err := s.Marshal(stdin); err != nil {
+	if err := s.Marshal(conn); err != nil {
 		return nil, err
 	}
 
@@ -205,7 +198,7 @@ func (i *Identity) Unwrap(stanzas []*age.Stanza) (fileKey []byte, err error) {
 			Args: append([]string{"0", rs.Type}, rs.Args...),
 			Body: rs.Body,
 		}
-		if err := s.Marshal(stdin); err != nil {
+		if err := s.Marshal(conn); err != nil {
 			return nil, err
 		}
 	}
@@ -213,13 +206,12 @@ func (i *Identity) Unwrap(stanzas []*age.Stanza) (fileKey []byte, err error) {
 	s = &format.Stanza{
 		Type: "done",
 	}
-	if err := s.Marshal(stdin); err != nil {
+	if err := s.Marshal(conn); err != nil {
 		return nil, err
 	}
 
 	// Phase 2: plugin responds with various commands and a file key
-	var out []byte
-	sr := format.NewStanzaReader(bufio.NewReader(stdout))
+	sr := format.NewStanzaReader(bufio.NewReader(conn))
 ReadLoop:
 	for {
 		s, err := sr.ReadStanza()
@@ -229,43 +221,72 @@ ReadLoop:
 
 		switch s.Type {
 		case "msg":
-			// TODO: unimplemented.
-			ss := &format.Stanza{Type: "ok"}
-			if err := ss.Marshal(stdin); err != nil {
-				return nil, err
+			if i.DisplayMessage == nil {
+				ss := &format.Stanza{Type: "fail"}
+				if err := ss.Marshal(conn); err != nil {
+					return nil, err
+				}
+				break
+			}
+			if err := i.DisplayMessage(string(s.Body)); err != nil {
+				ss := &format.Stanza{Type: "fail"}
+				if err := ss.Marshal(conn); err != nil {
+					return nil, err
+				}
+			} else {
+				ss := &format.Stanza{Type: "ok"}
+				if err := ss.Marshal(conn); err != nil {
+					return nil, err
+				}
 			}
 		case "request-secret":
-			// TODO: unimplemented.
-			ss := &format.Stanza{Type: "fail"}
-			if err := ss.Marshal(stdin); err != nil {
-				return nil, err
+			if i.RequestSecret == nil {
+				ss := &format.Stanza{Type: "fail"}
+				if err := ss.Marshal(conn); err != nil {
+					return nil, err
+				}
+				break
+			}
+			if secret, err := i.RequestSecret(string(s.Body)); err != nil {
+				ss := &format.Stanza{Type: "fail"}
+				if err := ss.Marshal(conn); err != nil {
+					return nil, err
+				}
+			} else {
+				ss := &format.Stanza{Type: "ok", Body: []byte(secret)}
+				if err := ss.Marshal(conn); err != nil {
+					return nil, err
+				}
 			}
 		case "file-key":
 			if len(s.Args) != 1 {
-				return nil, fmt.Errorf("plugin error: received malformed file-key stanza")
+				return nil, fmt.Errorf("received malformed file-key stanza")
 			}
 			n, err := strconv.Atoi(s.Args[0])
 			if err != nil {
-				return nil, fmt.Errorf("plugin error: received malformed file-key stanza")
+				return nil, fmt.Errorf("received malformed file-key stanza")
 			}
-			// Currently, we only send a single file key, so the index must be 0.
+			// We only send a single file key, so the index must be 0.
 			if n != 0 {
-				return nil, fmt.Errorf("plugin error: received malformed file-key stanza")
+				return nil, fmt.Errorf("received malformed file-key stanza")
+			}
+			if fileKey != nil {
+				return nil, fmt.Errorf("received duplicated file-key stanza")
 			}
 
-			out = s.Body
+			fileKey = s.Body
 
 			ss := &format.Stanza{Type: "ok"}
-			if err := ss.Marshal(stdin); err != nil {
+			if err := ss.Marshal(conn); err != nil {
 				return nil, err
 			}
 		case "error":
 			ss := &format.Stanza{Type: "ok"}
-			if err := ss.Marshal(stdin); err != nil {
+			if err := ss.Marshal(conn); err != nil {
 				return nil, err
 			}
 
-			return nil, fmt.Errorf("plugin error: %q", s.Body)
+			return nil, fmt.Errorf("%q", s.Body)
 		case "done":
 			break ReadLoop
 		default:
@@ -273,8 +294,57 @@ ReadLoop:
 		}
 	}
 
-	if out == nil {
+	if fileKey == nil {
 		return nil, age.ErrIncorrectIdentity
 	}
-	return out, nil
+	return fileKey, nil
+}
+
+type clientConnection struct {
+	cmd    *exec.Cmd
+	stderr bytes.Buffer
+	stdin  io.Closer
+	stdout io.Closer
+	io.Reader
+	io.Writer
+}
+
+func openClientConnection(name, protocol string) (*clientConnection, error) {
+	cmd := exec.Command("age-plugin-"+name, "--age-plugin="+protocol)
+
+	stdout, err := cmd.StdoutPipe()
+	if err != nil {
+		return nil, err
+	}
+	stdin, err := cmd.StdinPipe()
+	if err != nil {
+		return nil, err
+	}
+
+	cc := &clientConnection{
+		cmd:    cmd,
+		Reader: stdout,
+		stdout: stdout,
+		Writer: stdin,
+		stdin:  stdin,
+	}
+
+	cmd.Stderr = &cc.stderr
+
+	cmd.Dir = os.TempDir()
+
+	if err := cmd.Start(); err != nil {
+		return nil, err
+	}
+
+	return cc, nil
+}
+
+func (cc *clientConnection) Close() error {
+	// Close stdin and stdout and send SIGINT (if supported) to the plugin,
+	// then wait for it to cleanup and exit.
+	cc.stdin.Close()
+	cc.stdout.Close()
+	cc.cmd.Process.Signal(os.Interrupt)
+	return cc.cmd.Wait()
 }
