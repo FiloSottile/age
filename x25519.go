@@ -188,7 +188,9 @@ func (i *X25519Identity) unwrap(block *Stanza) ([]byte, error) {
 	}
 
 	fileKey, err := aeadDecrypt(wrappingKey, fileKeySize, block.Body)
-	if err != nil {
+	if err == errIncorrectCiphertextSize {
+		return nil, errors.New("invalid X25519 recipient block: incorrect file key size")
+	} else if err != nil {
 		return nil, ErrIncorrectIdentity
 	}
 	return fileKey, nil

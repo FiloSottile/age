@@ -164,7 +164,9 @@ func (i *ScryptIdentity) unwrap(block *Stanza) ([]byte, error) {
 	// only one bit. This also does not bypass any scrypt work, although that work
 	// can be precomputed in an online oracle scenario.
 	fileKey, err := aeadDecrypt(k, fileKeySize, block.Body)
-	if err != nil {
+	if err == errIncorrectCiphertextSize {
+		return nil, errors.New("invalid scrypt recipient block: incorrect file key size")
+	} else if err != nil {
 		return nil, ErrIncorrectIdentity
 	}
 	return fileKey, nil
