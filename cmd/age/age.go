@@ -63,7 +63,7 @@ will be ignored. "-" may be used to read identities from standard input.
 Example:
     $ age-keygen -o key.txt
     Public key: age1ql3z7hjy54pw3hyww5ayyfg7zqgvc7w3j2elw8zmrj2kg5sfn9aqmcac8p
-    $ tar cvz ~/data | age -r age1ql3z7hjy54pw3hyww5ayyfg7zqgvc7w3j2elw8zmrj2kg5sfn9aqmcac8p > data.tar.gz.age
+    $ tar cvzf - ~/data | age -r age1ql3z7hjy54pw3hyww5ayyfg7zqgvc7w3j2elw8zmrj2kg5sfn9aqmcac8p > data.tar.gz.age
     $ age --decrypt -i key.txt -o data.tar.gz data.tar.gz.age`
 
 // Version can be set at link time to override debug.BuildInfo.Main.Version,
