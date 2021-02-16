@@ -132,6 +132,12 @@ cd age
 makepkg -si
 ```
 
+On Fedora, age is available as [`age`](https://src.fedoraproject.org/rpms/age/) since Fedora 33:
+
+```bash
+dnf install age
+```
+
 On OpenBSD -current and 6.7+, you can use the port:
 
 ```
