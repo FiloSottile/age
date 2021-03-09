@@ -169,9 +169,6 @@ func main() {
 		stdinInUse = true
 	}
 	if name := outFlag; name != "" && name != "-" {
-		if _, err := os.Stat(name); err == nil {
-			logFatalf("Error: output file %q exists", name)
-		}
 		f := newLazyOpener(name)
 		defer f.Close()
 		out = f
@@ -337,7 +334,7 @@ func newLazyOpener(name string) io.WriteCloser {
 
 func (l *lazyOpener) Write(p []byte) (n int, err error) {
 	if l.f == nil && l.err == nil {
-		l.f, l.err = os.OpenFile(l.name, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0666)
+		l.f, l.err = os.Create(l.name)
 	}
 	if l.err != nil {
 		return 0, l.err
