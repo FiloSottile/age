@@ -12,7 +12,6 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"io/ioutil"
 	_log "log"
 	"os"
 	"runtime/debug"
@@ -291,26 +290,6 @@ func decrypt(keys []string, in io.Reader, out io.Writer) {
 		// If there is an scrypt recipient (it will have to be the only one and)
 		// this identity will be invoked.
 		&LazyScryptIdentity{passphrasePrompt},
-	}
-
-	// If they exist and are well-formed, load the default SSH keys. If they are
-	// passphrase protected, the passphrase will only be requested if the
-	// identity matches a recipient stanza.
-	for _, path := range []string{
-		os.ExpandEnv("$HOME/.ssh/id_rsa"),
-		os.ExpandEnv("$HOME/.ssh/id_ed25519"),
-	} {
-		content, err := ioutil.ReadFile(path)
-		if err != nil {
-			continue
-		}
-		ids, err := parseSSHIdentity(path, content)
-		if err != nil {
-			// If the key is explicitly requested, this error will be caught
-			// below, otherwise ignore it silently.
-			continue
-		}
-		identities = append(identities, ids...)
 	}
 
 	for _, name := range keys {
