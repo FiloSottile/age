@@ -28,6 +28,10 @@ func parseRecipient(arg string) (age.Recipient, error) {
 		return age.ParseX25519Recipient(arg)
 	case strings.HasPrefix(arg, "ssh-"):
 		return agessh.ParseRecipient(arg)
+	case strings.HasPrefix(arg, "github:"):
+		name := strings.TrimPrefix(arg, "github:")
+		return nil, fmt.Errorf(`"github:" recipients were removed from the design.`+"\n"+
+			"Instead, use recipient files like\n\n    curl -O https://github.com/%s.keys\n    age -R %s.keys\n\n", name, name)
 	}
 
 	return nil, fmt.Errorf("unknown recipient type: %q", arg)

@@ -126,8 +126,8 @@ func main() {
 	}
 
 	if flag.NArg() > 1 {
-		logFatalf("Error: too many arguments.\n" +
-			"age accepts a single optional argument for the input file.")
+		logFatalf("Error: too many arguments: %q.\n"+
+			"Note that the input file must be specified after all flags.", flag.Args())
 	}
 	switch {
 	case decryptFlag:
