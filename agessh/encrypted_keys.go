@@ -55,6 +55,10 @@ func NewEncryptedSSHIdentity(pubKey ssh.PublicKey, pemBytes []byte, passphrase f
 
 var _ age.Identity = &EncryptedSSHIdentity{}
 
+func (i *EncryptedSSHIdentity) Recipient() (age.Recipient, error) {
+	return ParseRecipient(string(ssh.MarshalAuthorizedKey(i.pubKey)))
+}
+
 // Unwrap implements age.Identity. If the private key is still encrypted, and
 // any of the stanzas match the public key, it will request the passphrase. The
 // decrypted private key will be cached after the first successful invocation.

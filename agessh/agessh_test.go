@@ -11,6 +11,7 @@ import (
 	"crypto/ed25519"
 	"crypto/rand"
 	"crypto/rsa"
+	"reflect"
 	"testing"
 
 	"filippo.io/age/agessh"
@@ -34,6 +35,11 @@ func TestSSHRSARoundTrip(t *testing.T) {
 	i, err := agessh.NewRSAIdentity(pk)
 	if err != nil {
 		t.Fatal(err)
+	}
+
+	// TODO: replace this with (and go-diff) with go-cmp.
+	if !reflect.DeepEqual(r, i.Recipient()) {
+		t.Fatalf("i.Recipient is different from r")
 	}
 
 	fileKey := make([]byte, 16)
@@ -72,6 +78,11 @@ func TestSSHEd25519RoundTrip(t *testing.T) {
 	i, err := agessh.NewEd25519Identity(priv)
 	if err != nil {
 		t.Fatal(err)
+	}
+
+	// TODO: replace this with (and go-diff) with go-cmp.
+	if !reflect.DeepEqual(r, i.Recipient()) {
+		t.Fatalf("i.Recipient is different from r")
 	}
 
 	fileKey := make([]byte, 16)

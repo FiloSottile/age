@@ -109,6 +109,9 @@ func sshKeyType(s string) (string, bool) {
 	return "", false
 }
 
+// parseIdentitiesFile parses a file that contains age or SSH keys. It returns
+// one of *age.X25519Identity, *agessh.RSAIdentity, *agessh.Ed25519Identity, or
+// *agessh.EncryptedSSHIdentity.
 func parseIdentitiesFile(name string) ([]age.Identity, error) {
 	var f *os.File
 	if name == "-" {

@@ -102,6 +102,13 @@ func NewRSAIdentity(key *rsa.PrivateKey) (*RSAIdentity, error) {
 	return i, nil
 }
 
+func (i *RSAIdentity) Recipient() age.Recipient {
+	return &RSARecipient{
+		sshKey: i.sshKey,
+		pubKey: &i.k.PublicKey,
+	}
+}
+
 func (i *RSAIdentity) Unwrap(stanzas []*age.Stanza) ([]byte, error) {
 	return multiUnwrap(i.unwrap, stanzas)
 }
@@ -301,6 +308,13 @@ func ed25519PrivateKeyToCurve25519(pk ed25519.PrivateKey) []byte {
 	h.Write(pk.Seed())
 	out := h.Sum(nil)
 	return out[:curve25519.ScalarSize]
+}
+
+func (i *Ed25519Identity) Recipient() age.Recipient {
+	return &Ed25519Recipient{
+		sshKey:         i.sshKey,
+		theirPublicKey: i.ourPublicKey,
+	}
 }
 
 func (i *Ed25519Identity) Unwrap(stanzas []*age.Stanza) ([]byte, error) {
