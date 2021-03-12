@@ -144,4 +144,10 @@ On all supported versions of FreeBSD, you can build the security/age port or use
 pkg install age
 ```
 
+On NixOS, or via Nix, you can install age using:
+
+```
+nix-env -i age
+```
+
 Help from new packagers is very welcome.
