@@ -30,6 +30,8 @@ jobs:
             if [ "$GOOS" == "windows" ]; then
               ( cd "$DIR"; zip age.zip -r age )
               mv "$DIR/age.zip" "age-$VERSION-$GOOS-$GOARCH.zip"
+            elif [ "$GOARCH" == "arm" ]; then
+              tar -cvzf "age-$VERSION-$GOOS-${GOARCH}v${GOARM}.tar.gz" -C "$DIR" age
             else
               tar -cvzf "age-$VERSION-$GOOS-$GOARCH.tar.gz" -C "$DIR" age
             fi
@@ -37,6 +39,7 @@ jobs:
           export CGO_ENABLED=0
           GOOS=linux GOARCH=amd64 build_age
           GOOS=linux GOARCH=arm GOARM=6 build_age
+          GOOS=linux GOARCH=arm GOARM=7 build_age
           GOOS=linux GOARCH=arm64 build_age
           GOOS=darwin GOARCH=amd64 build_age
           GOOS=windows GOARCH=amd64 build_age
