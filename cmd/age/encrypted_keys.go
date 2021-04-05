@@ -12,7 +12,7 @@ import (
 	"os"
 
 	"filippo.io/age"
-	"golang.org/x/crypto/ssh/terminal"
+	"golang.org/x/term"
 )
 
 type LazyScryptIdentity struct {
@@ -50,7 +50,7 @@ var stdinInUse bool
 
 func readPassphrase() ([]byte, error) {
 	fd := int(os.Stdin.Fd())
-	if !terminal.IsTerminal(fd) || stdinInUse {
+	if !term.IsTerminal(fd) || stdinInUse {
 		tty, err := os.Open("/dev/tty")
 		if err != nil {
 			return nil, fmt.Errorf("standard input is not available or not a terminal, and opening /dev/tty failed: %v", err)
@@ -59,7 +59,7 @@ func readPassphrase() ([]byte, error) {
 		fd = int(tty.Fd())
 	}
 	defer fmt.Fprintf(os.Stderr, "\n")
-	p, err := terminal.ReadPassword(fd)
+	p, err := term.ReadPassword(fd)
 	if err != nil {
 		return nil, err
 	}
