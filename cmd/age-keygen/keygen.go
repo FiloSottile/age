@@ -16,7 +16,7 @@ import (
 	"time"
 
 	"filippo.io/age"
-	"golang.org/x/crypto/ssh/terminal"
+	"golang.org/x/term"
 )
 
 const usage = `Usage:
@@ -127,7 +127,7 @@ func generate(out *os.File) {
 		log.Fatalf("Internal error: %v", err)
 	}
 
-	if !terminal.IsTerminal(int(out.Fd())) {
+	if !term.IsTerminal(int(out.Fd())) {
 		fmt.Fprintf(os.Stderr, "Public key: %s\n", k.Recipient())
 	}
 

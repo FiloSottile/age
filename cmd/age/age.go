@@ -20,7 +20,7 @@ import (
 	"filippo.io/age"
 	"filippo.io/age/agessh"
 	"filippo.io/age/armor"
-	"golang.org/x/crypto/ssh/terminal"
+	"golang.org/x/term"
 )
 
 type multiFlag []string
@@ -186,7 +186,7 @@ func main() {
 		f := newLazyOpener(name)
 		defer f.Close()
 		out = f
-	} else if terminal.IsTerminal(int(os.Stdout.Fd())) {
+	} else if term.IsTerminal(int(os.Stdout.Fd())) {
 		if name != "-" {
 			if decryptFlag {
 				// TODO: buffer the output and check it's printable.
@@ -197,7 +197,7 @@ func main() {
 					`Did you mean to use -a/--armor? Force with "-o -".`)
 			}
 		}
-		if in == os.Stdin && terminal.IsTerminal(int(os.Stdin.Fd())) {
+		if in == os.Stdin && term.IsTerminal(int(os.Stdin.Fd())) {
 			// If the input comes from a TTY and output will go to a TTY,
 			// buffer it up so it doesn't get in the way of typing the input.
 			buf := &bytes.Buffer{}
