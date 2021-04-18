@@ -1,6 +1,6 @@
 ---
 name: Bug report 🐞
-about: Tell us about a bug in this implementation.
+about: Did you encounter a bug in this implementation?
 title: ''
 labels: ''
 assignees: ''
