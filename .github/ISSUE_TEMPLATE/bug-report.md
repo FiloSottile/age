@@ -1,6 +1,6 @@
 ---
-name: Bug report
-about: Create a report about a bug in this implementation.
+name: Bug report 🐞
+about: Tell us about a bug in this implementation.
 title: ''
 labels: ''
 assignees: ''
