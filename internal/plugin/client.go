@@ -27,6 +27,9 @@ type Recipient struct {
 	name     string
 	encoding string
 
+	// identity is true when encoding is an identity string.
+	identity bool
+
 	// DisplayMessage is a callback that will be invoked by Wrap if the plugin
 	// wishes to display a message to the user. If DisplayMessage is nil or
 	// returns an error, failure will be reported to the plugin.
@@ -73,10 +76,13 @@ func (r *Recipient) Wrap(fileKey []byte) (stanzas []*age.Stanza, err error) {
 	}
 	defer conn.Close()
 
-	// Phase 1: client sends recipient and file key
+	// Phase 1: client sends recipient or identity and file key
 	s := &format.Stanza{
 		Type: "add-recipient",
 		Args: []string{r.encoding},
+	}
+	if r.identity {
+		s.Type = "add-identity"
 	}
 	if err := s.Marshal(conn); err != nil {
 		return nil, err
@@ -229,6 +235,20 @@ func NewIdentity(s string) (*Identity, error) {
 // binary name ("age-plugin-name").
 func (i *Identity) Name() string {
 	return i.name
+}
+
+// Recipient returns a Recipient wrapping this identity. When that Recipient is
+// used to encrypt a file key, the identity encoding is provided as-is to the
+// plugin, which is expected to support encrypting to identities.
+func (i *Identity) Recipient() *Recipient {
+	return &Recipient{
+		name:     i.name,
+		encoding: i.encoding,
+		identity: true,
+
+		DisplayMessage: i.DisplayMessage,
+		RequestValue:   i.RequestValue,
+	}
 }
 
 func (i *Identity) Unwrap(stanzas []*age.Stanza) (fileKey []byte, err error) {
