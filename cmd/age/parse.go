@@ -34,7 +34,13 @@ func (gitHubRecipientError) Error() string {
 func parseRecipient(arg string) (age.Recipient, error) {
 	switch {
 	case strings.HasPrefix(arg, "age1") && strings.Count(arg, "1") > 1:
-		return plugin.NewRecipient(arg)
+		r, err := plugin.NewRecipient(arg)
+		if err != nil {
+			return nil, err
+		}
+		r.DisplayMessage = pluginDisplayMessage(r.Name())
+		r.RequestValue = pluginRequestSecret(r.Name())
+		return r, nil
 	case strings.HasPrefix(arg, "age1"):
 		return age.ParseX25519Recipient(arg)
 	case strings.HasPrefix(arg, "ssh-"):
@@ -206,7 +212,7 @@ func parseIdentity(s string) (age.Identity, error) {
 			return nil, err
 		}
 		i.DisplayMessage = pluginDisplayMessage(i.Name())
-		i.RequestSecret = pluginRequestSecret(i.Name())
+		i.RequestValue = pluginRequestSecret(i.Name())
 		return i, nil
 	case strings.HasPrefix(s, "AGE-SECRET-KEY-1"):
 		return age.ParseX25519Identity(s)
@@ -305,8 +311,8 @@ func pluginDisplayMessage(name string) func(string) error {
 	}
 }
 
-func pluginRequestSecret(name string) func(string) (string, error) {
-	return func(message string) (string, error) {
+func pluginRequestSecret(name string) func(string, bool) (string, error) {
+	return func(message string, _ bool) (string, error) {
 		fmt.Fprintf(os.Stderr, "[age-plugin-%s] %v\n", name, message)
 		prompt := fmt.Sprintf("[age-plugin-%s] Enter value:", name)
 		secret, err := readPassphrase(prompt)
