@@ -26,6 +26,15 @@ import (
 type Recipient struct {
 	name     string
 	encoding string
+
+	// DisplayMessage is a callback that will be invoked by Wrap if the plugin
+	// wishes to display a message to the user. If DisplayMessage is nil or
+	// returns an error, failure will be reported to the plugin.
+	DisplayMessage func(message string) error
+	// RequestValue is a callback that will be invoked by Wrap if the plugin
+	// wishes to request a value from the user. If RequestValue is nil or
+	// returns an error, failure will be reported to the plugin.
+	RequestValue func(message string, secret bool) (string, error)
 }
 
 var _ age.Recipient = &Recipient{}
@@ -98,6 +107,45 @@ ReadLoop:
 		}
 
 		switch s.Type {
+		case "msg":
+			if r.DisplayMessage == nil {
+				ss := &format.Stanza{Type: "fail"}
+				if err := ss.Marshal(conn); err != nil {
+					return nil, err
+				}
+				break
+			}
+			if err := r.DisplayMessage(string(s.Body)); err != nil {
+				ss := &format.Stanza{Type: "fail"}
+				if err := ss.Marshal(conn); err != nil {
+					return nil, err
+				}
+			} else {
+				ss := &format.Stanza{Type: "ok"}
+				if err := ss.Marshal(conn); err != nil {
+					return nil, err
+				}
+			}
+		case "request-secret", "request-public":
+			if r.RequestValue == nil {
+				ss := &format.Stanza{Type: "fail"}
+				if err := ss.Marshal(conn); err != nil {
+					return nil, err
+				}
+				break
+			}
+			msg := string(s.Body)
+			if secret, err := r.RequestValue(msg, s.Type == "request-secret"); err != nil {
+				ss := &format.Stanza{Type: "fail"}
+				if err := ss.Marshal(conn); err != nil {
+					return nil, err
+				}
+			} else {
+				ss := &format.Stanza{Type: "ok", Body: []byte(secret)}
+				if err := ss.Marshal(conn); err != nil {
+					return nil, err
+				}
+			}
 		case "recipient-stanza":
 			if len(s.Args) < 2 {
 				return nil, fmt.Errorf("received malformed recipient stanza")
@@ -116,12 +164,25 @@ ReadLoop:
 				Args: s.Args[2:],
 				Body: s.Body,
 			})
+
+			ss := &format.Stanza{Type: "ok"}
+			if err := ss.Marshal(conn); err != nil {
+				return nil, err
+			}
 		case "error":
+			ss := &format.Stanza{Type: "ok"}
+			if err := ss.Marshal(conn); err != nil {
+				return nil, err
+			}
+
 			return nil, fmt.Errorf("%q", s.Body)
 		case "done":
 			break ReadLoop
 		default:
-			// Unknown commands are ignored.
+			ss := &format.Stanza{Type: "unsupported"}
+			if err := ss.Marshal(conn); err != nil {
+				return nil, err
+			}
 		}
 	}
 
@@ -140,10 +201,10 @@ type Identity struct {
 	// wishes to display a message to the user. If DisplayMessage is nil or
 	// returns an error, failure will be reported to the plugin.
 	DisplayMessage func(message string) error
-	// RequestSecret is a callback that will be invoked by Unwrap if the plugin
-	// wishes to request a secret from the user. If RequestSecret is nil or
+	// RequestValue is a callback that will be invoked by Unwrap if the plugin
+	// wishes to request a value from the user. If RequestValue is nil or
 	// returns an error, failure will be reported to the plugin.
-	RequestSecret func(message string) (string, error)
+	RequestValue func(message string, secret bool) (string, error)
 }
 
 var _ age.Identity = &Identity{}
@@ -239,15 +300,16 @@ ReadLoop:
 					return nil, err
 				}
 			}
-		case "request-secret":
-			if i.RequestSecret == nil {
+		case "request-secret", "request-public":
+			if i.RequestValue == nil {
 				ss := &format.Stanza{Type: "fail"}
 				if err := ss.Marshal(conn); err != nil {
 					return nil, err
 				}
 				break
 			}
-			if secret, err := i.RequestSecret(string(s.Body)); err != nil {
+			msg := string(s.Body)
+			if secret, err := i.RequestValue(msg, s.Type == "request-secret"); err != nil {
 				ss := &format.Stanza{Type: "fail"}
 				if err := ss.Marshal(conn); err != nil {
 					return nil, err
@@ -290,7 +352,10 @@ ReadLoop:
 		case "done":
 			break ReadLoop
 		default:
-			// Unknown commands are ignored.
+			ss := &format.Stanza{Type: "unsupported"}
+			if err := ss.Marshal(conn); err != nil {
+				return nil, err
+			}
 		}
 	}
 
@@ -301,12 +366,11 @@ ReadLoop:
 }
 
 type clientConnection struct {
-	cmd    *exec.Cmd
-	stderr bytes.Buffer
-	stdin  io.Closer
-	stdout io.Closer
-	io.Reader
-	io.Writer
+	cmd       *exec.Cmd
+	io.Reader // stdout
+	io.Writer // stdin
+	stderr    bytes.Buffer
+	close     func()
 }
 
 func openClientConnection(name, protocol string) (*clientConnection, error) {
@@ -324,9 +388,16 @@ func openClientConnection(name, protocol string) (*clientConnection, error) {
 	cc := &clientConnection{
 		cmd:    cmd,
 		Reader: stdout,
-		stdout: stdout,
 		Writer: stdin,
-		stdin:  stdin,
+		close: func() {
+			stdin.Close()
+			stdout.Close()
+		},
+	}
+
+	if os.Getenv("AGEDEBUG") == "plugin" {
+		cc.Reader = io.TeeReader(cc.Reader, os.Stderr)
+		cc.Writer = io.MultiWriter(cc.Writer, os.Stderr)
 	}
 
 	cmd.Stderr = &cc.stderr
@@ -343,8 +414,7 @@ func openClientConnection(name, protocol string) (*clientConnection, error) {
 func (cc *clientConnection) Close() error {
 	// Close stdin and stdout and send SIGINT (if supported) to the plugin,
 	// then wait for it to cleanup and exit.
-	cc.stdin.Close()
-	cc.stdout.Close()
+	cc.close()
 	cc.cmd.Process.Signal(os.Interrupt)
 	return cc.cmd.Wait()
 }
