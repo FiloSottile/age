@@ -18,6 +18,7 @@ import (
 	"filippo.io/age"
 	"filippo.io/age/agessh"
 	"filippo.io/age/armor"
+	"filippo.io/age/internal/plugin"
 	"golang.org/x/term"
 )
 
@@ -359,6 +360,8 @@ func identitiesToRecipients(ids []age.Identity) ([]age.Recipient, error) {
 	for _, id := range ids {
 		switch id := id.(type) {
 		case *age.X25519Identity:
+			recipients = append(recipients, id.Recipient())
+		case *plugin.Identity:
 			recipients = append(recipients, id.Recipient())
 		case *agessh.RSAIdentity:
 			recipients = append(recipients, id.Recipient())
