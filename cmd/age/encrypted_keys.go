@@ -45,15 +45,15 @@ func (i *LazyScryptIdentity) Unwrap(stanzas []*age.Stanza) (fileKey []byte, err 
 	return fileKey, err
 }
 
-// stdinInUse is set in main. It's a singleton like os.Stdin.
-var stdinInUse bool
-
+// readPassphrase reads a passphrase from the terminal. If stdin is not
+// connected to a terminal, it tries /dev/tty and fails if that's not available.
+// It does not read from a non-terminal stdin, so it does not check stdinInUse.
 func readPassphrase() ([]byte, error) {
 	fd := int(os.Stdin.Fd())
-	if !term.IsTerminal(fd) || stdinInUse {
+	if !term.IsTerminal(fd) {
 		tty, err := os.Open("/dev/tty")
 		if err != nil {
-			return nil, fmt.Errorf("standard input is not available or not a terminal, and opening /dev/tty failed: %v", err)
+			return nil, fmt.Errorf("standard input is not a terminal, and opening /dev/tty failed: %v", err)
 		}
 		defer tty.Close()
 		fd = int(tty.Fd())
