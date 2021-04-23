@@ -1,8 +1,6 @@
 # age
 
-[![pkg.go.dev](https://pkg.go.dev/badge/filippo.io/age)](https://pkg.go.dev/filippo.io/age)
-
-age [`[aɡe̞]`](https://translate.google.com/?sl=it&text=aghe) is a simple, modern and secure file encryption tool, format, and library.
+age is a simple, modern and secure file encryption tool, format, and [Go library](https://pkg.go.dev/filippo.io/age).
 
 It features small explicit keys, no config options, and UNIX-style composability.
 
@@ -16,6 +14,8 @@ $ age --decrypt -i key.txt data.tar.gz.age > data.tar.gz
 The format specification is at [age-encryption.org/v1](https://age-encryption.org/v1). age was designed by [@Benjojo12](https://twitter.com/Benjojo12) and [@FiloSottile](https://twitter.com/FiloSottile).
 
 An alternative interoperable Rust implementation is available at [github.com/str4d/rage](https://github.com/str4d/rage).
+
+The author pronounces it `[aɡe̞]`, like the Italian [“aghe”](https://translate.google.com/?sl=it&text=aghe).
 
 ## Usage
 
