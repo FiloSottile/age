@@ -115,6 +115,12 @@ brew tap filippo.io/age https://filippo.io/age
 brew install age
 ```
 
+On macOS, you can also use [MacPorts](https://www.macports.org):
+```
+sudo port selfupdate
+sudo port install age
+```
+
 On Windows, Linux, and macOS, you can use [the pre-built binaries](https://github.com/FiloSottile/age/releases).
 
 If your system has [Go 1.13+](https://golang.org/dl/), you can build from source:
