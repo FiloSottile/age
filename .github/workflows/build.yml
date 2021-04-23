@@ -39,7 +39,9 @@ jobs:
           GOOS=linux GOARCH=arm GOARM=6 build_age
           GOOS=linux GOARCH=arm64 build_age
           GOOS=darwin GOARCH=amd64 build_age
+          GOOS=darwin GOARCH=arm64 build_age
           GOOS=windows GOARCH=amd64 build_age
+          GOOS=freebsd GOARCH=amd64 build_age
       - name: Upload workflow artifacts
         uses: actions/upload-artifact@v2
         with:
