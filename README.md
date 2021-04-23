@@ -108,56 +108,71 @@ Keep in mind that people might not protect SSH keys long-term, since they are re
 
 ## Installation
 
-On macOS or Linux, you can use Homebrew:
+<table>
+    <tr>
+        <td>Homebrew (macOS or Linux)</td>
+        <td>
+            <code>brew tap filippo.io/age https://filippo.io/age</code><br>
+            <code>brew install age</code>
+        </td>
+    </tr>
+    <tr>
+        <td>MacPorts</td>
+        <td>
+            <code>port install age</code>
+        </td>
+    </tr>
+    <tr>
+        <td>Ubuntu 21.04+</td>
+        <td>
+            <code>apt install age</code>
+        </td>
+    </tr>
+    <tr>
+        <td>Debian 11+ (Bullseye)</td>
+        <td>
+            <code>apt install age</code>
+        </td>
+    </tr>
+    <tr>
+        <td>Arch Linux</td>
+        <td>
+            <code>pacman -Syu age</code>
+        </td>
+    </tr>
+    <tr>
+        <td>Fedora 33+</td>
+        <td>
+            <code>dnf install age</code>
+        </td>
+    </tr>
+    <tr>
+        <td>OpenBSD 6.7+</td>
+        <td>
+            <code>pkg_add age</code> (security/age)
+        </td>
+    </tr>
+    <tr>
+        <td>FreeBSD</td>
+        <td>
+            <code>pkg install age</code> (security/age)
+        </td>
+    </tr>
+    <tr>
+        <td>NixOS / Nix</td>
+        <td>
+            <code>nix-env -i age</code>
+        </td>
+    </tr>
+</table>
 
-```
-brew tap filippo.io/age https://filippo.io/age
-brew install age
-```
+On Windows, Linux, macOS, and FreeBSD you can use [the pre-built binaries](https://github.com/FiloSottile/age/releases).
 
-On macOS, you can also use [MacPorts](https://www.macports.org):
-```
-sudo port selfupdate
-sudo port install age
-```
-
-On Windows, Linux, and macOS, you can use [the pre-built binaries](https://github.com/FiloSottile/age/releases).
-
-If your system has [Go 1.13+](https://golang.org/dl/), you can build from source:
+If your system has [Go 1.13+](https://golang.org/dl/), you can build from source.
 
 ```
 git clone https://filippo.io/age && cd age
 go build -o . filippo.io/age/cmd/...
-```
-
-On Arch Linux, age is available in the official repositories:
-
-```bash
-sudo pacman -Syu age
-```
-
-On Fedora 33 and later, [`age`](https://src.fedoraproject.org/rpms/age) is available through `dnf`:
-
-```
-dnf install age
-```
-
-On OpenBSD -current and 6.7+, you can use the port:
-
-```
-pkg_add age
-```
-
-On all supported versions of FreeBSD, you can build the security/age port or use pkg:
-
-```
-pkg install age
-```
-
-On NixOS, or via Nix, you can install age using:
-
-```
-nix-env -i age
 ```
 
 Help from new packagers is very welcome.
