@@ -184,7 +184,11 @@ func main() {
 	}
 	if name := outFlag; name != "" && name != "-" {
 		f := newLazyOpener(name)
-		defer f.Close()
+		defer func() {
+			if err := f.Close(); err != nil {
+				logFatalf("Error: failed to close output file %q: %v", name, err)
+			}
+		}()
 		out = f
 	} else if term.IsTerminal(int(os.Stdout.Fd())) {
 		if name != "-" {

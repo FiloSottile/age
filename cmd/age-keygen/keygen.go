@@ -94,7 +94,11 @@ func main() {
 		if err != nil {
 			log.Fatalf("Failed to open output file %q: %v", outFlag, err)
 		}
-		defer f.Close()
+		defer func() {
+			if err := f.Close(); err != nil {
+				log.Fatalf("Failed to close output file %q: %v", outFlag, err)
+			}
+		}()
 		out = f
 	}
 
