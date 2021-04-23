@@ -130,6 +130,12 @@ On Arch Linux, age is available in the official repositories:
 sudo pacman -Syu age
 ```
 
+On Fedora 33 and later, [`age`](https://src.fedoraproject.org/rpms/age) is available through `dnf`:
+
+```
+dnf install age
+```
+
 On OpenBSD -current and 6.7+, you can use the port:
 
 ```
