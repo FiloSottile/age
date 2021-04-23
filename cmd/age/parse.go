@@ -22,6 +22,9 @@ import (
 	"golang.org/x/crypto/ssh"
 )
 
+// stdinInUse is set in main. It's a singleton like os.Stdin.
+var stdinInUse bool
+
 func parseRecipient(arg string) (age.Recipient, error) {
 	switch {
 	case strings.HasPrefix(arg, "age1"):
