@@ -47,8 +47,7 @@ const BytesPerLine = ColumnsPerLine / 4 * 3
 
 // NewlineWriter returns a Writer that writes to dst, inserting an LF character
 // every ColumnsPerLine bytes. It does not insert a newline neither at the
-// beginning nor at the end of the stream, but it ensures the last line is
-// shorter than ColumnsPerLine, which means it might be empty.
+// beginning nor at the end of the stream.
 func NewlineWriter(dst io.Writer) io.Writer {
 	return &newlineWriter{dst: dst}
 }
@@ -64,6 +63,9 @@ func (w *newlineWriter) Write(p []byte) (int, error) {
 		panic("age: internal error: non-empty newlineWriter.buf")
 	}
 	for len(p) > 0 {
+		if w.written > 0 && w.written%ColumnsPerLine == 0 {
+			w.buf.Write([]byte("\n"))
+		}
 		toWrite := ColumnsPerLine - (w.written % ColumnsPerLine)
 		if toWrite > len(p) {
 			toWrite = len(p)
@@ -71,9 +73,6 @@ func (w *newlineWriter) Write(p []byte) (int, error) {
 		n, _ := w.buf.Write(p[:toWrite])
 		w.written += n
 		p = p[n:]
-		if w.written%ColumnsPerLine == 0 {
-			w.buf.Write([]byte("\n"))
-		}
 	}
 	if _, err := w.buf.WriteTo(w.dst); err != nil {
 		// We always return n = 0 on error because it's hard to work back to the
