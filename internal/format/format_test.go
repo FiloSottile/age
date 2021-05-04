@@ -35,7 +35,7 @@ func TestStanzaMarshal(t *testing.T) {
 	buf.Reset()
 	s.Body = bytes.Repeat([]byte("A"), format.BytesPerLine)
 	s.Marshal(buf)
-	if exp := "-> test 1 2 3\nQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFB\n\n"; buf.String() != exp {
+	if exp := "-> test 1 2 3\nQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFB\n"; buf.String() != exp {
 		t.Errorf("wrong 64 columns stanza encoding: expected %q, got %q", exp, buf.String())
 	}
 }
