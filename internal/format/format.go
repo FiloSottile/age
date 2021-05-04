@@ -165,9 +165,6 @@ func Parse(input io.Reader) (*Header, io.Reader, error) {
 		}
 
 		if bytes.HasPrefix(line, footerPrefix) {
-			if r != nil {
-				return nil, nil, errorf("malformed body line %q: reached footer without previous stanza being closed\nNote: this might be a file encrypted with an old beta version of rage. Use rage to decrypt it.", line)
-			}
 			prefix, args := splitArgs(line)
 			if prefix != string(footerPrefix) || len(args) != 1 {
 				return nil, nil, errorf("malformed closing line: %q", line)
@@ -179,9 +176,6 @@ func Parse(input io.Reader) (*Header, io.Reader, error) {
 			break
 
 		} else if bytes.HasPrefix(line, recipientPrefix) {
-			if r != nil {
-				return nil, nil, errorf("malformed body line %q: new stanza started without previous stanza being closed\nNote: this might be a file encrypted with an old beta version of rage. Use rage to decrypt it.", line)
-			}
 			r = &Stanza{}
 			prefix, args := splitArgs(line)
 			if prefix != string(recipientPrefix) || len(args) < 1 {
@@ -205,10 +199,6 @@ func Parse(input io.Reader) (*Header, io.Reader, error) {
 				return nil, nil, errorf("malformed body line %q: too long", line)
 			}
 			r.Body = append(r.Body, b...)
-			if len(b) < BytesPerLine {
-				// Only the last line of a body can be short.
-				r = nil
-			}
 
 		} else {
 			return nil, nil, errorf("unexpected line: %q", line)
