@@ -103,7 +103,7 @@ func main() {
 	}
 
 	if fi, err := out.Stat(); err == nil {
-		if fi.Mode().IsRegular() && fi.Mode().Perm()&0004 != 0 {
+		if !convertFlag && fi.Mode().IsRegular() && fi.Mode().Perm()&0004 != 0 {
 			fmt.Fprintf(os.Stderr, "Warning: writing secret key to a world-readable file.\n")
 		}
 	}
