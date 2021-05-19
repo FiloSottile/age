@@ -102,12 +102,6 @@ func main() {
 		out = f
 	}
 
-	if fi, err := out.Stat(); err == nil {
-		if fi.Mode().IsRegular() && fi.Mode().Perm()&0004 != 0 {
-			fmt.Fprintf(os.Stderr, "Warning: writing secret key to a world-readable file.\n")
-		}
-	}
-
 	in := os.Stdin
 	if inFile := flag.Arg(0); inFile != "" && inFile != "-" {
 		f, err := os.Open(inFile)
@@ -121,6 +115,9 @@ func main() {
 	if convertFlag {
 		convert(in, out)
 	} else {
+		if fi, err := out.Stat(); err == nil && fi.Mode().IsRegular() && fi.Mode().Perm()&0004 != 0 {
+			fmt.Fprintf(os.Stderr, "Warning: writing secret key to a world-readable file.\n")
+		}
 		generate(out)
 	}
 }
