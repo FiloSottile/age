@@ -137,7 +137,7 @@ Keep in mind that people might not protect SSH keys long-term, since they are re
     <tr>
         <td>Arch Linux</td>
         <td>
-            <code>pacman -Syu age</code>
+            <code>pacman -S age</code>
         </td>
     </tr>
     <tr>
