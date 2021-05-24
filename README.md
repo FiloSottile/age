@@ -164,6 +164,12 @@ Keep in mind that people might not protect SSH keys long-term, since they are re
             <code>nix-env -i age</code>
         </td>
     </tr>
+    <tr>
+        <td>Gentoo Linux</td>
+        <td>
+            <code>emerge app-crypt/age</code>
+        </td>
+    </tr>
 </table>
 
 On Windows, Linux, macOS, and FreeBSD you can use [the pre-built binaries](https://github.com/FiloSottile/age/releases).
