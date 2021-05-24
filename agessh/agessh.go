@@ -65,6 +65,9 @@ func NewRSARecipient(pk ssh.PublicKey) (*RSARecipient, error) {
 	} else {
 		return nil, errors.New("pk does not implement ssh.CryptoPublicKey")
 	}
+	if r.pubKey.Size() < 2048/8 {
+		return nil, errors.New("RSA key size is too small")
+	}
 	return r, nil
 }
 
