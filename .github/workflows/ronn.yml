@@ -1,0 +1,22 @@
+on:
+  push:
+    paths:
+      - '**.ronn'
+name: Generate man pages
+jobs:
+  ronn:
+    runs-on: ubuntu-latest
+    name: Ronn
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Run ronn
+        uses: ./.github/workflows/ronn
+        id: ronn
+      - name: Commit and push if changed
+        run: |-
+          git config user.name "GitHub Actions"
+          git config user.email "actions@users.noreply.github.com"
+          git add -A
+          git commit -m "doc: regenerate groff and html man pages" || exit 0
+          git push

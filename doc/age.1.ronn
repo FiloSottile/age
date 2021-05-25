@@ -1,0 +1,221 @@
+age(1) -- simple, modern, and secure file encryption
+====================================================
+
+## SYNOPSIS
+
+`age` [`--encrypt`] (`-r` <RECIPIENT> | `-R` <PATH>)... [`--armor`] [`-o` <OUTPUT>] [<INPUT>]<br>
+`age` [`--encrypt`] `--passphrase` [`--armor`] [`-o` <OUTPUT>] [<INPUT>]<br>
+`age` `--decrypt` [`-i` <PATH>]... [`-o` <OUTPUT>] [<INPUT>]<br>
+
+## DESCRIPTION
+
+`age` encrypts or decrypts <INPUT> to <OUTPUT>. The <INPUT> argument is
+optional and defaults to standard input. Only a single <INPUT> file may be
+specified. If `-o` is not specified, <OUTPUT> defaults to standard output.
+
+If `--passphrase` is specified, the file is encrypted with a passphrase
+requested interactively. Otherwise, it's encrypted to one or more
+[RECIPIENTS][RECIPIENTS AND IDENTITIES] specified with `-r`/`--recipient` or
+`-R`/`--recipients-file`. Every recipient can decrypt the file.
+
+In `--decrypt` mode, passphrase-encrypted files are detected automatically and
+the passphrase is requested interactively. Otherwise, one or more
+[IDENTITIES][RECIPIENTS AND IDENTITIES] specified with `-i`/`--identity` are
+used to decrypt the file.
+
+`age` encrypted files are binary and not malleable, with around 200 bytes of
+overhead per recipient, plus 16 bytes every 64KiB of plaintext.
+
+## OPTIONS
+
+* `-o`, `--output`=<OUTPUT>:
+    Write encrypted or decrypted file to <OUTPUT> instead of standard output.
+    If <OUTPUT> already exists it will be overwritten.
+
+    If encrypting without `--armor`, `age` will refuse to output binary to a
+    TTY. This can be forced by specifying `-` as <OUTPUT>.
+
+* `--version`:
+    Print the version and exit.
+
+### Encryption options
+
+* `-e`, `--encrypt`:
+    Encrypt <INPUT> to <OUTPUT>. This is the default.
+
+* `-r`, `--recipient`=<RECIPIENT>:
+    Encrypt to the explicitly specified <RECIPIENT>. See the
+    [RECIPIENTS AND IDENTITIES][] section for possible recipient formats.
+
+    This option can be repeated and combined with `-R`/`--recipients-file`,
+    and the file can be decrypted by all provided recipients independently.
+
+* `-R`, `--recipients-file`=<PATH>:
+    Encrypt to the [RECIPIENTS][RECIPIENTS AND IDENTITIES] listed in the
+    file at <PATH>, one per line. Empty lines and lines starting with `#`
+    are ignored as comments.
+
+    If <PATH> is `-`, the recipients are read from standard input. In
+    this case, the <INPUT> argument must be specified.
+
+    This option can be repeated and combined with `-r`/`--recipient`,
+    and the file can be decrypted by all provided recipients independently.
+
+* `-p`, `--passphrase`:
+    Encrypt with a passphrase, requested interactively from the terminal.
+    `age` will offer to auto-generate a secure passphrase.
+
+    This options can't be used with `-r`/`--recipient` or
+    `-R`/`--recipients-file`.
+
+* `-a`, `--armor`:
+    Encrypt to an ASCII-only "armored" encoding.
+    
+    `age` armor is a strict version of PEM with type `AGE ENCRYPTED FILE`,
+    canonical "strict" Base64, no headers, and no support for leading and
+    trailing extra data.
+
+    Decryption transparently detects and decodes ASCII armoring.
+
+### Decryption options
+
+* `-d`, `--decrypt`:
+    Decrypt <INPUT> to <OUTPUT>.
+
+    If <INPUT> is passphrase encrypted, it will be automatically detected
+    and the passphrase will be requested interactively. Otherwise, the
+    [IDENTITIES][RECIPIENTS AND IDENTITIES] specified with `-i`/`--identity`
+    are used.
+
+    ASCII armoring is transparently detected and decoded.
+
+* `-i`, `--identity`=<PATH>:
+    Decrypt using the [IDENTITIES][RECIPIENTS AND IDENTITIES] at <PATH>.
+
+    <PATH> may be one of the following:
+
+    a\. A file listing [IDENTITIES][RECIPIENTS AND IDENTITIES] one per line.
+    Empty lines and lines starting with "`#`" are ignored as comments.
+
+    b\. An SSH private key file, in PKCS#1, PKCS#8, SEC 1, or OpenSSH format.
+    If the private key is password-protected, the password is requested
+    interactively only if the SSH identity matches the file. See the
+    [SSH keys][] section for more information, including supported key types.
+    
+    c\. "`-`", causing one of the options above to be read from standard input.
+    In this case, the <INPUT> argument must be specified.
+
+    This option can be repeated. Identities are tried in the order in which
+    are provided, and the first one matching one of the file's recipients is
+    used. Unused identities are ignored.
+
+    If `-e`/`--encrypt` is explicitly specified (to avoid confusion),
+    `-i`/`--identity` may also be used to encrypt to the `RECIPIENTS`
+    corresponding to the `IDENTITIES` listed at <PATH>. This allows using an
+    identity file as a symmetric key, if desired.
+
+## RECIPIENTS AND IDENTITIES
+
+`RECIPIENTS` are public values, like a public key, that a file can be encrypted
+to. `IDENTITIES` are private values, like a private key, that allow decrypting
+a file encrypted to the corresponding `RECIPIENT`.
+
+### Native X25519 keys
+
+Native `age` key pairs are generated with age-keygen(1), and provide small
+encodings and strong encryption based on X25519. They are the recommended
+recipient type for most applications.
+
+A `RECIPIENT` encoding begins with `age1` and looks like the following:
+
+    age1gde3ncmahlqd9gg50tanl99r960llztrhfapnmx853s4tjum03uqfssgdh
+
+An `IDENTITY` encoding begins with `AGE-SECRET-KEY-1` and looks like the
+following:
+
+    AGE-SECRET-KEY-1KTYK6RVLN5TAPE7VF6FQQSKZ9HWWCDSKUGXXNUQDWZ7XXT5YK5LSF3UTKQ
+
+An encrypted file can't be linked to the native recipient it's encrypted to
+without access to the corresponding identity.
+
+### SSH keys
+
+As a convenience feature, `age` also supports encrypting to RSA or Ed25519
+ssh(1) keys. RSA keys must be at least 2048 bits. This feature employs more
+complex cryptography, and should only be used when a native key is not available
+for the recipient. Note that SSH keys might not be protected long-term by the
+recipient, since they are revokable when used only for authentication.
+
+A `RECIPIENT` encoding is an SSH public key in `authorized_keys` format
+(see the `AUTHORIZED_KEYS FILE FORMAT` section of sshd(8)), starting with
+`ssh-rsa` or `ssh-ed25519`, like the following:
+
+    ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDULTit0KUehbi[...]GU4BtElAbzh8=
+    ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH9pO5pz22JZEas[...]l1uZc31FGYMXa
+
+The comment at the end of the line, if present, is ignored.
+
+In recipient files passed to `-R`/`--recipients-file`, unsupported but valid
+SSH public keys are ignored with a warning, to facilitate using
+`authorized_keys` or GitHub `.keys` files. (See [EXAMPLES][].)
+
+An `IDENTITY` is an SSH private key _file_ passed individually to
+`-i`/`--identity`. Note that keys held on hardware tokens such as YubiKeys
+or accessed via ssh-agent(1) are not supported.
+
+An encrypted file _can_ be linked to the SSH public key it was encrypted to.
+This is so that `age` can identify the correct SSH private key before
+requesting its password, if any.
+
+## EXAMPLES
+
+Generate a new identity, encrypt data, and decrypt:
+
+    $ age-keygen -o key.txt
+    Public key: age1ql3z7hjy54pw3hyww5ayyfg7zqgvc7w3j2elw8zmrj2kg5sfn9aqmcac8p
+
+    $ tar cvz ~/data | age -r age1ql3z7hjy54pw3hyww5ayyfg7zqgvc7w3j2elw8zmrj2kg5sfn9aqmcac8p > data.tar.gz.age
+
+    $ age -d -o data.tar.gz -i key.txt data.tar.gz.age
+
+Encrypt `example.jpg` to multiple recipients and output to `example.jpg.age`:
+
+    $ age -o example.jpg.age -r age1ql3z7hjy54pw3hyww5ayyfg7zqgvc7w3j2elw8zmrj2kg5sfn9aqmcac8p \
+        -r age1lggyhqrw2nlhcxprm67z43rta597azn8gknawjehu9d9dl0jq3yqqvfafg example.jpg
+
+Encrypt to a list of recipients:
+
+    $ cat > recipients.txt
+    # Alice
+    age1ql3z7hjy54pw3hyww5ayyfg7zqgvc7w3j2elw8zmrj2kg5sfn9aqmcac8p
+    # Bob
+    age1lggyhqrw2nlhcxprm67z43rta597azn8gknawjehu9d9dl0jq3yqqvfafg
+
+    $ age -R recipients.txt example.jpg > example.jpg.age
+
+Encrypt and decrypt a file using a passphrase:
+
+    $ age -p secrets.txt > secrets.txt.age
+    Enter passphrase (leave empty to autogenerate a secure one):
+    Using the autogenerated passphrase "release-response-step-brand-wrap-ankle-pair-unusual-sword-train".
+
+    $ age -d secrets.txt.age > secrets.txt
+    Enter passphrase:
+
+Encrypt and decrypt with an SSH public key:
+
+    $ age -R ~/.ssh/id_ed25519.pub example.jpg > example.jpg.age
+
+    $ age -d -i ~/.ssh/id_ed25519 example.jpg.age > example.jpg
+
+Encrypt to the SSH keys of a GitHub user:
+
+    $ curl https://github.com/benjojo.keys | age -R - example.jpg > example.jpg.age
+
+## SEE ALSO
+
+age-keygen(1)
+
+## AUTHORS
+
+Filippo Valsorda <age@filippo.io>
