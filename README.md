@@ -1,6 +1,9 @@
 # age
 
-age is a simple, modern and secure file encryption tool, format, and [Go library](https://pkg.go.dev/filippo.io/age).
+[![Go Reference](https://pkg.go.dev/badge/filippo.io/age.svg)](https://pkg.go.dev/filippo.io/age)
+[![man page](https://img.shields.io/badge/man-page-lightgrey)](https://htmlpreview.github.io/?https://github.com/FiloSottile/age/blob/master/doc/age.1.html)
+
+age is a simple, modern and secure file encryption tool, format, and Go library.
 
 It features small explicit keys, no config options, and UNIX-style composability.
 
@@ -18,6 +21,8 @@ An alternative interoperable Rust implementation is available at [github.com/str
 The author pronounces it `[aɡe̞]`, like the Italian [“aghe”](https://translate.google.com/?sl=it&text=aghe).
 
 ## Usage
+
+For the full documentation, read [the age(1) man page](https://htmlpreview.github.io/?https://github.com/FiloSottile/age/blob/master/doc/age.1.html).
 
 ```
 Usage:
