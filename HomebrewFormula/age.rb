@@ -9,6 +9,7 @@ class Age < Formula
   homepage "https://filippo.io/age"
   url "https://github.com/FiloSottile/age/archive/v1.0.0-rc.1.zip"
   sha256 "b9269bc3533fefb1dbbc90cb3683be4d4fa3ea41c1a8e7a3265415b2de26f007"
+  head "https://github.com/FiloSottile/age.git"
 
   depends_on "go" => :build
 
@@ -16,7 +17,5 @@ class Age < Formula
     mkdir bin
     system "go", "build", "-trimpath", "-o", bin, "-ldflags", "-X main.Version=v#{version}", "filippo.io/age/cmd/..."
     prefix.install_metafiles
-    man1.install "doc/age.1"
-    man1.install "doc/age-keygen.1"
   end
 end
