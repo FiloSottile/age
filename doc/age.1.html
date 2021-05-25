@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv='content-type' value='text/html;charset=utf8'>
+  <meta name='generator' value='Ronn/v0.7.3 (http://github.com/rtomayko/ronn/tree/0.7.3)'>
+  <title>age(1) - simple, modern, and secure file encryption</title>
+  <style type='text/css' media='all'>
+  /* style: man */
+  body#manpage {margin:0}
+  .mp {max-width:100ex;padding:0 9ex 1ex 4ex}
+  .mp p,.mp pre,.mp ul,.mp ol,.mp dl {margin:0 0 20px 0}
+  .mp h2 {margin:10px 0 0 0}
+  .mp > p,.mp > pre,.mp > ul,.mp > ol,.mp > dl {margin-left:8ex}
+  .mp h3 {margin:0 0 0 4ex}
+  .mp dt {margin:0;clear:left}
+  .mp dt.flush {float:left;width:8ex}
+  .mp dd {margin:0 0 0 9ex}
+  .mp h1,.mp h2,.mp h3,.mp h4 {clear:left}
+  .mp pre {margin-bottom:20px}
+  .mp pre+h2,.mp pre+h3 {margin-top:22px}
+  .mp h2+pre,.mp h3+pre {margin-top:5px}
+  .mp img {display:block;margin:auto}
+  .mp h1.man-title {display:none}
+  .mp,.mp code,.mp pre,.mp tt,.mp kbd,.mp samp,.mp h3,.mp h4 {font-family:monospace;font-size:14px;line-height:1.42857142857143}
+  .mp h2 {font-size:16px;line-height:1.25}
+  .mp h1 {font-size:20px;line-height:2}
+  .mp {text-align:justify;background:#fff}
+  .mp,.mp code,.mp pre,.mp pre code,.mp tt,.mp kbd,.mp samp {color:#131211}
+  .mp h1,.mp h2,.mp h3,.mp h4 {color:#030201}
+  .mp u {text-decoration:underline}
+  .mp code,.mp strong,.mp b {font-weight:bold;color:#131211}
+  .mp em,.mp var {font-style:italic;color:#232221;text-decoration:none}
+  .mp a,.mp a:link,.mp a:hover,.mp a code,.mp a pre,.mp a tt,.mp a kbd,.mp a samp {color:#0000ff}
+  .mp b.man-ref {font-weight:normal;color:#434241}
+  .mp pre {padding:0 4ex}
+  .mp pre code {font-weight:normal;color:#434241}
+  .mp h2+pre,h3+pre {padding-left:0}
+  ol.man-decor,ol.man-decor li {margin:3px 0 10px 0;padding:0;float:left;width:33%;list-style-type:none;text-transform:uppercase;color:#999;letter-spacing:1px}
+  ol.man-decor {width:100%}
+  ol.man-decor li.tl {text-align:left}
+  ol.man-decor li.tc {text-align:center;letter-spacing:4px}
+  ol.man-decor li.tr {text-align:right;float:right}
+  </style>
+</head>
+<!--
+  The following styles are deprecated and will be removed at some point:
+  div#man, div#man ol.man, div#man ol.head, div#man ol.man.
+
+  The .man-page, .man-decor, .man-head, .man-foot, .man-title, and
+  .man-navigation should be used instead.
+-->
+<body id='manpage'>
+  <div class='mp' id='man'>
+
+  <div class='man-navigation' style='display:none'>
+    <a href="#NAME">NAME</a>
+    <a href="#SYNOPSIS">SYNOPSIS</a>
+    <a href="#DESCRIPTION">DESCRIPTION</a>
+    <a href="#OPTIONS">OPTIONS</a>
+    <a href="#RECIPIENTS-AND-IDENTITIES">RECIPIENTS AND IDENTITIES</a>
+    <a href="#EXAMPLES">EXAMPLES</a>
+    <a href="#SEE-ALSO">SEE ALSO</a>
+    <a href="#AUTHORS">AUTHORS</a>
+  </div>
+
+  <ol class='man-decor man-head man head'>
+    <li class='tl'>age(1)</li>
+    <li class='tc'></li>
+    <li class='tr'>age(1)</li>
+  </ol>
+
+  <h2 id="NAME">NAME</h2>
+<p class="man-name">
+  <code>age</code> - <span class="man-whatis">simple, modern, and secure file encryption</span>
+</p>
+
+<h2 id="SYNOPSIS">SYNOPSIS</h2>
+
+<p><code>age</code> [<code>--encrypt</code>] (<code>-r</code> <var>RECIPIENT</var> | <code>-R</code> <var>PATH</var>)... [<code>--armor</code>] [<code>-o</code> <var>OUTPUT</var>] [<var>INPUT</var>]<br />
+<code>age</code> [<code>--encrypt</code>] <code>--passphrase</code> [<code>--armor</code>] [<code>-o</code> <var>OUTPUT</var>] [<var>INPUT</var>]<br />
+<code>age</code> <code>--decrypt</code> [<code>-i</code> <var>PATH</var>]... [<code>-o</code> <var>OUTPUT</var>] [<var>INPUT</var>]<br /></p>
+
+<h2 id="DESCRIPTION">DESCRIPTION</h2>
+
+<p><code>age</code> encrypts or decrypts <var>INPUT</var> to <var>OUTPUT</var>. The <var>INPUT</var> argument is
+optional and defaults to standard input. Only a single <var>INPUT</var> file may be
+specified. If <code>-o</code> is not specified, <var>OUTPUT</var> defaults to standard output.</p>
+
+<p>If <code>--passphrase</code> is specified, the file is encrypted with a passphrase
+requested interactively. Otherwise, it's encrypted to one or more
+<a href="#RECIPIENTS-AND-IDENTITIES" title="RECIPIENTS AND IDENTITIES" data-bare-link="true">RECIPIENTS</a> specified with <code>-r</code>/<code>--recipient</code> or
+<code>-R</code>/<code>--recipients-file</code>. Every recipient can decrypt the file.</p>
+
+<p>In <code>--decrypt</code> mode, passphrase-encrypted files are detected automatically and
+the passphrase is requested interactively. Otherwise, one or more
+<a href="#RECIPIENTS-AND-IDENTITIES" title="RECIPIENTS AND IDENTITIES" data-bare-link="true">IDENTITIES</a> specified with <code>-i</code>/<code>--identity</code> are
+used to decrypt the file.</p>
+
+<p><code>age</code> encrypted files are binary and not malleable, with around 200 bytes of
+overhead per recipient, plus 16 bytes every 64KiB of plaintext.</p>
+
+<h2 id="OPTIONS">OPTIONS</h2>
+
+<dl>
+<dt><code>-o</code>, <code>--output</code>=<var>OUTPUT</var></dt><dd><p>  Write encrypted or decrypted file to <var>OUTPUT</var> instead of standard output.
+  If <var>OUTPUT</var> already exists it will be overwritten.</p>
+
+<p>  If encrypting without <code>--armor</code>, <code>age</code> will refuse to output binary to a
+  TTY. This can be forced by specifying <code>-</code> as <var>OUTPUT</var>.</p></dd>
+<dt><code>--version</code></dt><dd><p>  Print the version and exit.</p></dd>
+</dl>
+
+
+<h3 id="Encryption-options">Encryption options</h3>
+
+<dl>
+<dt><code>-e</code>, <code>--encrypt</code></dt><dd><p>  Encrypt <var>INPUT</var> to <var>OUTPUT</var>. This is the default.</p></dd>
+<dt><code>-r</code>, <code>--recipient</code>=<var>RECIPIENT</var></dt><dd><p>  Encrypt to the explicitly specified <var>RECIPIENT</var>. See the
+  <a href="#RECIPIENTS-AND-IDENTITIES" title="RECIPIENTS AND IDENTITIES" data-bare-link="true">RECIPIENTS AND IDENTITIES</a> section for possible recipient formats.</p>
+
+<p>  This option can be repeated and combined with <code>-R</code>/<code>--recipients-file</code>,
+  and the file can be decrypted by all provided recipients independently.</p></dd>
+<dt><code>-R</code>, <code>--recipients-file</code>=<var>PATH</var></dt><dd><p>  Encrypt to the <a href="#RECIPIENTS-AND-IDENTITIES" title="RECIPIENTS AND IDENTITIES" data-bare-link="true">RECIPIENTS</a> listed in the
+  file at <var>PATH</var>, one per line. Empty lines and lines starting with <code>#</code>
+  are ignored as comments.</p>
+
+<p>  If <var>PATH</var> is <code>-</code>, the recipients are read from standard input. In
+  this case, the <var>INPUT</var> argument must be specified.</p>
+
+<p>  This option can be repeated and combined with <code>-r</code>/<code>--recipient</code>,
+  and the file can be decrypted by all provided recipients independently.</p></dd>
+<dt><code>-p</code>, <code>--passphrase</code></dt><dd><p>  Encrypt with a passphrase, requested interactively from the terminal.
+  <code>age</code> will offer to auto-generate a secure passphrase.</p>
+
+<p>  This options can't be used with <code>-r</code>/<code>--recipient</code> or
+  <code>-R</code>/<code>--recipients-file</code>.</p></dd>
+<dt><code>-a</code>, <code>--armor</code></dt><dd><p>  Encrypt to an ASCII-only "armored" encoding.</p>
+
+<p>  <code>age</code> armor is a strict version of PEM with type <code>AGE ENCRYPTED FILE</code>,
+  canonical "strict" Base64, no headers, and no support for leading and
+  trailing extra data.</p>
+
+<p>  Decryption transparently detects and decodes ASCII armoring.</p></dd>
+</dl>
+
+
+<h3 id="Decryption-options">Decryption options</h3>
+
+<dl>
+<dt><code>-d</code>, <code>--decrypt</code></dt><dd><p>  Decrypt <var>INPUT</var> to <var>OUTPUT</var>.</p>
+
+<p>  If <var>INPUT</var> is passphrase encrypted, it will be automatically detected
+  and the passphrase will be requested interactively. Otherwise, the
+  <a href="#RECIPIENTS-AND-IDENTITIES" title="RECIPIENTS AND IDENTITIES" data-bare-link="true">IDENTITIES</a> specified with <code>-i</code>/<code>--identity</code>
+  are used.</p>
+
+<p>  ASCII armoring is transparently detected and decoded.</p></dd>
+<dt><code>-i</code>, <code>--identity</code>=<var>PATH</var></dt><dd><p>  Decrypt using the <a href="#RECIPIENTS-AND-IDENTITIES" title="RECIPIENTS AND IDENTITIES" data-bare-link="true">IDENTITIES</a> at <var>PATH</var>.</p>
+
+<p>  <var>PATH</var> may be one of the following:</p>
+
+<p>  a. A file listing <a href="#RECIPIENTS-AND-IDENTITIES" title="RECIPIENTS AND IDENTITIES" data-bare-link="true">IDENTITIES</a> one per line.
+  Empty lines and lines starting with "<code>#</code>" are ignored as comments.</p>
+
+<p>  b. An SSH private key file, in PKCS#1, PKCS#8, SEC 1, or OpenSSH format.
+  If the private key is password-protected, the password is requested
+  interactively only if the SSH identity matches the file. See the
+  <a href="#SSH-keys" title="SSH keys" data-bare-link="true">SSH keys</a> section for more information, including supported key types.</p>
+
+<p>  c. "<code>-</code>", causing one of the options above to be read from standard input.
+  In this case, the <var>INPUT</var> argument must be specified.</p>
+
+<p>  This option can be repeated. Identities are tried in the order in which
+  are provided, and the first one matching one of the file's recipients is
+  used. Unused identities are ignored.</p>
+
+<p>  If <code>-e</code>/<code>--encrypt</code> is explicitly specified (to avoid confusion),
+  <code>-i</code>/<code>--identity</code> may also be used to encrypt to the <code>RECIPIENTS</code>
+  corresponding to the <code>IDENTITIES</code> listed at <var>PATH</var>. This allows using an
+  identity file as a symmetric key, if desired.</p></dd>
+</dl>
+
+
+<h2 id="RECIPIENTS-AND-IDENTITIES">RECIPIENTS AND IDENTITIES</h2>
+
+<p><code>RECIPIENTS</code> are public values, like a public key, that a file can be encrypted
+to. <code>IDENTITIES</code> are private values, like a private key, that allow decrypting
+a file encrypted to the corresponding <code>RECIPIENT</code>.</p>
+
+<h3 id="Native-X25519-keys">Native X25519 keys</h3>
+
+<p>Native <code>age</code> key pairs are generated with <a class="man-ref" href="age-keygen.1.html">age-keygen<span class="s">(1)</span></a>, and provide small
+encodings and strong encryption based on X25519. They are the recommended
+recipient type for most applications.</p>
+
+<p>A <code>RECIPIENT</code> encoding begins with <code>age1</code> and looks like the following:</p>
+
+<pre><code>age1gde3ncmahlqd9gg50tanl99r960llztrhfapnmx853s4tjum03uqfssgdh
+</code></pre>
+
+<p>An <code>IDENTITY</code> encoding begins with <code>AGE-SECRET-KEY-1</code> and looks like the
+following:</p>
+
+<pre><code>AGE-SECRET-KEY-1KTYK6RVLN5TAPE7VF6FQQSKZ9HWWCDSKUGXXNUQDWZ7XXT5YK5LSF3UTKQ
+</code></pre>
+
+<p>An encrypted file can't be linked to the native recipient it's encrypted to
+without access to the corresponding identity.</p>
+
+<h3 id="SSH-keys">SSH keys</h3>
+
+<p>As a convenience feature, <code>age</code> also supports encrypting to RSA or Ed25519
+<span class="man-ref">ssh<span class="s">(1)</span></span> keys. RSA keys must be at least 2048 bits. This feature employs more
+complex cryptography, and should only be used when a native key is not available
+for the recipient. Note that SSH keys might not be protected long-term by the
+recipient, since they are revokable when used only for authentication.</p>
+
+<p>A <code>RECIPIENT</code> encoding is an SSH public key in <code>authorized_keys</code> format
+(see the <code>AUTHORIZED_KEYS FILE FORMAT</code> section of <span class="man-ref">sshd<span class="s">(8)</span></span>), starting with
+<code>ssh-rsa</code> or <code>ssh-ed25519</code>, like the following:</p>
+
+<pre><code>ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDULTit0KUehbi[...]GU4BtElAbzh8=
+ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH9pO5pz22JZEas[...]l1uZc31FGYMXa
+</code></pre>
+
+<p>The comment at the end of the line, if present, is ignored.</p>
+
+<p>In recipient files passed to <code>-R</code>/<code>--recipients-file</code>, unsupported but valid
+SSH public keys are ignored with a warning, to facilitate using
+<code>authorized_keys</code> or GitHub <code>.keys</code> files. (See <a href="#EXAMPLES" title="EXAMPLES" data-bare-link="true">EXAMPLES</a>.)</p>
+
+<p>An <code>IDENTITY</code> is an SSH private key <em>file</em> passed individually to
+<code>-i</code>/<code>--identity</code>. Note that keys held on hardware tokens such as YubiKeys
+or accessed via <span class="man-ref">ssh-agent<span class="s">(1)</span></span> are not supported.</p>
+
+<p>An encrypted file <em>can</em> be linked to the SSH public key it was encrypted to.
+This is so that <code>age</code> can identify the correct SSH private key before
+requesting its password, if any.</p>
+
+<h2 id="EXAMPLES">EXAMPLES</h2>
+
+<p>Generate a new identity, encrypt data, and decrypt:</p>
+
+<pre><code>$ age-keygen -o key.txt
+Public key: age1ql3z7hjy54pw3hyww5ayyfg7zqgvc7w3j2elw8zmrj2kg5sfn9aqmcac8p
+
+$ tar cvz ~/data | age -r age1ql3z7hjy54pw3hyww5ayyfg7zqgvc7w3j2elw8zmrj2kg5sfn9aqmcac8p &gt; data.tar.gz.age
+
+$ age -d -o data.tar.gz -i key.txt data.tar.gz.age
+</code></pre>
+
+<p>Encrypt <code>example.jpg</code> to multiple recipients and output to <code>example.jpg.age</code>:</p>
+
+<pre><code>$ age -o example.jpg.age -r age1ql3z7hjy54pw3hyww5ayyfg7zqgvc7w3j2elw8zmrj2kg5sfn9aqmcac8p \
+    -r age1lggyhqrw2nlhcxprm67z43rta597azn8gknawjehu9d9dl0jq3yqqvfafg example.jpg
+</code></pre>
+
+<p>Encrypt to a list of recipients:</p>
+
+<pre><code>$ cat &gt; recipients.txt
+# Alice
+age1ql3z7hjy54pw3hyww5ayyfg7zqgvc7w3j2elw8zmrj2kg5sfn9aqmcac8p
+# Bob
+age1lggyhqrw2nlhcxprm67z43rta597azn8gknawjehu9d9dl0jq3yqqvfafg
+
+$ age -R recipients.txt example.jpg &gt; example.jpg.age
+</code></pre>
+
+<p>Encrypt and decrypt a file using a passphrase:</p>
+
+<pre><code>$ age -p secrets.txt &gt; secrets.txt.age
+Enter passphrase (leave empty to autogenerate a secure one):
+Using the autogenerated passphrase "release-response-step-brand-wrap-ankle-pair-unusual-sword-train".
+
+$ age -d secrets.txt.age &gt; secrets.txt
+Enter passphrase:
+</code></pre>
+
+<p>Encrypt and decrypt with an SSH public key:</p>
+
+<pre><code>$ age -R ~/.ssh/id_ed25519.pub example.jpg &gt; example.jpg.age
+
+$ age -d -i ~/.ssh/id_ed25519 example.jpg.age &gt; example.jpg
+</code></pre>
+
+<p>Encrypt to the SSH keys of a GitHub user:</p>
+
+<pre><code>$ curl https://github.com/benjojo.keys | age -R - example.jpg &gt; example.jpg.age
+</code></pre>
+
+<h2 id="SEE-ALSO">SEE ALSO</h2>
+
+<p><a class="man-ref" href="age-keygen.1.html">age-keygen<span class="s">(1)</span></a></p>
+
+<h2 id="AUTHORS">AUTHORS</h2>
+
+<p>Filippo Valsorda <a href="&#x6d;&#97;&#105;&#x6c;&#116;&#x6f;&#58;&#x61;&#103;&#x65;&#64;&#102;&#105;&#x6c;&#105;&#x70;&#x70;&#x6f;&#46;&#105;&#111;" data-bare-link="true">&#97;&#x67;&#x65;&#x40;&#x66;&#x69;&#108;&#105;&#x70;&#x70;&#x6f;&#x2e;&#105;&#111;</a></p>
+
+
+  <ol class='man-decor man-foot man foot'>
+    <li class='tl'></li>
+    <li class='tc'>May 2021</li>
+    <li class='tr'>age(1)</li>
+  </ol>
+
+  </div>
+</body>
+</html>
