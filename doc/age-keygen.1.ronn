@@ -1,0 +1,57 @@
+age-keygen(1) -- generate age(1) key pairs
+====================================================
+
+## SYNOPSIS
+
+`age-keygen` [`-o` <OUTPUT>]<br>
+`age-keygen` `-y` [`-o` <OUTPUT>] [<INPUT>]<br>
+
+## DESCRIPTION
+
+`age-keygen` generates a new native age(1) key pair, and outputs the identity to
+standard output or to the <OUTPUT> file. The output includes the public key and
+the current time as comments.
+
+If the output is not going to a terminal, `age-keygen` prints the public key to
+standard error.
+
+## OPTIONS
+
+* `-o`, `--output`=<OUTPUT>:
+    Write the identity to <OUTPUT> instead of standard output.
+    
+    If <OUTPUT> already exists, it is not overwritten.
+
+* `-y`:
+    Read an identity file from <INPUT> or from standard input and output the
+    corresponding recipient(s), one per line, with no comments.
+
+* `--version`:
+    Print the version and exit.
+
+## EXAMPLES
+
+Generate a new identity:
+
+    $ age-keygen
+    # created: 2021-01-02T15:30:45+01:00
+    # public key: age1lvyvwawkr0mcnnnncaghunadrqkmuf9e6507x9y920xxpp866cnql7dp2z
+    AGE-SECRET-KEY-1N9JEPW6DWJ0ZQUDX63F5A03GX8QUW7PXDE39N8UYF82VZ9PC8UFS3M7XA9
+
+Write a new identity to `key.txt`:
+
+    $ age-keygen -o key.txt
+    Public key: age1ql3z7hjy54pw3hyww5ayyfg7zqgvc7w3j2elw8zmrj2kg5sfn9aqmcac8p
+
+Convert an identity to a recipient:
+
+    $ age-keygen -y key.txt
+    age1ql3z7hjy54pw3hyww5ayyfg7zqgvc7w3j2elw8zmrj2kg5sfn9aqmcac8p
+
+## SEE ALSO
+
+age(1)
+
+## AUTHORS
+
+Filippo Valsorda <age@filippo.io>

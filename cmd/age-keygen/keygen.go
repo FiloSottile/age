@@ -27,7 +27,7 @@ Options:
     -o, --output OUTPUT       Write the result to the file at path OUTPUT.
     -y                        Convert an identity file to a recipients file.
 
-age-keygen generates a new standard X25519 key pair, and outputs it to
+age-keygen generates a new native X25519 key pair, and outputs it to
 standard output or to the OUTPUT file.
 
 If an OUTPUT file is specified, the public key is printed to standard error.
