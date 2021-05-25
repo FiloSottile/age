@@ -19,7 +19,7 @@ import (
 )
 
 func TestSSHRSARoundTrip(t *testing.T) {
-	pk, err := rsa.GenerateKey(rand.Reader, 768)
+	pk, err := rsa.GenerateKey(rand.Reader, 2048)
 	if err != nil {
 		t.Fatal(err)
 	}
