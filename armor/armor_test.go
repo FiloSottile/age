@@ -8,6 +8,7 @@ package armor_test
 
 import (
 	"bytes"
+	"crypto/rand"
 	"encoding/pem"
 	"fmt"
 	"io"
@@ -18,6 +19,7 @@ import (
 
 	"filippo.io/age"
 	"filippo.io/age/armor"
+	"filippo.io/age/internal/format"
 )
 
 func ExampleNewWriter() {
@@ -87,9 +89,15 @@ kB/RRusYjn+KVJ+KTioxj0THtzZPXcjFKuQ1
 }
 
 func TestArmor(t *testing.T) {
+	t.Run("PartialLine", func(t *testing.T) { testArmor(t, 611) })
+	t.Run("FullLine", func(t *testing.T) { testArmor(t, 10*format.BytesPerLine) })
+}
+
+func testArmor(t *testing.T, size int) {
 	buf := &bytes.Buffer{}
 	w := armor.NewWriter(buf)
-	plain := make([]byte, 611)
+	plain := make([]byte, size)
+	rand.Read(plain)
 	if _, err := w.Write(plain); err != nil {
 		t.Fatal(err)
 	}
@@ -101,8 +109,17 @@ func TestArmor(t *testing.T) {
 	if block == nil {
 		t.Fatal("PEM decoding failed")
 	}
+	if len(block.Headers) != 0 {
+		t.Error("unexpected headers")
+	}
+	if block.Type != "AGE ENCRYPTED FILE" {
+		t.Errorf("unexpected type %q", block.Type)
+	}
 	if !bytes.Equal(block.Bytes, plain) {
 		t.Error("PEM decoded value doesn't match")
+	}
+	if !bytes.Equal(buf.Bytes(), pem.EncodeToMemory(block)) {
+		t.Error("PEM re-encoded value doesn't match")
 	}
 
 	r := armor.NewReader(buf)
