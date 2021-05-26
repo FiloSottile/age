@@ -1,5 +1,7 @@
 on:
   push:
+    branches:
+      - '**'
     paths:
       - '**.ronn'
 name: Generate man pages
