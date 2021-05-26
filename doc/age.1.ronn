@@ -97,7 +97,7 @@ overhead per recipient, plus 16 bytes every 64KiB of plaintext.
     a\. A file listing [IDENTITIES][RECIPIENTS AND IDENTITIES] one per line.
     Empty lines and lines starting with "`#`" are ignored as comments.
 
-    b\. An SSH private key file, in PKCS#1, PKCS#8, SEC 1, or OpenSSH format.
+    b\. An SSH private key file, in PKCS#1, PKCS#8, or OpenSSH format.
     If the private key is password-protected, the password is requested
     interactively only if the SSH identity matches the file. See the
     [SSH keys][] section for more information, including supported key types.
