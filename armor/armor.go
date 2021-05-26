@@ -28,7 +28,7 @@ const (
 
 type armoredWriter struct {
 	started, closed bool
-	encoder         io.WriteCloser
+	encoder         *format.WrappedBase64Encoder
 	dst             io.Writer
 }
 
@@ -50,15 +50,20 @@ func (a *armoredWriter) Close() error {
 	if err := a.encoder.Close(); err != nil {
 		return err
 	}
-	_, err := io.WriteString(a.dst, "\n"+Footer+"\n")
+	footer := Footer + "\n"
+	if !a.encoder.LastLineIsEmpty() {
+		footer = "\n" + footer
+	}
+	_, err := io.WriteString(a.dst, footer)
 	return err
 }
 
 func NewWriter(dst io.Writer) io.WriteCloser {
 	// TODO: write a test with aligned and misaligned sizes, and 8 and 10 steps.
-	return &armoredWriter{dst: dst,
-		encoder: base64.NewEncoder(base64.StdEncoding.Strict(),
-			format.NewlineWriter(dst))}
+	return &armoredWriter{
+		dst:     dst,
+		encoder: format.NewWrappedBase64Encoder(base64.StdEncoding, dst),
+	}
 }
 
 type armoredReader struct {

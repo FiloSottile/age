@@ -43,25 +43,40 @@ func DecodeString(s string) ([]byte, error) {
 var EncodeToString = b64.EncodeToString
 
 const ColumnsPerLine = 64
+
 const BytesPerLine = ColumnsPerLine / 4 * 3
 
-// NewlineWriter returns a Writer that writes to dst, inserting an LF character
-// every ColumnsPerLine bytes. It does not insert a newline neither at the
-// beginning nor at the end of the stream, but it ensures the last line is
-// shorter than ColumnsPerLine, which means it might be empty.
-func NewlineWriter(dst io.Writer) io.Writer {
-	return &newlineWriter{dst: dst}
+// NewWrappedBase64Encoder returns a WrappedBase64Encoder that writes to dst.
+func NewWrappedBase64Encoder(enc *base64.Encoding, dst io.Writer) *WrappedBase64Encoder {
+	w := &WrappedBase64Encoder{dst: dst}
+	w.enc = base64.NewEncoder(enc, WriterFunc(w.writeWrapped))
+	return w
 }
 
-type newlineWriter struct {
+type WriterFunc func(p []byte) (int, error)
+
+func (f WriterFunc) Write(p []byte) (int, error) { return f(p) }
+
+// WrappedBase64Encoder is a standard base64 encoder that inserts an LF
+// character every ColumnsPerLine bytes. It does not insert a newline neither at
+// the beginning nor at the end of the stream, but it ensures the last line is
+// shorter than ColumnsPerLine, which means it might be empty.
+type WrappedBase64Encoder struct {
+	enc     io.WriteCloser
 	dst     io.Writer
 	written int
 	buf     bytes.Buffer
 }
 
-func (w *newlineWriter) Write(p []byte) (int, error) {
+func (w *WrappedBase64Encoder) Write(p []byte) (int, error) { return w.enc.Write(p) }
+
+func (w *WrappedBase64Encoder) Close() error {
+	return w.enc.Close()
+}
+
+func (w *WrappedBase64Encoder) writeWrapped(p []byte) (int, error) {
 	if w.buf.Len() != 0 {
-		panic("age: internal error: non-empty newlineWriter.buf")
+		panic("age: internal error: non-empty WrappedBase64Encoder.buf")
 	}
 	for len(p) > 0 {
 		toWrite := ColumnsPerLine - (w.written % ColumnsPerLine)
@@ -84,9 +99,18 @@ func (w *newlineWriter) Write(p []byte) (int, error) {
 	return len(p), nil
 }
 
+// LastLineIsEmpty returns whether the last output line was empty, either
+// because no input was written, or because a multiple of BytesPerLine was.
+//
+// Calling LastLineIsEmpty before Close is meaningless.
+func (w *WrappedBase64Encoder) LastLineIsEmpty() bool {
+	return w.written%ColumnsPerLine == 0
+}
+
 const intro = "age-encryption.org/v1\n"
 
 var recipientPrefix = []byte("->")
+
 var footerPrefix = []byte("---")
 
 func (r *Stanza) Marshal(w io.Writer) error {
@@ -101,7 +125,7 @@ func (r *Stanza) Marshal(w io.Writer) error {
 	if _, err := io.WriteString(w, "\n"); err != nil {
 		return err
 	}
-	ww := base64.NewEncoder(b64, NewlineWriter(w))
+	ww := NewWrappedBase64Encoder(b64, w)
 	if _, err := ww.Write(r.Body); err != nil {
 		return err
 	}
