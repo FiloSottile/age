@@ -43,7 +43,7 @@ Write a new identity to `key.txt`:
     $ age-keygen -o key.txt
     Public key: age1ql3z7hjy54pw3hyww5ayyfg7zqgvc7w3j2elw8zmrj2kg5sfn9aqmcac8p
 
-Convert an identity to a receipient:
+Convert an identity to a recipient:
 
     $ age-keygen -y key.txt
     age1ql3z7hjy54pw3hyww5ayyfg7zqgvc7w3j2elw8zmrj2kg5sfn9aqmcac8p
