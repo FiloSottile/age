@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"syscall"
 
 	"filippo.io/age"
 	"golang.org/x/term"
@@ -43,6 +44,26 @@ func (i *LazyScryptIdentity) Unwrap(stanzas []*age.Stanza) (fileKey []byte, err 
 		return nil, fmt.Errorf("incorrect passphrase")
 	}
 	return fileKey, err
+}
+
+// readPassphraseFromFD reads a passphrase from a file descriptor.
+func readPassphraseFromFD(fd int) ([]byte, error) {
+	// readPassphraseFromFD should not be used as an alternative to readPassphrase
+	if fd == 0 {
+		return nil,fmt.Errorf("refusing to read from STDIN!\n")
+	}
+
+	buffer := make([]byte, 1024)
+	nBytes, err := syscall.Read(fd, buffer)
+
+	if err != nil {
+		return nil, err
+	}
+
+	passphrase := make([]byte, nBytes)
+	copy(passphrase, buffer)
+
+	return passphrase, nil
 }
 
 // readPassphrase reads a passphrase from the terminal. If stdin is not

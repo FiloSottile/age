@@ -34,7 +34,7 @@ func (f *multiFlag) Set(value string) error {
 
 const usage = `Usage:
     age [--encrypt] (-r RECIPIENT | -R PATH)... [--armor] [-o OUTPUT] [INPUT]
-    age [--encrypt] --passphrase [--armor] [-o OUTPUT] [INPUT]
+    age [--encrypt] --passphrase [--passphrase-fd] [--armor] [-o OUTPUT] [INPUT]
     age --decrypt [-i PATH]... [-o OUTPUT] [INPUT]
 
 Options:
@@ -43,6 +43,7 @@ Options:
     -o, --output OUTPUT         Write the result to the file at path OUTPUT.
     -a, --armor                 Encrypt to a PEM encoded format.
     -p, --passphrase            Encrypt with a passphrase.
+        --passphrase-fd         To be used in conjunction with -p, instructs age to read passphrase from a file descriptor.
     -r, --recipient RECIPIENT   Encrypt to the specified RECIPIENT. Can be repeated.
     -R, --recipients-file PATH  Encrypt to recipients listed at PATH. Can be repeated.
     -i, --identity PATH         Use the identity file at PATH. Can be repeated.
@@ -89,6 +90,7 @@ func main() {
 		outFlag                          string
 		decryptFlag, encryptFlag         bool
 		passFlag, versionFlag, armorFlag bool
+		passFdFlag                       int
 		recipientFlags, identityFlags    multiFlag
 		recipientsFileFlags              multiFlag
 	)
@@ -100,6 +102,7 @@ func main() {
 	flag.BoolVar(&encryptFlag, "encrypt", false, "encrypt the input")
 	flag.BoolVar(&passFlag, "p", false, "use a passphrase")
 	flag.BoolVar(&passFlag, "passphrase", false, "use a passphrase")
+	flag.IntVar(&passFdFlag, "passphrase-fd", -1, "read passphrase from file descriptor")
 	flag.StringVar(&outFlag, "o", "", "output to `FILE` (default stdout)")
 	flag.StringVar(&outFlag, "output", "", "output to `FILE` (default stdout)")
 	flag.BoolVar(&armorFlag, "a", false, "generate an armored file")
@@ -214,7 +217,7 @@ func main() {
 	case decryptFlag:
 		decrypt(identityFlags, in, out)
 	case passFlag:
-		pass, err := passphrasePromptForEncryption()
+		pass, err := passphrasePromptForEncryption(passFdFlag)
 		if err != nil {
 			logFatalf("Error: %v", err)
 		}
@@ -224,7 +227,17 @@ func main() {
 	}
 }
 
-func passphrasePromptForEncryption() (string, error) {
+func passphrasePromptForEncryption(passFd int) (string, error) {
+	if passFd != -1 {
+		pass, err := readPassphraseFromFD(passFd)
+
+		if err != nil {
+			return "", fmt.Errorf("could not read passphrase from file descriptor %d: %v", passFd, err)
+		}
+
+		return string(pass), nil
+	}
+
 	fmt.Fprintf(os.Stderr, "Enter passphrase (leave empty to autogenerate a secure one): ")
 	pass, err := readPassphrase()
 	if err != nil {
