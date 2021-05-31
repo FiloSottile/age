@@ -46,22 +46,18 @@ func (i *LazyScryptIdentity) Unwrap(stanzas []*age.Stanza) (fileKey []byte, err 
 }
 
 // readPassphrase reads a passphrase from the terminal. If stdin is not
-// connected to a terminal, it tries /dev/tty and fails if that's not available.
-// It does not read from a non-terminal stdin, so it does not check stdinInUse.
+// connected to a terminal, it tries to grab the terminal input and
+// fails if that's not available. It does not read from a non-terminal
+// stdin, so it does not check stdinInUse.
 func readPassphrase() ([]byte, error) {
 	fd := int(os.Stdin.Fd())
 	if !term.IsTerminal(fd) {
-		tty, err := os.Open("/dev/tty")
+		passphrase, err := readPassphraseFromTerminal()
 		if err != nil {
-			return nil, fmt.Errorf("standard input is not a terminal, and opening /dev/tty failed: %v", err)
+			err = fmt.Errorf("standard input is not a terminal, and grabbing the terminal input failed: %v", err)
 		}
-		defer tty.Close()
-		fd = int(tty.Fd())
+		return passphrase, err
 	}
 	defer fmt.Fprintf(os.Stderr, "\n")
-	p, err := term.ReadPassword(fd)
-	if err != nil {
-		return nil, err
-	}
-	return p, nil
+	return term.ReadPassword(fd)
 }
