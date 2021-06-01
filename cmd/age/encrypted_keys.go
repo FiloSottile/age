@@ -50,7 +50,7 @@ func (i *LazyScryptIdentity) Unwrap(stanzas []*age.Stanza) (fileKey []byte, err 
 func readPassphraseFromFD(fd int) ([]byte, error) {
 	// readPassphraseFromFD should not be used as an alternative to readPassphrase
 	if fd == 0 {
-		return nil,fmt.Errorf("refusing to read from STDIN!\n")
+		return nil,fmt.Errorf("refusing to read passphrase from standard input (STDIN).\n")
 	}
 
 	buffer := make([]byte, 1024)
