@@ -217,7 +217,7 @@ func main() {
 	case decryptFlag:
 		decrypt(identityFlags, in, out)
 	case passFlag:
-		pass, err := passphrasePromptForEncryption(passFdFlag)
+		pass, err := getPassphrase(passFdFlag)
 		if err != nil {
 			logFatalf("Error: %v", err)
 		}
@@ -227,7 +227,7 @@ func main() {
 	}
 }
 
-func passphrasePromptForEncryption(passFd int) (string, error) {
+func getPassphrase(passFd int) (string, error) {
 	if passFd != -1 {
 		pass, err := readPassphraseFromFD(passFd)
 
@@ -238,6 +238,10 @@ func passphrasePromptForEncryption(passFd int) (string, error) {
 		return string(pass), nil
 	}
 
+	return passphrasePromptForEncryption()
+}
+
+func passphrasePromptForEncryption() (string, error) {
 	fmt.Fprintf(os.Stderr, "Enter passphrase (leave empty to autogenerate a secure one): ")
 	pass, err := readPassphrase()
 	if err != nil {
