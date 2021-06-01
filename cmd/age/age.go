@@ -77,6 +77,9 @@ Example:
 // golang.org/issue/29814 and golang.org/issue/29228.
 var Version string
 
+// Variable that holds --passphrase-fd if specified by the user.
+var passphraseFileDescriptor int
+
 func main() {
 	_log.SetFlags(0)
 	flag.Usage = func() { fmt.Fprintf(os.Stderr, "%s\n", usage) }
@@ -90,7 +93,6 @@ func main() {
 		outFlag                          string
 		decryptFlag, encryptFlag         bool
 		passFlag, versionFlag, armorFlag bool
-		passFdFlag                       int
 		recipientFlags, identityFlags    multiFlag
 		recipientsFileFlags              multiFlag
 	)
@@ -102,7 +104,7 @@ func main() {
 	flag.BoolVar(&encryptFlag, "encrypt", false, "encrypt the input")
 	flag.BoolVar(&passFlag, "p", false, "use a passphrase")
 	flag.BoolVar(&passFlag, "passphrase", false, "use a passphrase")
-	flag.IntVar(&passFdFlag, "passphrase-fd", -1, "read passphrase from file descriptor")
+	flag.IntVar(&passphraseFileDescriptor, "passphrase-fd", -1, "read passphrase from file descriptor")
 	flag.StringVar(&outFlag, "o", "", "output to `FILE` (default stdout)")
 	flag.StringVar(&outFlag, "output", "", "output to `FILE` (default stdout)")
 	flag.BoolVar(&armorFlag, "a", false, "generate an armored file")
@@ -217,7 +219,7 @@ func main() {
 	case decryptFlag:
 		decrypt(identityFlags, in, out)
 	case passFlag:
-		pass, err := getPassphrase(passFdFlag)
+		pass, err := getPassphraseForEncryption()
 		if err != nil {
 			logFatalf("Error: %v", err)
 		}
@@ -227,12 +229,12 @@ func main() {
 	}
 }
 
-func getPassphrase(passFd int) (string, error) {
-	if passFd != -1 {
-		pass, err := readPassphraseFromFD(passFd)
+func getPassphraseForEncryption() (string, error) {
+	if passphraseFileDescriptor != -1 {
+		pass, err := readPassphraseFromFD(passphraseFileDescriptor)
 
 		if err != nil {
-			return "", fmt.Errorf("could not read passphrase from file descriptor %d: %v", passFd, err)
+			return "", fmt.Errorf("could not read passphrase from file descriptor %d: %v", passphraseFileDescriptor, err)
 		}
 
 		return string(pass), nil
@@ -362,6 +364,16 @@ func decrypt(keys []string, in io.Reader, out io.Writer) {
 }
 
 func passphrasePrompt() (string, error) {
+	if passphraseFileDescriptor != -1 {
+		pass, err := readPassphraseFromFD(passphraseFileDescriptor)
+
+		if err != nil {
+			return "", fmt.Errorf("could not read passphrase from file descriptor %d: %v", passphraseFileDescriptor, err)
+		}
+
+		return string(pass), nil
+	}
+
 	fmt.Fprintf(os.Stderr, "Enter passphrase: ")
 	pass, err := readPassphrase()
 	if err != nil {
