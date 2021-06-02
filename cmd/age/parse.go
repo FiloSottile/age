@@ -168,8 +168,8 @@ func parseSSHIdentity(name string, pemBytes []byte) ([]age.Identity, error) {
 			}
 		}
 		passphrasePrompt := func() ([]byte, error) {
-			fmt.Fprintf(os.Stderr, "Enter passphrase for %q: ", name)
-			pass, err := readPassphrase()
+			prompt := fmt.Sprintf("Enter passphrase for %q:", name)
+			pass, err := readPassphrase(prompt)
 			if err != nil {
 				return nil, fmt.Errorf("could not read passphrase for %q: %v", name, err)
 			}
