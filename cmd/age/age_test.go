@@ -18,24 +18,30 @@ import (
 )
 
 func TestVectors(t *testing.T) {
-	defaultIDs, err := parseIdentitiesFile("testdata/default_key.txt")
+	var defaultIDs []age.Identity
+
+	password, err := ioutil.ReadFile("testdata/default_password.txt")
 	if err != nil {
 		t.Fatal(err)
 	}
-	password, err := ioutil.ReadFile("testdata/default_password.txt")
-	if err == nil {
-		p := strings.TrimSpace(string(password))
-		i, err := age.NewScryptIdentity(p)
-		if err != nil {
-			t.Fatal(err)
-		}
-		defaultIDs = append(defaultIDs, i)
+	p := strings.TrimSpace(string(password))
+	i, err := age.NewScryptIdentity(p)
+	if err != nil {
+		t.Fatal(err)
 	}
+	defaultIDs = append(defaultIDs, i)
+
+	ids, err := parseIdentitiesFile("testdata/default_key.txt")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defaultIDs = append(defaultIDs, ids...)
 
 	files, _ := filepath.Glob("testdata/*.age")
 	for _, f := range files {
 		_, name := filepath.Split(f)
 		name = strings.TrimSuffix(name, ".age")
+		expectPass := strings.HasPrefix(name, "good_")
 		expectFailure := strings.HasPrefix(name, "fail_")
 		expectNoMatch := strings.HasPrefix(name, "nomatch_")
 		t.Run(name, func(t *testing.T) {
@@ -73,7 +79,7 @@ func TestVectors(t *testing.T) {
 				if e := new(age.NoIdentityMatchError); !errors.As(err, &e) {
 					t.Errorf("expected ErrIncorrectIdentity, got %v", err)
 				}
-			} else {
+			} else if expectPass {
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -82,6 +88,8 @@ func TestVectors(t *testing.T) {
 					t.Fatal(err)
 				}
 				t.Logf("%s", out)
+			} else {
+				t.Fatal("invalid test vector")
 			}
 		})
 	}

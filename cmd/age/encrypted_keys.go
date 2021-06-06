@@ -24,6 +24,11 @@ type LazyScryptIdentity struct {
 var _ age.Identity = &LazyScryptIdentity{}
 
 func (i *LazyScryptIdentity) Unwrap(stanzas []*age.Stanza) (fileKey []byte, err error) {
+	for _, s := range stanzas {
+		if s.Type == "scrypt" && len(stanzas) != 1 {
+			return nil, errors.New("an scrypt recipient must be the only one")
+		}
+	}
 	if len(stanzas) != 1 || stanzas[0].Type != "scrypt" {
 		return nil, age.ErrIncorrectIdentity
 	}

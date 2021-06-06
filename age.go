@@ -103,6 +103,16 @@ func Encrypt(dst io.Writer, recipients ...Recipient) (io.WriteCloser, error) {
 		return nil, errors.New("no recipients specified")
 	}
 
+	// As a best effort, prevent an API user from generating a file that the
+	// ScryptIdentity will refuse to decrypt. This check can't unfortunately be
+	// implemented as part of the Recipient interface, so it lives as a special
+	// case in Encrypt.
+	for _, r := range recipients {
+		if _, ok := r.(*ScryptRecipient); ok && len(recipients) != 1 {
+			return nil, errors.New("an ScryptRecipient must be the only one for the file")
+		}
+	}
+
 	fileKey := make([]byte, fileKeySize)
 	if _, err := rand.Read(fileKey); err != nil {
 		return nil, err
@@ -116,11 +126,6 @@ func Encrypt(dst io.Writer, recipients ...Recipient) (io.WriteCloser, error) {
 		}
 		for _, s := range stanzas {
 			hdr.Recipients = append(hdr.Recipients, (*format.Stanza)(s))
-		}
-	}
-	for _, s := range hdr.Recipients {
-		if s.Type == "scrypt" && len(hdr.Recipients) != 1 {
-			return nil, errors.New("an scrypt recipient must be the only one")
 		}
 	}
 	if mac, err := headerMAC(fileKey, hdr); err != nil {
@@ -167,12 +172,6 @@ func Decrypt(src io.Reader, identities ...Identity) (io.Reader, error) {
 	hdr, payload, err := format.Parse(src)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read header: %v", err)
-	}
-
-	for _, r := range hdr.Recipients {
-		if r.Type == "scrypt" && len(hdr.Recipients) != 1 {
-			return nil, errors.New("an scrypt recipient must be the only one")
-		}
 	}
 
 	stanzas := make([]*Stanza, 0, len(hdr.Recipients))

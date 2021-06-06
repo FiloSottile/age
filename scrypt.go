@@ -122,6 +122,11 @@ func (i *ScryptIdentity) SetMaxWorkFactor(logN int) {
 }
 
 func (i *ScryptIdentity) Unwrap(stanzas []*Stanza) ([]byte, error) {
+	for _, s := range stanzas {
+		if s.Type == "scrypt" && len(stanzas) != 1 {
+			return nil, errors.New("an scrypt recipient must be the only one")
+		}
+	}
 	return multiUnwrap(i.unwrap, stanzas)
 }
 
