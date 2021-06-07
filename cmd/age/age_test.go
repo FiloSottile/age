@@ -63,14 +63,14 @@ func TestVectors(t *testing.T) {
 				if err == nil {
 					t.Fatal("expected Decrypt failure")
 				}
-				if e := (&age.NoIdentityMatchError{}); errors.As(err, &e) {
+				if e := new(age.NoIdentityMatchError); errors.As(err, &e) {
 					t.Errorf("got ErrIncorrectIdentity, expected more specific error")
 				}
 			} else if expectNoMatch {
 				if err == nil {
 					t.Fatal("expected Decrypt failure")
 				}
-				if e := (&age.NoIdentityMatchError{}); !errors.As(err, &e) {
+				if e := new(age.NoIdentityMatchError); !errors.As(err, &e) {
 					t.Errorf("expected ErrIncorrectIdentity, got %v", err)
 				}
 			} else {

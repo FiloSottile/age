@@ -7,6 +7,7 @@
 package main
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"os"
@@ -44,6 +45,59 @@ func (i *LazyScryptIdentity) Unwrap(stanzas []*age.Stanza) (fileKey []byte, err 
 		return nil, fmt.Errorf("incorrect passphrase")
 	}
 	return fileKey, err
+}
+
+type EncryptedIdentity struct {
+	Contents       []byte
+	Passphrase     func() (string, error)
+	NoMatchWarning func()
+
+	identities []age.Identity
+}
+
+var _ age.Identity = &EncryptedIdentity{}
+
+func (i *EncryptedIdentity) Recipients() ([]age.Recipient, error) {
+	if i.identities == nil {
+		if err := i.decrypt(); err != nil {
+			return nil, err
+		}
+	}
+
+	return identitiesToRecipients(i.identities)
+}
+
+func (i *EncryptedIdentity) Unwrap(stanzas []*age.Stanza) (fileKey []byte, err error) {
+	if i.identities == nil {
+		if err := i.decrypt(); err != nil {
+			return nil, err
+		}
+	}
+
+	for _, id := range i.identities {
+		fileKey, err = id.Unwrap(stanzas)
+		if errors.Is(err, age.ErrIncorrectIdentity) {
+			continue
+		}
+		if err != nil {
+			return nil, err
+		}
+		return fileKey, nil
+	}
+	i.NoMatchWarning()
+	return nil, age.ErrIncorrectIdentity
+}
+
+func (i *EncryptedIdentity) decrypt() error {
+	d, err := age.Decrypt(bytes.NewReader(i.Contents), &LazyScryptIdentity{i.Passphrase})
+	if e := new(age.NoIdentityMatchError); errors.As(err, &e) {
+		return fmt.Errorf("identity file is encrypted with age but not with a passphrase")
+	}
+	if err != nil {
+		return fmt.Errorf("failed to decrypt identity file: %v", err)
+	}
+	i.identities, err = age.ParseIdentities(d)
+	return err
 }
 
 // readPassphrase reads a passphrase from the terminal. It does not read from a

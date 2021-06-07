@@ -59,7 +59,8 @@ read recipients from standard input.
 
 Identity files contain one or more secret keys ("AGE-SECRET-KEY-1..."),
 one per line, or an SSH key. Empty lines and lines starting with "#" are
-ignored as comments. Multiple key files can be provided, and any unused ones
+ignored as comments. Passphrase encrypted age files can be used as
+identity files. Multiple key files can be provided, and any unused ones
 will be ignored. "-" may be used to read identities from standard input.
 
 When --encrypt is specified explicitly, -i can also be used to encrypt to an
@@ -270,13 +271,11 @@ func encryptKeys(keys, files, identities []string, in io.Reader, out io.Writer, 
 		if err != nil {
 			logFatalf("Error reading %q: %v", name, err)
 		}
-		for _, id := range ids {
-			r, err := identityToRecipient(id)
-			if err != nil {
-				logFatalf("Internal error processing %q: %v", name, err)
-			}
-			recipients = append(recipients, r)
+		r, err := identitiesToRecipients(ids)
+		if err != nil {
+			logFatalf("Internal error processing %q: %v", name, err)
 		}
+		recipients = append(recipients, r...)
 	}
 	encrypt(recipients, in, out, armor)
 }
@@ -350,18 +349,29 @@ func passphrasePrompt() (string, error) {
 	return string(pass), nil
 }
 
-func identityToRecipient(id age.Identity) (age.Recipient, error) {
-	switch id := id.(type) {
-	case *age.X25519Identity:
-		return id.Recipient(), nil
-	case *agessh.RSAIdentity:
-		return id.Recipient(), nil
-	case *agessh.Ed25519Identity:
-		return id.Recipient(), nil
-	case *agessh.EncryptedSSHIdentity:
-		return id.Recipient()
+func identitiesToRecipients(ids []age.Identity) ([]age.Recipient, error) {
+	var recipients []age.Recipient
+	for _, id := range ids {
+		switch id := id.(type) {
+		case *age.X25519Identity:
+			recipients = append(recipients, id.Recipient())
+		case *agessh.RSAIdentity:
+			recipients = append(recipients, id.Recipient())
+		case *agessh.Ed25519Identity:
+			recipients = append(recipients, id.Recipient())
+		case *agessh.EncryptedSSHIdentity:
+			recipients = append(recipients, id.Recipient())
+		case *EncryptedIdentity:
+			r, err := id.Recipients()
+			if err != nil {
+				return nil, err
+			}
+			recipients = append(recipients, r...)
+		default:
+			return nil, fmt.Errorf("unexpected identity type: %T", id)
+		}
 	}
-	return nil, fmt.Errorf("unexpected identity type: %T", id)
+	return recipients, nil
 }
 
 type lazyOpener struct {
