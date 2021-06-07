@@ -24,6 +24,7 @@ import (
 // pass the result to NewEd25519Identity or NewRSAIdentity.
 type EncryptedSSHIdentity struct {
 	pubKey     ssh.PublicKey
+	recipient  age.Recipient
 	pemBytes   []byte
 	passphrase func() ([]byte, error)
 
@@ -41,22 +42,34 @@ type EncryptedSSHIdentity struct {
 // passphrase is a callback that will be invoked by Unwrap when the passphrase
 // is necessary.
 func NewEncryptedSSHIdentity(pubKey ssh.PublicKey, pemBytes []byte, passphrase func() ([]byte, error)) (*EncryptedSSHIdentity, error) {
-	switch t := pubKey.Type(); t {
-	case "ssh-ed25519", "ssh-rsa":
-	default:
-		return nil, fmt.Errorf("unsupported SSH key type: %v", t)
-	}
-	return &EncryptedSSHIdentity{
+	i := &EncryptedSSHIdentity{
 		pubKey:     pubKey,
 		pemBytes:   pemBytes,
 		passphrase: passphrase,
-	}, nil
+	}
+	switch t := pubKey.Type(); t {
+	case "ssh-ed25519":
+		r, err := NewEd25519Recipient(pubKey)
+		if err != nil {
+			return nil, err
+		}
+		i.recipient = r
+	case "ssh-rsa":
+		r, err := NewRSARecipient(pubKey)
+		if err != nil {
+			return nil, err
+		}
+		i.recipient = r
+	default:
+		return nil, fmt.Errorf("unsupported SSH key type: %v", t)
+	}
+	return i, nil
 }
 
 var _ age.Identity = &EncryptedSSHIdentity{}
 
-func (i *EncryptedSSHIdentity) Recipient() (age.Recipient, error) {
-	return ParseRecipient(string(ssh.MarshalAuthorizedKey(i.pubKey)))
+func (i *EncryptedSSHIdentity) Recipient() age.Recipient {
+	return i.recipient
 }
 
 // Unwrap implements age.Identity. If the private key is still encrypted, and

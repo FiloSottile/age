@@ -18,6 +18,7 @@ import (
 
 	"filippo.io/age"
 	"filippo.io/age/agessh"
+	"filippo.io/age/armor"
 	"golang.org/x/crypto/cryptobyte"
 	"golang.org/x/crypto/ssh"
 )
@@ -117,8 +118,8 @@ func sshKeyType(s string) (string, bool) {
 }
 
 // parseIdentitiesFile parses a file that contains age or SSH keys. It returns
-// one of *age.X25519Identity, *agessh.RSAIdentity, *agessh.Ed25519Identity, or
-// *agessh.EncryptedSSHIdentity.
+// one or more of *age.X25519Identity, *agessh.RSAIdentity, *agessh.Ed25519Identity,
+// *agessh.EncryptedSSHIdentity, or *EncryptedIdentity.
 func parseIdentitiesFile(name string) ([]age.Identity, error) {
 	var f *os.File
 	if name == "-" {
@@ -137,8 +138,40 @@ func parseIdentitiesFile(name string) ([]age.Identity, error) {
 	}
 
 	b := bufio.NewReader(f)
-	const pemHeader = "-----BEGIN"
-	if peeked, _ := b.Peek(len(pemHeader)); string(peeked) == pemHeader {
+	p, _ := b.Peek(14) // length of "age-encryption" and "-----BEGIN AGE"
+	peeked := string(p)
+
+	switch {
+	// An age encrypted file, plain or armored.
+	case peeked == "age-encryption" || peeked == "-----BEGIN AGE":
+		var r io.Reader = b
+		if peeked == "-----BEGIN AGE" {
+			r = armor.NewReader(r)
+		}
+		const privateKeySizeLimit = 1 << 24 // 16 MiB
+		contents, err := ioutil.ReadAll(io.LimitReader(r, privateKeySizeLimit))
+		if err != nil {
+			return nil, fmt.Errorf("failed to read %q: %v", name, err)
+		}
+		if len(contents) == privateKeySizeLimit {
+			return nil, fmt.Errorf("failed to read %q: file too long", name)
+		}
+		return []age.Identity{&EncryptedIdentity{
+			Contents: contents,
+			Passphrase: func() (string, error) {
+				pass, err := readPassphrase(fmt.Sprintf("Enter passphrase for identity file %q:", name))
+				if err != nil {
+					return "", fmt.Errorf("could not read passphrase: %v", err)
+				}
+				return string(pass), nil
+			},
+			NoMatchWarning: func() {
+				fmt.Fprintf(os.Stderr, "Warning: encrypted identity file %q didn't match file's recipients\n", name)
+			},
+		}}, nil
+
+	// Another PEM file, possibly an SSH private key.
+	case strings.HasPrefix(peeked, "-----BEGIN"):
 		const privateKeySizeLimit = 1 << 14 // 16 KiB
 		contents, err := ioutil.ReadAll(io.LimitReader(b, privateKeySizeLimit))
 		if err != nil {
@@ -148,13 +181,15 @@ func parseIdentitiesFile(name string) ([]age.Identity, error) {
 			return nil, fmt.Errorf("failed to read %q: file too long", name)
 		}
 		return parseSSHIdentity(name, contents)
-	}
 
-	ids, err := age.ParseIdentities(b)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read %q: %v", name, err)
+	// An unencrypted age identity file.
+	default:
+		ids, err := age.ParseIdentities(b)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read %q: %v", name, err)
+		}
+		return ids, nil
 	}
-	return ids, nil
 }
 
 func parseSSHIdentity(name string, pemBytes []byte) ([]age.Identity, error) {
