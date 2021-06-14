@@ -12,7 +12,7 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	_log "log"
+	"log"
 	"os"
 	"runtime/debug"
 	"strings"
@@ -78,7 +78,7 @@ Example:
 var Version string
 
 func main() {
-	_log.SetFlags(0)
+	log.SetFlags(0)
 	flag.Usage = func() { fmt.Fprintf(os.Stderr, "%s\n", usage) }
 
 	if len(os.Args) == 1 {
@@ -127,47 +127,47 @@ func main() {
 	}
 
 	if flag.NArg() > 1 {
-		logFatalf("Error: too many arguments: %q.\n"+
-			"Note that the input file must be specified after all flags.", flag.Args())
+		errorWithHint(fmt.Sprintf("too many arguments: %q", flag.Args()),
+			"note that the input file must be specified after all flags")
 	}
 	switch {
 	case decryptFlag:
 		if encryptFlag {
-			logFatalf("Error: -e/--encrypt can't be used with -d/--decrypt.")
+			errorf("-e/--encrypt can't be used with -d/--decrypt")
 		}
 		if armorFlag {
-			logFatalf("Error: -a/--armor can't be used with -d/--decrypt.\n" +
-				"Note that armored files are detected automatically.")
+			errorWithHint("-a/--armor can't be used with -d/--decrypt",
+				"note that armored files are detected automatically")
 		}
 		if passFlag {
-			logFatalf("Error: -p/--passphrase can't be used with -d/--decrypt.\n" +
-				"Note that password protected files are detected automatically.")
+			errorWithHint("-p/--passphrase can't be used with -d/--decrypt",
+				"note that password protected files are detected automatically")
 		}
 		if len(recipientFlags) > 0 {
-			logFatalf("Error: -r/--recipient can't be used with -d/--decrypt.\n" +
-				"Did you mean to use -i/--identity to specify a private key?")
+			errorWithHint("-r/--recipient can't be used with -d/--decrypt",
+				"did you mean to use -i/--identity to specify a private key?")
 		}
 		if len(recipientsFileFlags) > 0 {
-			logFatalf("Error: -R/--recipients-file can't be used with -d/--decrypt.\n" +
-				"Did you mean to use -i/--identity to specify a private key?")
+			errorWithHint("-R/--recipients-file can't be used with -d/--decrypt",
+				"did you mean to use -i/--identity to specify a private key?")
 		}
 	default: // encrypt
 		if len(identityFlags) > 0 && !encryptFlag {
-			logFatalf("Error: -i/--identity can't be used in encryption mode unless symmetric encryption is explicitly selected with -e/--encrypt.\n" +
-				"Did you forget to specify -d/--decrypt?")
+			errorWithHint("-i/--identity can't be used in encryption mode unless symmetric encryption is explicitly selected with -e/--encrypt",
+				"did you forget to specify -d/--decrypt?")
 		}
 		if len(recipientFlags)+len(recipientsFileFlags)+len(identityFlags) == 0 && !passFlag {
-			logFatalf("Error: missing recipients.\n" +
-				"Did you forget to specify -r/--recipient, -R/--recipients-file or -p/--passphrase?")
+			errorWithHint("missing recipients",
+				"did you forget to specify -r/--recipient, -R/--recipients-file or -p/--passphrase?")
 		}
 		if len(recipientFlags) > 0 && passFlag {
-			logFatalf("Error: -p/--passphrase can't be combined with -r/--recipient.")
+			errorf("-p/--passphrase can't be combined with -r/--recipient")
 		}
 		if len(recipientsFileFlags) > 0 && passFlag {
-			logFatalf("Error: -p/--passphrase can't be combined with -R/--recipients-file.")
+			errorf("-p/--passphrase can't be combined with -R/--recipients-file")
 		}
 		if len(identityFlags) > 0 && passFlag {
-			logFatalf("Error: -p/--passphrase can't be combined with -i/--identity.")
+			errorf("-p/--passphrase can't be combined with -i/--identity")
 		}
 	}
 
@@ -176,7 +176,7 @@ func main() {
 	if name := flag.Arg(0); name != "" && name != "-" {
 		f, err := os.Open(name)
 		if err != nil {
-			logFatalf("Error: failed to open input file %q: %v", name, err)
+			errorf("failed to open input file %q: %v", name, err)
 		}
 		defer f.Close()
 		in = f
@@ -187,7 +187,7 @@ func main() {
 		f := newLazyOpener(name)
 		defer func() {
 			if err := f.Close(); err != nil {
-				logFatalf("Error: failed to close output file %q: %v", name, err)
+				errorf("failed to close output file %q: %v", name, err)
 			}
 		}()
 		out = f
@@ -198,8 +198,9 @@ func main() {
 			} else if !armorFlag {
 				// If the output wouldn't be armored, refuse to send binary to
 				// the terminal unless explicitly requested with "-o -".
-				logFatalf("Error: refusing to output binary to the terminal.\n" +
-					`Did you mean to use -a/--armor? Force with "-o -".`)
+				errorWithHint("refusing to output binary to the terminal",
+					"did you mean to use -a/--armor?",
+					`force anyway with "-o -"`)
 			}
 		}
 		if in == os.Stdin && term.IsTerminal(int(os.Stdin.Fd())) {
@@ -217,7 +218,7 @@ func main() {
 	case passFlag:
 		pass, err := passphrasePromptForEncryption()
 		if err != nil {
-			logFatalf("Error: %v", err)
+			errorf("%v", err)
 		}
 		encryptPass(pass, in, out, armorFlag)
 	default:
@@ -237,6 +238,7 @@ func passphrasePromptForEncryption() (string, error) {
 			words = append(words, randomWord())
 		}
 		p = strings.Join(words, "-")
+		// TODO: consider printing this to the terminal, instead of stderr.
 		fmt.Fprintf(os.Stderr, "Using the autogenerated passphrase %q.\n", p)
 	} else {
 		confirm, err := readPassphrase("Confirm passphrase:")
@@ -254,26 +256,31 @@ func encryptKeys(keys, files, identities []string, in io.Reader, out io.Writer, 
 	var recipients []age.Recipient
 	for _, arg := range keys {
 		r, err := parseRecipient(arg)
+		if err, ok := err.(gitHubRecipientError); ok {
+			errorWithHint(err.Error(), "instead, use recipient files like",
+				"    curl -O https://github.com/"+err.username+".keys",
+				"    age -R "+err.username+".keys")
+		}
 		if err != nil {
-			logFatalf("Error: %v", err)
+			errorf("%v", err)
 		}
 		recipients = append(recipients, r)
 	}
 	for _, name := range files {
 		recs, err := parseRecipientsFile(name)
 		if err != nil {
-			logFatalf("Error: failed to parse recipient file %q: %v", name, err)
+			errorf("failed to parse recipient file %q: %v", name, err)
 		}
 		recipients = append(recipients, recs...)
 	}
 	for _, name := range identities {
 		ids, err := parseIdentitiesFile(name)
 		if err != nil {
-			logFatalf("Error reading %q: %v", name, err)
+			errorf("reading %q: %v", name, err)
 		}
 		r, err := identitiesToRecipients(ids)
 		if err != nil {
-			logFatalf("Internal error processing %q: %v", name, err)
+			errorf("internal error processing %q: %v", name, err)
 		}
 		recipients = append(recipients, r...)
 	}
@@ -283,7 +290,7 @@ func encryptKeys(keys, files, identities []string, in io.Reader, out io.Writer, 
 func encryptPass(pass string, in io.Reader, out io.Writer, armor bool) {
 	r, err := age.NewScryptRecipient(pass)
 	if err != nil {
-		logFatalf("Error: %v", err)
+		errorf("%v", err)
 	}
 	encrypt([]age.Recipient{r}, in, out, armor)
 }
@@ -293,20 +300,20 @@ func encrypt(recipients []age.Recipient, in io.Reader, out io.Writer, withArmor 
 		a := armor.NewWriter(out)
 		defer func() {
 			if err := a.Close(); err != nil {
-				logFatalf("Error: %v", err)
+				errorf("%v", err)
 			}
 		}()
 		out = a
 	}
 	w, err := age.Encrypt(out, recipients...)
 	if err != nil {
-		logFatalf("Error: %v", err)
+		errorf("%v", err)
 	}
 	if _, err := io.Copy(w, in); err != nil {
-		logFatalf("Error: %v", err)
+		errorf("%v", err)
 	}
 	if err := w.Close(); err != nil {
-		logFatalf("Error: %v", err)
+		errorf("%v", err)
 	}
 }
 
@@ -320,7 +327,7 @@ func decrypt(keys []string, in io.Reader, out io.Writer) {
 	for _, name := range keys {
 		ids, err := parseIdentitiesFile(name)
 		if err != nil {
-			logFatalf("Error reading %q: %v", name, err)
+			errorf("reading %q: %v", name, err)
 		}
 		identities = append(identities, ids...)
 	}
@@ -334,10 +341,10 @@ func decrypt(keys []string, in io.Reader, out io.Writer) {
 
 	r, err := age.Decrypt(in, identities...)
 	if err != nil {
-		logFatalf("Error: %v", err)
+		errorf("%v", err)
 	}
 	if _, err := io.Copy(out, r); err != nil {
-		logFatalf("Error: %v", err)
+		errorf("%v", err)
 	}
 }
 
@@ -401,8 +408,19 @@ func (l *lazyOpener) Close() error {
 	return nil
 }
 
-func logFatalf(format string, v ...interface{}) {
-	_log.Printf(format, v...)
-	_log.Fatalf("[ Did age not do what you expected? Could an error be more useful?" +
-		" Tell us: https://filippo.io/age/report ]")
+func errorf(format string, v ...interface{}) {
+	log.Printf("age: error: "+format, v...)
+	log.Fatalf("age: report unexpected or unhelpful errors at https://filippo.io/age/report")
+}
+
+func warningf(format string, v ...interface{}) {
+	log.Printf("age: warning: "+format, v...)
+}
+
+func errorWithHint(error string, hints ...string) {
+	log.Printf("age: error: %s", error)
+	for _, hint := range hints {
+		log.Printf("age: hint: %s", hint)
+	}
+	log.Fatalf("age: report unexpected or unhelpful errors at https://filippo.io/age/report")
 }

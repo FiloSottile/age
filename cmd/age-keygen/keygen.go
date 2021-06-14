@@ -70,10 +70,10 @@ func main() {
 	flag.StringVar(&outFlag, "output", "", "output to `FILE` (default stdout)")
 	flag.Parse()
 	if len(flag.Args()) != 0 && !convertFlag {
-		log.Fatalf("age-keygen takes no arguments")
+		errorf("too many arguments")
 	}
 	if len(flag.Args()) > 1 && convertFlag {
-		log.Fatalf("Too many arguments")
+		errorf("too many arguments")
 	}
 	if versionFlag {
 		if Version != "" {
@@ -92,11 +92,11 @@ func main() {
 	if outFlag != "" {
 		f, err := os.OpenFile(outFlag, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0600)
 		if err != nil {
-			log.Fatalf("Failed to open output file %q: %v", outFlag, err)
+			errorf("failed to open output file %q: %v", outFlag, err)
 		}
 		defer func() {
 			if err := f.Close(); err != nil {
-				log.Fatalf("Failed to close output file %q: %v", outFlag, err)
+				errorf("failed to close output file %q: %v", outFlag, err)
 			}
 		}()
 		out = f
@@ -106,7 +106,7 @@ func main() {
 	if inFile := flag.Arg(0); inFile != "" && inFile != "-" {
 		f, err := os.Open(inFile)
 		if err != nil {
-			log.Fatalf("Failed to open input file %q: %v", inFile, err)
+			errorf("failed to open input file %q: %v", inFile, err)
 		}
 		defer f.Close()
 		in = f
@@ -116,7 +116,7 @@ func main() {
 		convert(in, out)
 	} else {
 		if fi, err := out.Stat(); err == nil && fi.Mode().IsRegular() && fi.Mode().Perm()&0004 != 0 {
-			fmt.Fprintf(os.Stderr, "Warning: writing secret key to a world-readable file.\n")
+			warning("writing secret key to a world-readable file")
 		}
 		generate(out)
 	}
@@ -125,7 +125,7 @@ func main() {
 func generate(out *os.File) {
 	k, err := age.GenerateX25519Identity()
 	if err != nil {
-		log.Fatalf("Internal error: %v", err)
+		errorf("internal error: %v", err)
 	}
 
 	if !term.IsTerminal(int(out.Fd())) {
@@ -140,16 +140,24 @@ func generate(out *os.File) {
 func convert(in io.Reader, out io.Writer) {
 	ids, err := age.ParseIdentities(in)
 	if err != nil {
-		log.Fatalf("Failed to parse input: %v", err)
+		errorf("failed to parse input: %v", err)
 	}
 	if len(ids) == 0 {
-		log.Fatalf("No identities found in the input")
+		errorf("no identities found in the input")
 	}
 	for _, id := range ids {
 		id, ok := id.(*age.X25519Identity)
 		if !ok {
-			log.Fatalf("Internal error: unexpected identity type: %T", id)
+			errorf("internal error: unexpected identity type: %T", id)
 		}
 		fmt.Fprintf(out, "%s\n", id.Recipient())
 	}
+}
+
+func errorf(format string, v ...interface{}) {
+	log.Printf("age-keygen: error: "+format, v...)
+}
+
+func warning(msg string) {
+	log.Printf("age-keygen: warning: " + msg)
 }
