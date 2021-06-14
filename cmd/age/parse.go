@@ -12,7 +12,6 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"log"
 	"os"
 	"strings"
 
@@ -26,6 +25,14 @@ import (
 // stdinInUse is set in main. It's a singleton like os.Stdin.
 var stdinInUse bool
 
+type gitHubRecipientError struct {
+	username string
+}
+
+func (gitHubRecipientError) Error() string {
+	return `"github:" recipients were removed from the design`
+}
+
 func parseRecipient(arg string) (age.Recipient, error) {
 	switch {
 	case strings.HasPrefix(arg, "age1"):
@@ -34,8 +41,7 @@ func parseRecipient(arg string) (age.Recipient, error) {
 		return agessh.ParseRecipient(arg)
 	case strings.HasPrefix(arg, "github:"):
 		name := strings.TrimPrefix(arg, "github:")
-		return nil, fmt.Errorf(`"github:" recipients were removed from the design.`+"\n"+
-			"Instead, use recipient files like\n\n    curl -O https://github.com/%s.keys\n    age -R %s.keys\n\n", name, name)
+		return nil, gitHubRecipientError{name}
 	}
 
 	return nil, fmt.Errorf("unknown recipient type: %q", arg)
@@ -76,7 +82,7 @@ func parseRecipientsFile(name string) ([]age.Recipient, error) {
 		if err != nil {
 			if t, ok := sshKeyType(line); ok {
 				// Skip unsupported but valid SSH public keys with a warning.
-				log.Printf("Warning: recipients file %q: ignoring unsupported SSH key of type %q at line %d", name, t, n)
+				warningf("recipients file %q: ignoring unsupported SSH key of type %q at line %d", name, t, n)
 				continue
 			}
 			// Hide the error since it might unintentionally leak the contents
@@ -166,7 +172,7 @@ func parseIdentitiesFile(name string) ([]age.Identity, error) {
 				return string(pass), nil
 			},
 			NoMatchWarning: func() {
-				fmt.Fprintf(os.Stderr, "Warning: encrypted identity file %q didn't match file's recipients\n", name)
+				warningf("encrypted identity file %q didn't match file's recipients", name)
 			},
 		}}, nil
 
@@ -203,8 +209,7 @@ func parseSSHIdentity(name string, pemBytes []byte) ([]age.Identity, error) {
 			}
 		}
 		passphrasePrompt := func() ([]byte, error) {
-			prompt := fmt.Sprintf("Enter passphrase for %q:", name)
-			pass, err := readPassphrase(prompt)
+			pass, err := readPassphrase(fmt.Sprintf("Enter passphrase for %q:", name))
 			if err != nil {
 				return nil, fmt.Errorf("could not read passphrase for %q: %v", name, err)
 			}
