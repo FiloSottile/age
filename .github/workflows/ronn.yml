@@ -15,6 +15,15 @@ jobs:
       - name: Run ronn
         uses: ./.github/workflows/ronn
         id: ronn
+      - name: Undo email mangling
+        # rdiscount randomizes the output for no good reason, which causes
+        # changes to always get committed. Sigh.
+        # https://github.com/davidfstr/rdiscount/blob/6b1471ec3/ext/generate.c#L781-L795
+        run: |-
+          for f in doc/*.html; do
+            awk '/Filippo Valsorda/ { $0 = "<p>Filippo Valsorda <a href=\"mailto:age@filippo.io\" data-bare-link=\"true\">age@filippo.io</a></p>" } { print }' "$f" > "$f.tmp"
+            mv "$f.tmp" "$f"
+          done
       - name: Commit and push if changed
         run: |-
           git config user.name "GitHub Actions"
