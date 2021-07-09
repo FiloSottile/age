@@ -197,6 +197,12 @@ Keep in mind that people might not protect SSH keys long-term, since they are re
             <code>emerge app-crypt/age</code>
         </td>
     </tr>
+     <tr>
+        <td>Void Linux</td>
+        <td>
+            <code>xbps-install age</code>
+        </td>
+    </tr>
 </table>
 
 On Windows, Linux, macOS, and FreeBSD you can use [the pre-built binaries](https://github.com/FiloSottile/age/releases).
