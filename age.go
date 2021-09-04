@@ -35,6 +35,16 @@
 // encryption operations. If you need to tie into existing key management
 // infrastructure, you might want to consider implementing your own Recipient
 // and Identity.
+//
+// Backwards compatibility
+//
+// Files encrypted with a stable version (not alpha, beta, or release candidate)
+// of age, or with any v1.0.0 beta or release candidate, will decrypt with any
+// later versions of the v1 API. This might change in v2, in which case v1 will
+// be maintained with security fixes for compatibility with older files.
+//
+// If decrypting an older file poses a security risk, doing so might require an
+// explicit opt-in in the API.
 package age
 
 import (
