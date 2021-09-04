@@ -205,7 +205,13 @@ Keep in mind that people might not protect SSH keys long-term, since they are re
     </tr>
 </table>
 
-On Windows, Linux, macOS, and FreeBSD you can use [the pre-built binaries](https://github.com/FiloSottile/age/releases).
+On Windows, Linux, macOS, and FreeBSD you can use the pre-built binaries.
+
+```
+https://dl.filippo.io/age/latest?for=linux/amd64
+https://dl.filippo.io/age/v1.0.0-rc.1?for=darwin/arm64
+...
+```
 
 If your system has [Go 1.13+](https://golang.org/dl/), you can build from source.
 
