@@ -15,14 +15,12 @@ jobs:
           git clone --filter=tree:0 https://go.googlesource.com/go $HOME/gotip
           cd $HOME/gotip/src && ./make.bash
           echo "$HOME/gotip/bin" >> $GITHUB_PATH
-          echo "GOROOT=" >> $GITHUB_ENV # workaround actions/virtual-environments#2655
       - name: Install Go tip (Windows)
         if: runner.os == 'Windows'
         run: |
           git clone --filter=tree:0 https://go.googlesource.com/go $HOME/gotip
           cd $HOME/gotip/src && ./make.bat
           echo "$HOME/gotip/bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
-          echo "GOROOT=" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
       - name: Checkout repository
         uses: actions/checkout@v2
         with:
