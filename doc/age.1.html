@@ -58,6 +58,8 @@
     <a href="#DESCRIPTION">DESCRIPTION</a>
     <a href="#OPTIONS">OPTIONS</a>
     <a href="#RECIPIENTS-AND-IDENTITIES">RECIPIENTS AND IDENTITIES</a>
+    <a href="#EXIT-STATUS">EXIT STATUS</a>
+    <a href="#BACKWARDS-COMPATIBILITY">BACKWARDS COMPATIBILITY</a>
     <a href="#EXAMPLES">EXAMPLES</a>
     <a href="#SEE-ALSO">SEE ALSO</a>
     <a href="#AUTHORS">AUTHORS</a>
@@ -243,6 +245,24 @@ or accessed via <span class="man-ref">ssh-agent<span class="s">(1)</span></span>
 This is so that <code>age</code> can identify the correct SSH private key before
 requesting its password, if any.</p>
 
+<h2 id="EXIT-STATUS">EXIT STATUS</h2>
+
+<p><code>age</code> will exit 0 if and only if encryption or decryption are succesful for the
+full length of the input.</p>
+
+<p>If an error occurs during decryption, partial output might still be generated,
+but only if it was possible to securely authenticate it. No unauthenticathed
+output is ever released.</p>
+
+<h2 id="BACKWARDS-COMPATIBILITY">BACKWARDS COMPATIBILITY</h2>
+
+<p>Files encrypted with a stable version (not alpha, beta, or release candidate) of
+<code>age</code>, or with any v1.0.0 beta or release candidate, will decrypt with any later
+version of the tool.</p>
+
+<p>If decrypting older files poses a security risk, doing so might cause an error
+by default, and a flag will be provided to force the operation.</p>
+
 <h2 id="EXAMPLES">EXAMPLES</h2>
 
 <p>Generate a new identity, encrypt data, and decrypt:</p>
@@ -318,7 +338,7 @@ $ age -d -i ~/.ssh/id_ed25519 example.jpg.age &gt; example.jpg
 
   <ol class='man-decor man-foot man foot'>
     <li class='tl'></li>
-    <li class='tc'>June 2021</li>
+    <li class='tc'>September 2021</li>
     <li class='tr'>age(1)</li>
   </ol>
 
