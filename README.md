@@ -1,4 +1,4 @@
-![age logo](https://user-images.githubusercontent.com/1225294/132244687-7ee2ea15-a426-4161-aba5-e0862295ec2d.png)
+<p align="center"><img alt="The age logo, an wireframe of St. Peters dome in Rome, with the text: age, file encryption" width="600" src="https://user-images.githubusercontent.com/1225294/132245842-fda4da6a-1cea-4738-a3da-2dc860861c98.png"></p>
 
 [![Go Reference](https://pkg.go.dev/badge/filippo.io/age.svg)](https://pkg.go.dev/filippo.io/age)
 [![man page](https://img.shields.io/badge/man-page-lightgrey)](https://htmlpreview.github.io/?https://github.com/FiloSottile/age/blob/master/doc/age.1.html)
