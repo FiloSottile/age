@@ -1,4 +1,4 @@
-# age
+![age logo](https://user-images.githubusercontent.com/1225294/132244687-7ee2ea15-a426-4161-aba5-e0862295ec2d.png)
 
 [![Go Reference](https://pkg.go.dev/badge/filippo.io/age.svg)](https://pkg.go.dev/filippo.io/age)
 [![man page](https://img.shields.io/badge/man-page-lightgrey)](https://htmlpreview.github.io/?https://github.com/FiloSottile/age/blob/master/doc/age.1.html)
