@@ -1,0 +1,2 @@
+This orphan master branch exists because it used to be checked out as
+a Homebrew Tap, and "brew update" doesn't update the default branch.
