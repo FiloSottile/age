@@ -139,7 +139,6 @@ Keep in mind that people might not protect SSH keys long-term, since they are re
     <tr>
         <td>Homebrew (macOS or Linux)</td>
         <td>
-            <code>brew tap filippo.io/age https://filippo.io/age</code><br>
             <code>brew install age</code>
         </td>
     </tr>
