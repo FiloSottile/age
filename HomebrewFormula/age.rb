@@ -7,8 +7,8 @@
 class Age < Formula
   desc "Simple, modern, secure file encryption"
   homepage "https://filippo.io/age"
-  url "https://github.com/FiloSottile/age/archive/v1.0.0-rc.3.zip"
-  sha256 "0e7d94f17e610d5ad9ce8e88e3c157b073dcc41984b1d07793aef44b9e3b67d8"
+  url "https://github.com/FiloSottile/age/archive/refs/tags/v1.0.0.zip"
+  sha256 "d926766e52a160ed20afd76c5271d182ad4790f7b573e627cd33b44a66510c0d"
   head "https://github.com/FiloSottile/age.git"
 
   depends_on "go" => :build
