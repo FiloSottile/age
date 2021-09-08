@@ -189,7 +189,7 @@ Files encrypted with a stable version (not alpha, beta, or release candidate) of
 version of the tool.
 
 If decrypting older files poses a security risk, doing so might cause an error
-by default, and a flag will be provided to force the operation.
+by default. In this case, a flag will be provided to force the operation.
 
 ## EXAMPLES
 
