@@ -1,14 +1,16 @@
+name: Generate man pages
 on:
   push:
     branches:
       - '**'
     paths:
       - '**.ronn'
-name: Generate man pages
+permissions:
+  contents: read
 jobs:
   ronn:
-    runs-on: ubuntu-latest
     name: Ronn
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -24,10 +26,29 @@ jobs:
             awk '/Filippo Valsorda/ { $0 = "<p>Filippo Valsorda <a href=\"mailto:age@filippo.io\" data-bare-link=\"true\">age@filippo.io</a></p>" } { print }' "$f" > "$f.tmp"
             mv "$f.tmp" "$f"
           done
+      - name: Upload generated files
+        uses: actions/upload-artifact@v2
+        with:
+          name: man-pages-html
+          path: doc/*.html
+  commit:
+    name: Commit changes
+    needs: ronn
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Download generated files
+        uses: actions/download-artifact@v2
+        with:
+          name: man-pages-html
+          path: doc/
       - name: Commit and push if changed
         run: |-
           git config user.name "GitHub Actions"
           git config user.email "actions@users.noreply.github.com"
-          git add -A
+          git add doc/
           git commit -m "doc: regenerate groff and html man pages" || exit 0
           git push

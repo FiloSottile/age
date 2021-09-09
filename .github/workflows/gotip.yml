@@ -1,5 +1,7 @@
 on: [push, pull_request]
 name: Go tip tests
+permissions:
+  contents: read
 jobs:
   test:
     name: Test

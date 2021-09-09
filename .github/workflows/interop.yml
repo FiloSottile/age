@@ -1,5 +1,7 @@
 name: Interoperability tests
 on: push
+permissions:
+  contents: read
 jobs:
   trigger:
     name: Trigger

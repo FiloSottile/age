@@ -1,5 +1,7 @@
-on: [push, pull_request]
 name: Go tests
+on: [push, pull_request]
+permissions:
+  contents: read
 jobs:
   test:
     name: Test
