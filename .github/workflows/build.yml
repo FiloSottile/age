@@ -21,14 +21,15 @@ jobs:
           fetch-depth: 0
       - name: Build binaries
         run: |
-          VERSION=$(git describe --tags)
+          cp LICENSE "$RUNNER_TEMP/LICENSE"
+          echo -e "\n---\n" >> "$RUNNER_TEMP/LICENSE"
+          curl "https://golang.org/LICENSE?m=text" >> "$RUNNER_TEMP/LICENSE"
+          VERSION="$(git describe --tags)"
           function build_age() {
             DIR="$(mktemp -d)"
             mkdir "$DIR/age"
-            cp LICENSE "$DIR/age"
-            echo -e "\n---\n" >> "$DIR/age/LICENSE"
-            curl "https://golang.org/LICENSE?m=text" >> "$DIR/age/LICENSE"
-            go build -o "$DIR/age" -ldflags "-X main.Version=$VERSION" ./cmd/...
+            cp "$RUNNER_TEMP/LICENSE" "$DIR/age"
+            go build -o "$DIR/age" -ldflags "-X main.Version=$VERSION" -trimpath ./cmd/...
             if [ "$GOOS" == "windows" ]; then
               ( cd "$DIR"; zip age.zip -r age )
               mv "$DIR/age.zip" "age-$VERSION-$GOOS-$GOARCH.zip"
