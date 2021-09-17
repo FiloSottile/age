@@ -175,7 +175,7 @@ requesting its password, if any.
 
 ## EXIT STATUS
 
-`age` will exit 0 if and only if encryption or decryption are succesful for the
+`age` will exit 0 if and only if encryption or decryption are successful for the
 full length of the input.
 
 If an error occurs during decryption, partial output might still be generated,
