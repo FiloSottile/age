@@ -20,6 +20,7 @@ import (
 	"filippo.io/age"
 	"filippo.io/age/agessh"
 	"filippo.io/age/armor"
+  _ "filippo.io/age/internal/mlockall"
 	"golang.org/x/term"
 )
 

@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"filippo.io/age"
+  _ "filippo.io/age/internal/mlockall"
 	"golang.org/x/term"
 )
 
