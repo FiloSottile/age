@@ -65,7 +65,7 @@ overhead per recipient, plus 16 bytes every 64KiB of plaintext.
     Encrypt with a passphrase, requested interactively from the terminal.
     `age` will offer to auto-generate a secure passphrase.
 
-    This options can't be used with `-r`/`--recipient` or
+    This option can't be used with `-r`/`--recipient` or
     `-R`/`--recipients-file`.
 
 * `-a`, `--armor`:
