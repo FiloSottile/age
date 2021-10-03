@@ -202,6 +202,12 @@ Keep in mind that people might not protect SSH keys long-term, since they are re
             <code>xbps-install age</code>
         </td>
     </tr>
+    <tr>
+        <td>Chocolatey (Windows)</td>
+        <td>
+            <code>choco install age.portable</code>
+        </td>
+    </tr>
 </table>
 
 On Windows, Linux, macOS, and FreeBSD you can use the pre-built binaries.
