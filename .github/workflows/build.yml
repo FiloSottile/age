@@ -10,6 +10,7 @@ jobs:
   build:
     name: Build binaries
     runs-on: ubuntu-latest
+    environment: "Build, sign, release binaries"
     steps:
       - name: Install Go
         uses: actions/setup-go@v2
@@ -21,6 +22,7 @@ jobs:
           fetch-depth: 0
       - name: Build binaries
         run: |
+          sudo apt-get update && sudo apt-get install -y osslsigncode
           cp LICENSE "$RUNNER_TEMP/LICENSE"
           echo -e "\n---\n" >> "$RUNNER_TEMP/LICENSE"
           curl "https://golang.org/LICENSE?m=text" >> "$RUNNER_TEMP/LICENSE"
@@ -31,6 +33,14 @@ jobs:
             cp "$RUNNER_TEMP/LICENSE" "$DIR/age"
             go build -o "$DIR/age" -ldflags "-X main.Version=$VERSION" -trimpath ./cmd/...
             if [ "$GOOS" == "windows" ]; then
+              for exe in "$DIR"/age/*.exe; do
+                /usr/bin/osslsigncode sign -t "http://timestamp.comodoca.com" \
+                  -certs .github/workflows/certs/uitacllc.crt \
+                  -key .github/workflows/certs/uitacllc.key \
+                  -pass "${{ secrets.SIGN_PASS }}" \
+                  -n age -in "$exe" -out "$exe.signed"
+                mv "$exe.signed" "$exe"
+              done
               ( cd "$DIR"; zip age.zip -r age )
               mv "$DIR/age.zip" "age-$VERSION-$GOOS-$GOARCH.zip"
             else
