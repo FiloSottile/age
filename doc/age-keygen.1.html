@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv='content-type' value='text/html;charset=utf8'>
+  <meta name='generator' value='Ronn/v0.7.3 (http://github.com/rtomayko/ronn/tree/0.7.3)'>
+  <title>age-keygen(1) - generate age(1) key pairs</title>
+  <style type='text/css' media='all'>
+  /* style: man */
+  body#manpage {margin:0}
+  .mp {max-width:100ex;padding:0 9ex 1ex 4ex}
+  .mp p,.mp pre,.mp ul,.mp ol,.mp dl {margin:0 0 20px 0}
+  .mp h2 {margin:10px 0 0 0}
+  .mp > p,.mp > pre,.mp > ul,.mp > ol,.mp > dl {margin-left:8ex}
+  .mp h3 {margin:0 0 0 4ex}
+  .mp dt {margin:0;clear:left}
+  .mp dt.flush {float:left;width:8ex}
+  .mp dd {margin:0 0 0 9ex}
+  .mp h1,.mp h2,.mp h3,.mp h4 {clear:left}
+  .mp pre {margin-bottom:20px}
+  .mp pre+h2,.mp pre+h3 {margin-top:22px}
+  .mp h2+pre,.mp h3+pre {margin-top:5px}
+  .mp img {display:block;margin:auto}
+  .mp h1.man-title {display:none}
+  .mp,.mp code,.mp pre,.mp tt,.mp kbd,.mp samp,.mp h3,.mp h4 {font-family:monospace;font-size:14px;line-height:1.42857142857143}
+  .mp h2 {font-size:16px;line-height:1.25}
+  .mp h1 {font-size:20px;line-height:2}
+  .mp {text-align:justify;background:#fff}
+  .mp,.mp code,.mp pre,.mp pre code,.mp tt,.mp kbd,.mp samp {color:#131211}
+  .mp h1,.mp h2,.mp h3,.mp h4 {color:#030201}
+  .mp u {text-decoration:underline}
+  .mp code,.mp strong,.mp b {font-weight:bold;color:#131211}
+  .mp em,.mp var {font-style:italic;color:#232221;text-decoration:none}
+  .mp a,.mp a:link,.mp a:hover,.mp a code,.mp a pre,.mp a tt,.mp a kbd,.mp a samp {color:#0000ff}
+  .mp b.man-ref {font-weight:normal;color:#434241}
+  .mp pre {padding:0 4ex}
+  .mp pre code {font-weight:normal;color:#434241}
+  .mp h2+pre,h3+pre {padding-left:0}
+  ol.man-decor,ol.man-decor li {margin:3px 0 10px 0;padding:0;float:left;width:33%;list-style-type:none;text-transform:uppercase;color:#999;letter-spacing:1px}
+  ol.man-decor {width:100%}
+  ol.man-decor li.tl {text-align:left}
+  ol.man-decor li.tc {text-align:center;letter-spacing:4px}
+  ol.man-decor li.tr {text-align:right;float:right}
+  </style>
+</head>
+<!--
+  The following styles are deprecated and will be removed at some point:
+  div#man, div#man ol.man, div#man ol.head, div#man ol.man.
+
+  The .man-page, .man-decor, .man-head, .man-foot, .man-title, and
+  .man-navigation should be used instead.
+-->
+<body id='manpage'>
+  <div class='mp' id='man'>
+
+  <div class='man-navigation' style='display:none'>
+    <a href="#NAME">NAME</a>
+    <a href="#SYNOPSIS">SYNOPSIS</a>
+    <a href="#DESCRIPTION">DESCRIPTION</a>
+    <a href="#OPTIONS">OPTIONS</a>
+    <a href="#EXAMPLES">EXAMPLES</a>
+    <a href="#SEE-ALSO">SEE ALSO</a>
+    <a href="#AUTHORS">AUTHORS</a>
+  </div>
+
+  <ol class='man-decor man-head man head'>
+    <li class='tl'>age-keygen(1)</li>
+    <li class='tc'></li>
+    <li class='tr'>age-keygen(1)</li>
+  </ol>
+
+  <h2 id="NAME">NAME</h2>
+<p class="man-name">
+  <code>age-keygen</code> - <span class="man-whatis">generate <a class="man-ref" href="age.1.html">age<span class="s">(1)</span></a> key pairs</span>
+</p>
+
+<h2 id="SYNOPSIS">SYNOPSIS</h2>
+
+<p><code>age-keygen</code> [<code>-o</code> <var>OUTPUT</var>]<br />
+<code>age-keygen</code> <code>-y</code> [<code>-o</code> <var>OUTPUT</var>] [<var>INPUT</var>]<br /></p>
+
+<h2 id="DESCRIPTION">DESCRIPTION</h2>
+
+<p><code>age-keygen</code> generates a new native <a class="man-ref" href="age.1.html">age<span class="s">(1)</span></a> key pair, and outputs the identity to
+standard output or to the <var>OUTPUT</var> file. The output includes the public key and
+the current time as comments.</p>
+
+<p>If the output is not going to a terminal, <code>age-keygen</code> prints the public key to
+standard error.</p>
+
+<h2 id="OPTIONS">OPTIONS</h2>
+
+<dl>
+<dt><code>-o</code>, <code>--output</code>=<var>OUTPUT</var></dt><dd><p>  Write the identity to <var>OUTPUT</var> instead of standard output.</p>
+
+<p>  If <var>OUTPUT</var> already exists, it is not overwritten.</p></dd>
+<dt class="flush"><code>-y</code></dt><dd><p>  Read an identity file from <var>INPUT</var> or from standard input and output the
+  corresponding recipient(s), one per line, with no comments.</p></dd>
+<dt><code>--version</code></dt><dd><p>  Print the version and exit.</p></dd>
+</dl>
+
+
+<h2 id="EXAMPLES">EXAMPLES</h2>
+
+<p>Generate a new identity:</p>
+
+<pre><code>$ age-keygen
+# created: 2021-01-02T15:30:45+01:00
+# public key: age1lvyvwawkr0mcnnnncaghunadrqkmuf9e6507x9y920xxpp866cnql7dp2z
+AGE-SECRET-KEY-1N9JEPW6DWJ0ZQUDX63F5A03GX8QUW7PXDE39N8UYF82VZ9PC8UFS3M7XA9
+</code></pre>
+
+<p>Write a new identity to <code>key.txt</code>:</p>
+
+<pre><code>$ age-keygen -o key.txt
+Public key: age1ql3z7hjy54pw3hyww5ayyfg7zqgvc7w3j2elw8zmrj2kg5sfn9aqmcac8p
+</code></pre>
+
+<p>Convert an identity to a recipient:</p>
+
+<pre><code>$ age-keygen -y key.txt
+age1ql3z7hjy54pw3hyww5ayyfg7zqgvc7w3j2elw8zmrj2kg5sfn9aqmcac8p
+</code></pre>
+
+<h2 id="SEE-ALSO">SEE ALSO</h2>
+
+<p><a class="man-ref" href="age.1.html">age<span class="s">(1)</span></a></p>
+
+<h2 id="AUTHORS">AUTHORS</h2>
+
+<p>Filippo Valsorda <a href="mailto:age@filippo.io" data-bare-link="true">age@filippo.io</a></p>
+
+
+  <ol class='man-decor man-foot man foot'>
+    <li class='tl'></li>
+    <li class='tc'>October 2021</li>
+    <li class='tr'>age-keygen(1)</li>
+  </ol>
+
+  </div>
+</body>
+</html>
