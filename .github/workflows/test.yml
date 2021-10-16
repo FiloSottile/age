@@ -32,7 +32,7 @@ jobs:
           fetch-depth: 0
       - run: go version
       - name: Run tests
-        // Unpinned Action allowed with read-only permissions.
+        # Unpinned Action allowed with read-only permissions.
         uses: vmactions/freebsd-vm@v0.1.5
         with:
           prepare: |
