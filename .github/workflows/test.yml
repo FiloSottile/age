@@ -30,7 +30,6 @@ jobs:
         uses: actions/checkout@v2
         with:
           fetch-depth: 0
-      - run: go version
       - name: Run tests
         # Unpinned Action allowed with read-only permissions.
         uses: vmactions/freebsd-vm@v0.1.5
@@ -38,6 +37,7 @@ jobs:
           prepare: |
             freebsd-version
             pkg install -y go
+            go version
           run: go test -race ./...
   gotip:
     name: Test (Go tip)
