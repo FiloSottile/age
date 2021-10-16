@@ -22,6 +22,23 @@ jobs:
           fetch-depth: 0
       - name: Run tests
         run: go test -race ./...
+  freebsd:
+    name: Test (FreeBSD)
+    runs-on: macos-10.15
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - name: Run tests
+        # Unpinned Action allowed with read-only permissions.
+        uses: vmactions/freebsd-vm@v0.1.5
+        with:
+          prepare: |
+            freebsd-version
+            pkg install -y go
+            go version
+          run: go test -race ./...
   gotip:
     name: Test (Go tip)
     strategy:
