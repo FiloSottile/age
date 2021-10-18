@@ -127,9 +127,23 @@ func main() {
 	}
 
 	if flag.NArg() > 1 {
-		errorWithHint(fmt.Sprintf("too many arguments: %q", flag.Args()),
-			"note that the input file must be specified after all flags")
-	}
+		// If any following arg has prefix "-", suggest moving first arg (after parsed) to back,
+		// otherwise assume multiple files given for hint.
+		input_index := len(os.Args)-flag.NArg()
+		for i := input_index + 1; i < len(os.Args); i++ {
+			if strings.HasPrefix(os.Args[i], "-") {
+				hint := fmt.Sprintln("The input file must be specified after all flags. Did you mean:\n",
+					strings.Join(os.Args[0:input_index], " "),
+					strings.Join(os.Args[(input_index+1):len(os.Args)], " "),
+					os.Args[input_index])
+				errorWithHint(fmt.Sprintf("too many INPUT arguments: %q", flag.Args()),
+					hint)
+		    }
+		}
+		errorWithHint(fmt.Sprintf("too many INPUT arguments: %q", flag.Args()),
+			"only a single input file may be specified")
+        }
+
 	switch {
 	case decryptFlag:
 		if encryptFlag {
