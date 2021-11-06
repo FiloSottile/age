@@ -8,7 +8,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"os"
 	"strings"
@@ -144,7 +143,7 @@ func TestEncryptDecryptX25519(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	outBytes, err := ioutil.ReadAll(out)
+	outBytes, err := io.ReadAll(out)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -181,7 +180,7 @@ func TestEncryptDecryptScrypt(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	outBytes, err := ioutil.ReadAll(out)
+	outBytes, err := io.ReadAll(out)
 	if err != nil {
 		t.Fatal(err)
 	}
