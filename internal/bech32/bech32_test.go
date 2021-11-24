@@ -1,6 +1,6 @@
 // Copyright (c) 2013-2017 The btcsuite developers
 // Copyright (c) 2016-2017 The Lightning Network Developers
-// Copyright (c) 2019 Google LLC
+// Copyright (c) 2019 The age Authors
 //
 // Permission to use, copy, modify, and distribute this software for any
 // purpose with or without fee is hereby granted, provided that the above
