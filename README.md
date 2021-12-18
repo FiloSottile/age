@@ -208,6 +208,12 @@ Keep in mind that people might not protect SSH keys long-term, since they are re
             <code>choco install age.portable</code>
         </td>
     </tr>
+    <tr>
+        <td>Scoop (Windows)</td>
+        <td>
+            <code>scoop bucket add extras; scoop install age</code>
+        </td>
+    </tr>
 </table>
 
 On Windows, Linux, macOS, and FreeBSD you can use the pre-built binaries.
