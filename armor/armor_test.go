@@ -10,7 +10,6 @@ import (
 	"encoding/pem"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"strings"
 	"testing"
@@ -121,7 +120,7 @@ func testArmor(t *testing.T, size int) {
 	}
 
 	r := armor.NewReader(buf)
-	out, err := ioutil.ReadAll(r)
+	out, err := io.ReadAll(r)
 	if err != nil {
 		t.Fatal(err)
 	}

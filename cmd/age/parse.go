@@ -9,7 +9,6 @@ import (
 	"encoding/base64"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"strings"
 
@@ -153,7 +152,7 @@ func parseIdentitiesFile(name string) ([]age.Identity, error) {
 			r = armor.NewReader(r)
 		}
 		const privateKeySizeLimit = 1 << 24 // 16 MiB
-		contents, err := ioutil.ReadAll(io.LimitReader(r, privateKeySizeLimit))
+		contents, err := io.ReadAll(io.LimitReader(r, privateKeySizeLimit))
 		if err != nil {
 			return nil, fmt.Errorf("failed to read %q: %v", name, err)
 		}
@@ -177,7 +176,7 @@ func parseIdentitiesFile(name string) ([]age.Identity, error) {
 	// Another PEM file, possibly an SSH private key.
 	case strings.HasPrefix(peeked, "-----BEGIN"):
 		const privateKeySizeLimit = 1 << 14 // 16 KiB
-		contents, err := ioutil.ReadAll(io.LimitReader(b, privateKeySizeLimit))
+		contents, err := io.ReadAll(io.LimitReader(b, privateKeySizeLimit))
 		if err != nil {
 			return nil, fmt.Errorf("failed to read %q: %v", name, err)
 		}
@@ -239,7 +238,7 @@ Use a file for which the corresponding ".pub" file exists, or convert the privat
 Ensure %q exists, or convert the private key %q to a modern format with "ssh-keygen -p -m RFC4716"`, name, err, name+".pub", name)
 	}
 	defer f.Close()
-	contents, err := ioutil.ReadAll(f)
+	contents, err := io.ReadAll(f)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read %q: %v", name+".pub", err)
 	}
