@@ -208,6 +208,12 @@ Keep in mind that people might not protect SSH keys long-term, since they are re
             <code>choco install age.portable</code>
         </td>
     </tr>
+    <tr>
+        <td>Scoop (Windows)</td>
+        <td>
+            <code>scoop bucket add extras; scoop install age</code>
+        </td>
+    </tr>
 </table>
 
 On Windows, Linux, macOS, and FreeBSD you can use the pre-built binaries.
@@ -218,11 +224,10 @@ https://dl.filippo.io/age/v1.0.0-rc.1?for=darwin/arm64
 ...
 ```
 
-If your system has [Go 1.13+](https://golang.org/dl/), you can build from source.
+If your system has [a supported version of Go](https://golang.org/dl/), you can build from source.
 
 ```
-git clone https://filippo.io/age && cd age
-go build -o . filippo.io/age/cmd/...
+go install filippo.io/age/cmd/...@latest
 ```
 
 Help from new packagers is very welcome.

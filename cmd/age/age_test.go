@@ -1,14 +1,12 @@
-// Copyright 2019 Google LLC
-//
+// Copyright 2019 The age Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
-// license that can be found in the LICENSE file or at
-// https://developers.google.com/open-source/licenses/bsd
+// license that can be found in the LICENSE file.
 
 package main
 
 import (
 	"errors"
-	"io/ioutil"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -20,7 +18,7 @@ import (
 func TestVectors(t *testing.T) {
 	var defaultIDs []age.Identity
 
-	password, err := ioutil.ReadFile("testdata/default_password.txt")
+	password, err := os.ReadFile("testdata/default_password.txt")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -50,7 +48,7 @@ func TestVectors(t *testing.T) {
 			if err == nil {
 				identities = ids
 			}
-			password, err := ioutil.ReadFile("testdata/" + name + "_password.txt")
+			password, err := os.ReadFile("testdata/" + name + "_password.txt")
 			if err == nil {
 				p := strings.TrimSpace(string(password))
 				i, err := age.NewScryptIdentity(p)
@@ -83,7 +81,7 @@ func TestVectors(t *testing.T) {
 				if err != nil {
 					t.Fatal(err)
 				}
-				out, err := ioutil.ReadAll(r)
+				out, err := io.ReadAll(r)
 				if err != nil {
 					t.Fatal(err)
 				}
