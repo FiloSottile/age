@@ -37,6 +37,7 @@ func parseRecipient(arg string) (age.Recipient, error) {
 		}
 		r.DisplayMessage = pluginDisplayMessage(r.Name())
 		r.RequestValue = pluginRequestSecret(r.Name())
+		r.Confirm = pluginConfirm(r.Name())
 		return r, nil
 	case strings.HasPrefix(arg, "age1"):
 		return age.ParseX25519Recipient(arg)
@@ -210,6 +211,7 @@ func parseIdentity(s string) (age.Identity, error) {
 		}
 		i.DisplayMessage = pluginDisplayMessage(i.Name())
 		i.RequestValue = pluginRequestSecret(i.Name())
+		i.Confirm = pluginConfirm(i.Name())
 		return i, nil
 	case strings.HasPrefix(s, "AGE-SECRET-KEY-1"):
 		return age.ParseX25519Identity(s)

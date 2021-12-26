@@ -38,6 +38,10 @@ type Recipient struct {
 	// wishes to request a value from the user. If RequestValue is nil or
 	// returns an error, failure will be reported to the plugin.
 	RequestValue func(message string, secret bool) (string, error)
+	// Confirm is a callback that will be invoked by Unwrap if the plugin wishes
+	// to request a confirmation from the user. If Confirm is nil or returns an
+	// error, failure will be reported to the plugin.
+	Confirm func(message, yes, no string) (bool, error)
 }
 
 var _ age.Recipient = &Recipient{}
@@ -152,6 +156,45 @@ ReadLoop:
 					return nil, err
 				}
 			}
+		case "confirm":
+			if len(s.Args) != 1 && len(s.Args) != 2 {
+				return nil, fmt.Errorf("received malformed confirm stanza")
+			}
+			if r.Confirm == nil {
+				ss := &format.Stanza{Type: "fail"}
+				if err := ss.Marshal(conn); err != nil {
+					return nil, err
+				}
+				break
+			}
+			yes, err := format.DecodeString(s.Args[0])
+			if err != nil {
+				return nil, fmt.Errorf("received malformed confirm stanza")
+			}
+			var no []byte
+			if len(s.Args) == 2 {
+				no, err = format.DecodeString(s.Args[1])
+				if err != nil {
+					return nil, fmt.Errorf("received malformed confirm stanza")
+				}
+			}
+			msg := string(s.Body)
+			if selection, err := r.Confirm(msg, string(yes), string(no)); err != nil {
+				ss := &format.Stanza{Type: "fail"}
+				if err := ss.Marshal(conn); err != nil {
+					return nil, err
+				}
+			} else {
+				ss := &format.Stanza{Type: "ok"}
+				if selection {
+					ss.Args = append(ss.Args, "yes")
+				} else {
+					ss.Args = append(ss.Args, "no")
+				}
+				if err := ss.Marshal(conn); err != nil {
+					return nil, err
+				}
+			}
 		case "recipient-stanza":
 			if len(s.Args) < 2 {
 				return nil, fmt.Errorf("received malformed recipient stanza")
@@ -211,6 +254,10 @@ type Identity struct {
 	// wishes to request a value from the user. If RequestValue is nil or
 	// returns an error, failure will be reported to the plugin.
 	RequestValue func(message string, secret bool) (string, error)
+	// Confirm is a callback that will be invoked by Unwrap if the plugin wishes
+	// to request a confirmation from the user. If Confirm is nil or returns an
+	// error, failure will be reported to the plugin.
+	Confirm func(message, yes, no string) (bool, error)
 }
 
 var _ age.Identity = &Identity{}
@@ -248,6 +295,7 @@ func (i *Identity) Recipient() *Recipient {
 
 		DisplayMessage: i.DisplayMessage,
 		RequestValue:   i.RequestValue,
+		Confirm:        i.Confirm,
 	}
 }
 
@@ -336,6 +384,45 @@ ReadLoop:
 				}
 			} else {
 				ss := &format.Stanza{Type: "ok", Body: []byte(secret)}
+				if err := ss.Marshal(conn); err != nil {
+					return nil, err
+				}
+			}
+		case "confirm":
+			if len(s.Args) != 1 && len(s.Args) != 2 {
+				return nil, fmt.Errorf("received malformed confirm stanza")
+			}
+			if i.Confirm == nil {
+				ss := &format.Stanza{Type: "fail"}
+				if err := ss.Marshal(conn); err != nil {
+					return nil, err
+				}
+				break
+			}
+			yes, err := format.DecodeString(s.Args[0])
+			if err != nil {
+				return nil, fmt.Errorf("received malformed confirm stanza")
+			}
+			var no []byte
+			if len(s.Args) == 2 {
+				no, err = format.DecodeString(s.Args[1])
+				if err != nil {
+					return nil, fmt.Errorf("received malformed confirm stanza")
+				}
+			}
+			msg := string(s.Body)
+			if selection, err := i.Confirm(msg, string(yes), string(no)); err != nil {
+				ss := &format.Stanza{Type: "fail"}
+				if err := ss.Marshal(conn); err != nil {
+					return nil, err
+				}
+			} else {
+				ss := &format.Stanza{Type: "ok"}
+				if selection {
+					ss.Args = append(ss.Args, "yes")
+				} else {
+					ss.Args = append(ss.Args, "no")
+				}
 				if err := ss.Marshal(conn); err != nil {
 					return nil, err
 				}
