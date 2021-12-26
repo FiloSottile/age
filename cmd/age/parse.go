@@ -20,9 +20,6 @@ import (
 	"golang.org/x/crypto/ssh"
 )
 
-// stdinInUse is set in main. It's a singleton like os.Stdin.
-var stdinInUse bool
-
 type gitHubRecipientError struct {
 	username string
 }
@@ -171,7 +168,7 @@ func parseIdentitiesFile(name string) ([]age.Identity, error) {
 		return []age.Identity{&EncryptedIdentity{
 			Contents: contents,
 			Passphrase: func() (string, error) {
-				pass, err := readPassphrase(fmt.Sprintf("Enter passphrase for identity file %q:", name))
+				pass, err := readSecret(fmt.Sprintf("Enter passphrase for identity file %q:", name))
 				if err != nil {
 					return "", fmt.Errorf("could not read passphrase: %v", err)
 				}
@@ -261,7 +258,7 @@ func parseSSHIdentity(name string, pemBytes []byte) ([]age.Identity, error) {
 			}
 		}
 		passphrasePrompt := func() ([]byte, error) {
-			pass, err := readPassphrase(fmt.Sprintf("Enter passphrase for %q:", name))
+			pass, err := readSecret(fmt.Sprintf("Enter passphrase for %q:", name))
 			if err != nil {
 				return nil, fmt.Errorf("could not read passphrase for %q: %v", name, err)
 			}
@@ -302,24 +299,4 @@ Ensure %q exists, or convert the private key %q to a modern format with "ssh-key
 		return nil, fmt.Errorf("failed to parse %q: %v", name+".pub", err)
 	}
 	return pubKey, nil
-}
-
-func pluginDisplayMessage(name string) func(string) error {
-	return func(message string) error {
-		fmt.Fprintf(os.Stderr, "[age-plugin-%s] %v\n", name, message)
-		return nil
-	}
-}
-
-func pluginRequestSecret(name string) func(string, bool) (string, error) {
-	return func(message string, _ bool) (string, error) {
-		fmt.Fprintf(os.Stderr, "[age-plugin-%s] %v\n", name, message)
-		prompt := fmt.Sprintf("[age-plugin-%s] Enter value:", name)
-		secret, err := readPassphrase(prompt)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Could not read value for age-plugin-%s: %v", name, err)
-			return "", err
-		}
-		return string(secret), nil
-	}
 }
