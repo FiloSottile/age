@@ -20,6 +20,7 @@ import (
 	"runtime"
 	"strings"
 
+	"filippo.io/age/internal/plugin"
 	"golang.org/x/term"
 )
 
@@ -96,25 +97,19 @@ func readSecret(prompt string) ([]byte, error) {
 	return term.ReadPassword(int(in.Fd()))
 }
 
-func pluginDisplayMessage(name string) func(string) error {
-	return func(message string) error {
+var pluginTerminalUI = &plugin.ClientUI{
+	DisplayMessage: func(name, message string) error {
 		printf("%s plugin: %s", name, message)
 		return nil
-	}
-}
-
-func pluginRequestSecret(name string) func(string, bool) (string, error) {
-	return func(message string, _ bool) (string, error) {
+	},
+	RequestValue: func(name, message string, _ bool) (string, error) {
 		secret, err := readSecret(message)
 		if err != nil {
 			return "", fmt.Errorf("could not read value for age-plugin-%s: %v", name, err)
 		}
 		return string(secret), nil
-	}
-}
-
-func pluginConfirm(name string) func(msg, yes, no string) (bool, error) {
-	return func(message, yes, no string) (bool, error) {
+	},
+	Confirm: func(name, message, yes, no string) (bool, error) {
 		if no != "" {
 			message += fmt.Sprintf(" (1 for %q, 2 for %q)", yes, no)
 			selection, err := readSecret(message)
@@ -137,5 +132,5 @@ func pluginConfirm(name string) func(msg, yes, no string) (bool, error) {
 			}
 			return true, nil
 		}
-	}
+	},
 }

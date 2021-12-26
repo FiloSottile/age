@@ -80,6 +80,24 @@ func (f *multiFlag) Set(value string) error {
 	return nil
 }
 
+type identityFlag struct {
+	Type, Value string
+}
+
+// identityFlags tracks -i and -j flags, preserving their relative order, so
+// that "age -d -j agent -i encrypted-fallback-keys.age" behaves as expected.
+type identityFlags []identityFlag
+
+func (f *identityFlags) addIdentityFlag(value string) error {
+	*f = append(*f, identityFlag{Type: "i", Value: value})
+	return nil
+}
+
+func (f *identityFlags) addPluginFlag(value string) error {
+	*f = append(*f, identityFlag{Type: "j", Value: value})
+	return nil
+}
+
 func main() {
 	flag.Usage = func() { fmt.Fprintf(os.Stderr, "%s\n", usage) }
 
@@ -92,8 +110,9 @@ func main() {
 		outFlag                          string
 		decryptFlag, encryptFlag         bool
 		passFlag, versionFlag, armorFlag bool
-		recipientFlags, identityFlags    multiFlag
+		recipientFlags                   multiFlag
 		recipientsFileFlags              multiFlag
+		identityFlags                    identityFlags
 	)
 
 	flag.BoolVar(&versionFlag, "version", false, "print the version")
@@ -111,8 +130,9 @@ func main() {
 	flag.Var(&recipientFlags, "recipient", "recipient (can be repeated)")
 	flag.Var(&recipientsFileFlags, "R", "recipients file (can be repeated)")
 	flag.Var(&recipientsFileFlags, "recipients-file", "recipients file (can be repeated)")
-	flag.Var(&identityFlags, "i", "identity (can be repeated)")
-	flag.Var(&identityFlags, "identity", "identity (can be repeated)")
+	flag.Func("i", "identity (can be repeated)", identityFlags.addIdentityFlag)
+	flag.Func("identity", "identity (can be repeated)", identityFlags.addIdentityFlag)
+	flag.Func("j", "data-less plugin (can be repeated)", identityFlags.addPluginFlag)
 	flag.Parse()
 
 	if versionFlag {
@@ -185,7 +205,7 @@ func main() {
 		}
 	default: // encrypt
 		if len(identityFlags) > 0 && !encryptFlag {
-			errorWithHint("-i/--identity can't be used in encryption mode unless symmetric encryption is explicitly selected with -e/--encrypt",
+			errorWithHint("-i/--identity and -j can't be used in encryption mode unless symmetric encryption is explicitly selected with -e/--encrypt",
 				"did you forget to specify -d/--decrypt?")
 		}
 		if len(recipientFlags)+len(recipientsFileFlags)+len(identityFlags) == 0 && !passFlag {
@@ -199,7 +219,7 @@ func main() {
 			errorf("-p/--passphrase can't be combined with -R/--recipients-file")
 		}
 		if len(identityFlags) > 0 && passFlag {
-			errorf("-p/--passphrase can't be combined with -i/--identity")
+			errorf("-p/--passphrase can't be combined with -i/--identity and -j")
 		}
 	}
 
@@ -288,9 +308,9 @@ func passphrasePromptForEncryption() (string, error) {
 	return p, nil
 }
 
-func encryptNotPass(keys, files, identities []string, in io.Reader, out io.Writer, armor bool) {
+func encryptNotPass(recs, files []string, identities identityFlags, in io.Reader, out io.Writer, armor bool) {
 	var recipients []age.Recipient
-	for _, arg := range keys {
+	for _, arg := range recs {
 		r, err := parseRecipient(arg)
 		if err, ok := err.(gitHubRecipientError); ok {
 			errorWithHint(err.Error(), "instead, use recipient files like",
@@ -309,16 +329,25 @@ func encryptNotPass(keys, files, identities []string, in io.Reader, out io.Write
 		}
 		recipients = append(recipients, recs...)
 	}
-	for _, name := range identities {
-		ids, err := parseIdentitiesFile(name)
-		if err != nil {
-			errorf("reading %q: %v", name, err)
+	for _, f := range identities {
+		switch f.Type {
+		case "i":
+			ids, err := parseIdentitiesFile(f.Value)
+			if err != nil {
+				errorf("reading %q: %v", f.Value, err)
+			}
+			r, err := identitiesToRecipients(ids)
+			if err != nil {
+				errorf("internal error processing %q: %v", f.Value, err)
+			}
+			recipients = append(recipients, r...)
+		case "j":
+			id, err := plugin.NewIdentityWithoutData(f.Value, pluginTerminalUI)
+			if err != nil {
+				errorf("initializing %q: %v", f.Value, err)
+			}
+			recipients = append(recipients, id.Recipient())
 		}
-		r, err := identitiesToRecipients(ids)
-		if err != nil {
-			errorf("internal error processing %q: %v", name, err)
-		}
-		recipients = append(recipients, r...)
 	}
 	encrypt(recipients, in, out, armor)
 }
@@ -359,19 +388,28 @@ func encrypt(recipients []age.Recipient, in io.Reader, out io.Writer, withArmor 
 const crlfMangledIntro = "age-encryption.org/v1" + "\r"
 const utf16MangledIntro = "\xff\xfe" + "a\x00g\x00e\x00-\x00e\x00n\x00c\x00r\x00y\x00p\x00"
 
-func decrypt(keys []string, in io.Reader, out io.Writer) {
+func decrypt(flags identityFlags, in io.Reader, out io.Writer) {
 	identities := []age.Identity{
 		// If there is an scrypt recipient (it will have to be the only one and)
 		// this identity will be invoked.
-		&LazyScryptIdentity{passphrasePrompt},
+		&LazyScryptIdentity{passphrasePromptForDecryption},
 	}
 
-	for _, name := range keys {
-		ids, err := parseIdentitiesFile(name)
-		if err != nil {
-			errorf("reading %q: %v", name, err)
+	for _, f := range flags {
+		switch f.Type {
+		case "i":
+			ids, err := parseIdentitiesFile(f.Value)
+			if err != nil {
+				errorf("reading %q: %v", f.Value, err)
+			}
+			identities = append(identities, ids...)
+		case "j":
+			id, err := plugin.NewIdentityWithoutData(f.Value, pluginTerminalUI)
+			if err != nil {
+				errorf("initializing %q: %v", f.Value, err)
+			}
+			identities = append(identities, id)
 		}
-		identities = append(identities, ids...)
 	}
 
 	rr := bufio.NewReader(in)
@@ -397,7 +435,7 @@ func decrypt(keys []string, in io.Reader, out io.Writer) {
 	}
 }
 
-func passphrasePrompt() (string, error) {
+func passphrasePromptForDecryption() (string, error) {
 	pass, err := readSecret("Enter passphrase:")
 	if err != nil {
 		return "", fmt.Errorf("could not read passphrase: %v", err)
