@@ -5,7 +5,7 @@ age(1) -- simple, modern, and secure file encryption
 
 `age` [`--encrypt`] (`-r` <RECIPIENT> | `-R` <PATH>)... [`--armor`] [`-o` <OUTPUT>] [<INPUT>]<br>
 `age` [`--encrypt`] `--passphrase` [`--armor`] [`-o` <OUTPUT>] [<INPUT>]<br>
-`age` `--decrypt` [`-i` <PATH>]... [`-o` <OUTPUT>] [<INPUT>]<br>
+`age` `--decrypt` [`-i` <PATH> | `-j` <NAME>]... [`-o` <OUTPUT>] [<INPUT>]<br>
 
 ## DESCRIPTION
 
@@ -120,6 +120,15 @@ overhead per recipient, plus 16 bytes every 64KiB of plaintext.
     corresponding to the `IDENTITIES` listed at <PATH>. This allows using an
     identity file as a symmetric key, if desired.
 
+* `-j` <NAME>:
+    Decrypt using the data-less [plugin][Plugins] <NAME>.
+
+    This is equivalent to using `-i`/`--identity` with a file that contains a
+    single plugin `IDENTITY` that encodes no plugin-specific data.
+
+    If `-e`/`--encrypt` is explicitly specified (to avoid confusion), `-j` may
+    also be used to encrypt with a data-less plugin.
+
 ## RECIPIENTS AND IDENTITIES
 
 `RECIPIENTS` are public values, like a public key, that a file can be encrypted
@@ -194,9 +203,12 @@ the plugin. For example, a plugin can be used to decrypt files encrypted to a
 native X25519 `RECIPIENT` or even with a passphrase. Similarly, a plugin can
 encrypt a file such that it can be decrypted without the use of any plugin.
 
-Plugins for which the `IDENTITY`/`RECIPIENT` distinction doesn't make sense may
-generate only an `IDENTITY` and instruct the user to perform encryption with the
-`-e`/`--encrypt` and `-i`/`--identity` flags.
+Plugins for which the `IDENTITY`/`RECIPIENT` distinction doesn't make sense
+(such as a symmetric encryption plugin) may generate only an `IDENTITY` and
+instruct the user to perform encryption with the `-e`/`--encrypt` and
+`-i`/`--identity` flags. Plugins for which the concept of separate identities
+doesn't make sense (such as a password-encryption plugin) may instruct the user
+to use the `-j` flag.
 
 ## EXIT STATUS
 

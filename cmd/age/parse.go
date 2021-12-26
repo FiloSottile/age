@@ -31,14 +31,7 @@ func (gitHubRecipientError) Error() string {
 func parseRecipient(arg string) (age.Recipient, error) {
 	switch {
 	case strings.HasPrefix(arg, "age1") && strings.Count(arg, "1") > 1:
-		r, err := plugin.NewRecipient(arg)
-		if err != nil {
-			return nil, err
-		}
-		r.DisplayMessage = pluginDisplayMessage(r.Name())
-		r.RequestValue = pluginRequestSecret(r.Name())
-		r.Confirm = pluginConfirm(r.Name())
-		return r, nil
+		return plugin.NewRecipient(arg, pluginTerminalUI)
 	case strings.HasPrefix(arg, "age1"):
 		return age.ParseX25519Recipient(arg)
 	case strings.HasPrefix(arg, "ssh-"):
@@ -205,14 +198,7 @@ func parseIdentitiesFile(name string) ([]age.Identity, error) {
 func parseIdentity(s string) (age.Identity, error) {
 	switch {
 	case strings.HasPrefix(s, "AGE-PLUGIN-"):
-		i, err := plugin.NewIdentity(s)
-		if err != nil {
-			return nil, err
-		}
-		i.DisplayMessage = pluginDisplayMessage(i.Name())
-		i.RequestValue = pluginRequestSecret(i.Name())
-		i.Confirm = pluginConfirm(i.Name())
-		return i, nil
+		return plugin.NewIdentity(s, pluginTerminalUI)
 	case strings.HasPrefix(s, "AGE-SECRET-KEY-1"):
 		return age.ParseX25519Identity(s)
 	default:

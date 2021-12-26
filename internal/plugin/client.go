@@ -26,16 +26,15 @@ import (
 type Recipient struct {
 	name     string
 	encoding string
+	ui       *ClientUI
 
 	// identity is true when encoding is an identity string.
 	identity bool
-
-	ClientUI
 }
 
 var _ age.Recipient = &Recipient{}
 
-func NewRecipient(s string) (*Recipient, error) {
+func NewRecipient(s string, ui *ClientUI) (*Recipient, error) {
 	hrp, _, err := bech32.Decode(s)
 	if err != nil {
 		return nil, fmt.Errorf("invalid recipient encoding %q: %v", s, err)
@@ -45,7 +44,7 @@ func NewRecipient(s string) (*Recipient, error) {
 	}
 	name := strings.TrimPrefix(hrp, "age1")
 	return &Recipient{
-		name: name, encoding: s,
+		name: name, encoding: s, ui: ui,
 	}, nil
 }
 
@@ -125,7 +124,7 @@ ReadLoop:
 		case "done":
 			break ReadLoop
 		default:
-			if ok, err := r.handleUI(conn, s); err != nil {
+			if ok, err := r.ui.handle(r.name, conn, s); err != nil {
 				return nil, err
 			} else if !ok {
 				if err := writeStanza(conn, "unsupported"); err != nil {
@@ -145,13 +144,12 @@ ReadLoop:
 type Identity struct {
 	name     string
 	encoding string
-
-	ClientUI
+	ui       *ClientUI
 }
 
 var _ age.Identity = &Identity{}
 
-func NewIdentity(s string) (*Identity, error) {
+func NewIdentity(s string, ui *ClientUI) (*Identity, error) {
 	hrp, _, err := bech32.Decode(s)
 	if err != nil {
 		return nil, fmt.Errorf("invalid identity encoding: %v", err)
@@ -162,7 +160,17 @@ func NewIdentity(s string) (*Identity, error) {
 	name := strings.TrimSuffix(strings.TrimPrefix(hrp, "AGE-PLUGIN-"), "-")
 	name = strings.ToLower(name)
 	return &Identity{
-		name: name, encoding: s,
+		name: name, encoding: s, ui: ui,
+	}, nil
+}
+
+func NewIdentityWithoutData(name string, ui *ClientUI) (*Identity, error) {
+	s, err := bech32.Encode("AGE-PLUGIN-"+strings.ToUpper(name)+"-", nil)
+	if err != nil {
+		return nil, err
+	}
+	return &Identity{
+		name: name, encoding: s, ui: ui,
 	}, nil
 }
 
@@ -181,7 +189,7 @@ func (i *Identity) Recipient() *Recipient {
 		name:     i.name,
 		encoding: i.encoding,
 		identity: true,
-		ClientUI: i.ClientUI,
+		ui:       i.ui,
 	}
 }
 
@@ -256,7 +264,7 @@ ReadLoop:
 		case "done":
 			break ReadLoop
 		default:
-			if ok, err := i.handleUI(conn, s); err != nil {
+			if ok, err := i.ui.handle(i.name, conn, s); err != nil {
 				return nil, err
 			} else if !ok {
 				if err := writeStanza(conn, "unsupported"); err != nil {
@@ -278,25 +286,25 @@ ReadLoop:
 type ClientUI struct {
 	// DisplayMessage displays the message, which is expected to have lowercase
 	// initials and no final period.
-	DisplayMessage func(message string) error
+	DisplayMessage func(name, message string) error
 
 	// RequestValue requests a secret or public input, with the provided prompt.
-	RequestValue func(prompt string, secret bool) (string, error)
+	RequestValue func(name, prompt string, secret bool) (string, error)
 
 	// Confirm requests a confirmation with the provided prompt. The yes and no
 	// value are the choices provided to the user. no may be empty. The return
 	// value indicates whether the user selected the yes or no option.
-	Confirm func(prompt, yes, no string) (choseYes bool, err error)
+	Confirm func(name, prompt, yes, no string) (choseYes bool, err error)
 }
 
-func (c *ClientUI) handleUI(conn *clientConnection, s *format.Stanza) (ok bool, err error) {
+func (c *ClientUI) handle(name string, conn *clientConnection, s *format.Stanza) (ok bool, err error) {
 	// TODO: surface non-fatal but probably useful errors.
 	switch s.Type {
 	case "msg":
 		if c.DisplayMessage == nil {
 			return true, writeStanza(conn, "fail")
 		}
-		if err := c.DisplayMessage(string(s.Body)); err != nil {
+		if err := c.DisplayMessage(name, string(s.Body)); err != nil {
 			return true, writeStanza(conn, "fail")
 		}
 		return true, writeStanza(conn, "ok")
@@ -304,7 +312,7 @@ func (c *ClientUI) handleUI(conn *clientConnection, s *format.Stanza) (ok bool, 
 		if c.RequestValue == nil {
 			return true, writeStanza(conn, "fail")
 		}
-		secret, err := c.RequestValue(string(s.Body), s.Type == "request-secret")
+		secret, err := c.RequestValue(name, string(s.Body), s.Type == "request-secret")
 		if err != nil {
 			return true, writeStanza(conn, "fail")
 		}
@@ -327,7 +335,7 @@ func (c *ClientUI) handleUI(conn *clientConnection, s *format.Stanza) (ok bool, 
 				return true, fmt.Errorf("malformed confirm stanza: invalid NO option encoding")
 			}
 		}
-		choseYes, err := c.Confirm(string(s.Body), string(yes), string(no))
+		choseYes, err := c.Confirm(name, string(s.Body), string(yes), string(no))
 		if err != nil {
 			return true, writeStanza(conn, "fail")
 		}
