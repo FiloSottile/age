@@ -18,6 +18,7 @@ import (
 	"log"
 	"os"
 	"runtime"
+	"strings"
 
 	"golang.org/x/term"
 )
@@ -113,5 +114,32 @@ func pluginRequestSecret(name string) func(string, bool) (string, error) {
 			return "", fmt.Errorf("could not read value for age-plugin-%s: %v", name, err)
 		}
 		return string(secret), nil
+	}
+}
+
+func pluginConfirm(name string) func(msg, yes, no string) (bool, error) {
+	return func(message, yes, no string) (bool, error) {
+		if no != "" {
+			message += fmt.Sprintf(" (1 for %q, 2 for %q)", yes, no)
+			selection, err := readSecret(message)
+			if err != nil {
+				return false, fmt.Errorf("could not read value for age-plugin-%s: %v", name, err)
+			}
+			switch strings.TrimSpace(string(selection)) {
+			case "1":
+				return true, nil
+			case "2":
+				return false, nil
+			default:
+				return false, fmt.Errorf("invalid selection %q", selection)
+			}
+		} else {
+			message += fmt.Sprintf(" (press enter for %q)", yes)
+			_, err := readSecret(message)
+			if err != nil {
+				return false, fmt.Errorf("could not read value for age-plugin-%s: %v", name, err)
+			}
+			return true, nil
+		}
 	}
 }
