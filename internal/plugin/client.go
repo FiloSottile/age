@@ -66,7 +66,7 @@ func (r *Recipient) Name() string {
 func (r *Recipient) Wrap(fileKey []byte) (stanzas []*age.Stanza, err error) {
 	defer func() {
 		if err != nil {
-			err = fmt.Errorf("age-plugin-%s: %w", r.name, err)
+			err = fmt.Errorf("%s plugin: %w", r.name, err)
 		}
 	}()
 
@@ -254,7 +254,7 @@ func (i *Identity) Recipient() *Recipient {
 func (i *Identity) Unwrap(stanzas []*age.Stanza) (fileKey []byte, err error) {
 	defer func() {
 		if err != nil {
-			err = fmt.Errorf("age-plugin-%s: %w", i.name, err)
+			err = fmt.Errorf("%s plugin: %w", i.name, err)
 		}
 	}()
 
@@ -418,10 +418,12 @@ func openClientConnection(name, protocol string) (*clientConnection, error) {
 	if os.Getenv("AGEDEBUG") == "plugin" {
 		cc.Reader = io.TeeReader(cc.Reader, os.Stderr)
 		cc.Writer = io.MultiWriter(cc.Writer, os.Stderr)
+		cmd.Stderr = os.Stderr
 	}
 
-	cmd.Stderr = &cc.stderr
-
+	// We don't want the plugins to rely on the working directory for anything
+	// as different clients might treat it differently, so we set it to an empty
+	// temporary directory.
 	cmd.Dir = os.TempDir()
 
 	if err := cmd.Start(); err != nil {
