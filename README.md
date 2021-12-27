@@ -230,4 +230,10 @@ If your system has [a supported version of Go](https://golang.org/dl/), you can 
 go install filippo.io/age/cmd/...@latest
 ```
 
+If you want to build for mobile devices, you can use gomobile (example: android)
+
+```
+gomobile bind -target android -o age.aar filippo.io/age filippo.io/age/agemobile
+```
+
 Help from new packagers is very welcome.
