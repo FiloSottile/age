@@ -16,7 +16,7 @@
 // Key management
 //
 // Age does not have a global keyring. Instead, since age keys are small,
-// textual, and cheap, you are encoraged to generate dedicated keys for each
+// textual, and cheap, you are encouraged to generate dedicated keys for each
 // task and application.
 //
 // Recipient public keys can be passed around as command line flags and in
