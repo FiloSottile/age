@@ -10,8 +10,10 @@ import (
 	"fmt"
 	"os"
 	"runtime"
+	"strings"
 
 	"filippo.io/age"
+	"github.com/twpayne/go-pinentry-minimal/pinentry"
 	"golang.org/x/term"
 )
 
@@ -105,7 +107,22 @@ func (i *EncryptedIdentity) decrypt() error {
 
 // readPassphrase reads a passphrase from the terminal. It does not read from a
 // non-terminal stdin, so it does not check stdinInUse.
-func readPassphrase(prompt string) ([]byte, error) {
+func readPassphrase(prompt string, usePINEntry bool) ([]byte, error) {
+	if usePINEntry {
+		client, err := pinentry.NewClient(
+			pinentry.WithBinaryNameFromGnuPGAgentConf(),
+			pinentry.WithDesc(strings.TrimSuffix(prompt, ":")+"."),
+			pinentry.WithGPGTTY(),
+			pinentry.WithPrompt("Passphrase:"),
+			pinentry.WithTitle("age"),
+		)
+		if err != nil {
+			return nil, err
+		}
+		pin, _, err := client.GetPIN()
+		return []byte(pin), err
+	}
+
 	var in, out *os.File
 	if runtime.GOOS == "windows" {
 		var err error

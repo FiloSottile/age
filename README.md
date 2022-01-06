@@ -36,6 +36,7 @@ Options:
     -o, --output OUTPUT         Write the result to the file at path OUTPUT.
     -a, --armor                 Encrypt to a PEM encoded format.
     -p, --passphrase            Encrypt with a passphrase.
+        --pinentry              Use pinentry to read the passphrase.
     -r, --recipient RECIPIENT   Encrypt to the specified RECIPIENT. Can be repeated.
     -R, --recipients-file PATH  Encrypt to recipients listed at PATH. Can be repeated.
     -i, --identity PATH         Use the identity file at PATH. Can be repeated.

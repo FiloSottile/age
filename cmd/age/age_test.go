@@ -29,7 +29,7 @@ func TestVectors(t *testing.T) {
 	}
 	defaultIDs = append(defaultIDs, i)
 
-	ids, err := parseIdentitiesFile("testdata/default_key.txt")
+	ids, err := parseIdentitiesFile("testdata/default_key.txt", false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -44,7 +44,7 @@ func TestVectors(t *testing.T) {
 		expectNoMatch := strings.HasPrefix(name, "nomatch_")
 		t.Run(name, func(t *testing.T) {
 			identities := defaultIDs
-			ids, err := parseIdentitiesFile("testdata/" + name + "_key.txt")
+			ids, err := parseIdentitiesFile("testdata/"+name+"_key.txt", false)
 			if err == nil {
 				identities = ids
 			}

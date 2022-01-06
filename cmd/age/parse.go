@@ -123,7 +123,7 @@ func sshKeyType(s string) (string, bool) {
 // parseIdentitiesFile parses a file that contains age or SSH keys. It returns
 // one or more of *age.X25519Identity, *agessh.RSAIdentity, *agessh.Ed25519Identity,
 // *agessh.EncryptedSSHIdentity, or *EncryptedIdentity.
-func parseIdentitiesFile(name string) ([]age.Identity, error) {
+func parseIdentitiesFile(name string, usePINEntry bool) ([]age.Identity, error) {
 	var f *os.File
 	if name == "-" {
 		if stdinInUse {
@@ -162,7 +162,7 @@ func parseIdentitiesFile(name string) ([]age.Identity, error) {
 		return []age.Identity{&EncryptedIdentity{
 			Contents: contents,
 			Passphrase: func() (string, error) {
-				pass, err := readPassphrase(fmt.Sprintf("Enter passphrase for identity file %q:", name))
+				pass, err := readPassphrase(fmt.Sprintf("Enter passphrase for identity file %q:", name), usePINEntry)
 				if err != nil {
 					return "", fmt.Errorf("could not read passphrase: %v", err)
 				}
@@ -183,7 +183,7 @@ func parseIdentitiesFile(name string) ([]age.Identity, error) {
 		if len(contents) == privateKeySizeLimit {
 			return nil, fmt.Errorf("failed to read %q: file too long", name)
 		}
-		return parseSSHIdentity(name, contents)
+		return parseSSHIdentity(name, contents, usePINEntry)
 
 	// An unencrypted age identity file.
 	default:
@@ -195,7 +195,7 @@ func parseIdentitiesFile(name string) ([]age.Identity, error) {
 	}
 }
 
-func parseSSHIdentity(name string, pemBytes []byte) ([]age.Identity, error) {
+func parseSSHIdentity(name string, pemBytes []byte, usePINEntry bool) ([]age.Identity, error) {
 	id, err := agessh.ParseIdentity(pemBytes)
 	if sshErr, ok := err.(*ssh.PassphraseMissingError); ok {
 		pubKey := sshErr.PublicKey
@@ -206,7 +206,7 @@ func parseSSHIdentity(name string, pemBytes []byte) ([]age.Identity, error) {
 			}
 		}
 		passphrasePrompt := func() ([]byte, error) {
-			pass, err := readPassphrase(fmt.Sprintf("Enter passphrase for %q:", name))
+			pass, err := readPassphrase(fmt.Sprintf("Enter passphrase for %q:", name), usePINEntry)
 			if err != nil {
 				return nil, fmt.Errorf("could not read passphrase for %q: %v", name, err)
 			}
