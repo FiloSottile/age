@@ -13,6 +13,7 @@ import (
 	"log"
 	"os"
 	"runtime/debug"
+	"strconv"
 	"strings"
 
 	"filippo.io/age"
@@ -30,6 +31,19 @@ func (f *multiFlag) Set(value string) error {
 	return nil
 }
 
+type fileModeFlag os.FileMode
+
+func (f *fileModeFlag) String() string { return strconv.FormatInt(int64(*f), 8) }
+
+func (f *fileModeFlag) Set(value string) error {
+	valueUint64, err := strconv.ParseUint(value, 8, 32)
+	if err != nil {
+		return err
+	}
+	*f = fileModeFlag(valueUint64)
+	return nil
+}
+
 const usage = `Usage:
     age [--encrypt] (-r RECIPIENT | -R PATH)... [--armor] [-o OUTPUT] [INPUT]
     age [--encrypt] --passphrase [--armor] [-o OUTPUT] [INPUT]
@@ -39,6 +53,7 @@ Options:
     -e, --encrypt               Encrypt the input to the output. Default if omitted.
     -d, --decrypt               Decrypt the input to the output.
     -o, --output OUTPUT         Write the result to the file at path OUTPUT.
+        --perm PERM             Set the permissions of OUTPUT to PERM.
     -a, --armor                 Encrypt to a PEM encoded format.
     -p, --passphrase            Encrypt with a passphrase.
     -r, --recipient RECIPIENT   Encrypt to the specified RECIPIENT. Can be repeated.
@@ -86,6 +101,7 @@ func main() {
 
 	var (
 		outFlag                          string
+		permFlag                         = fileModeFlag(0666)
 		decryptFlag, encryptFlag         bool
 		passFlag, versionFlag, armorFlag bool
 		recipientFlags, identityFlags    multiFlag
@@ -101,6 +117,7 @@ func main() {
 	flag.BoolVar(&passFlag, "passphrase", false, "use a passphrase")
 	flag.StringVar(&outFlag, "o", "", "output to `FILE` (default stdout)")
 	flag.StringVar(&outFlag, "output", "", "output to `FILE` (default stdout)")
+	flag.Var(&permFlag, "perm", "set permissions of output file (default 666)")
 	flag.BoolVar(&armorFlag, "a", false, "generate an armored file")
 	flag.BoolVar(&armorFlag, "armor", false, "generate an armored file")
 	flag.Var(&recipientFlags, "r", "recipient (can be repeated)")
@@ -182,7 +199,7 @@ func main() {
 		stdinInUse = true
 	}
 	if name := outFlag; name != "" && name != "-" {
-		f := newLazyOpener(name)
+		f := newLazyOpener(name, os.FileMode(permFlag))
 		defer func() {
 			if err := f.Close(); err != nil {
 				errorf("failed to close output file %q: %v", name, err)
@@ -381,17 +398,18 @@ func identitiesToRecipients(ids []age.Identity) ([]age.Recipient, error) {
 
 type lazyOpener struct {
 	name string
+	perm os.FileMode
 	f    *os.File
 	err  error
 }
 
-func newLazyOpener(name string) io.WriteCloser {
-	return &lazyOpener{name: name}
+func newLazyOpener(name string, perm os.FileMode) io.WriteCloser {
+	return &lazyOpener{name: name, perm: perm}
 }
 
 func (l *lazyOpener) Write(p []byte) (n int, err error) {
 	if l.f == nil && l.err == nil {
-		l.f, l.err = os.Create(l.name)
+		l.f, l.err = os.OpenFile(l.name, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, l.perm)
 	}
 	if l.err != nil {
 		return 0, l.err

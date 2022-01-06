@@ -34,6 +34,7 @@ Options:
     -e, --encrypt               Encrypt the input to the output. Default if omitted.
     -d, --decrypt               Decrypt the input to the output.
     -o, --output OUTPUT         Write the result to the file at path OUTPUT.
+        --perm PERM             Set the permissions of OUTPUT to PERM.
     -a, --armor                 Encrypt to a PEM encoded format.
     -p, --passphrase            Encrypt with a passphrase.
     -r, --recipient RECIPIENT   Encrypt to the specified RECIPIENT. Can be repeated.
