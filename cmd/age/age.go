@@ -315,6 +315,12 @@ func encrypt(recipients []age.Recipient, in io.Reader, out io.Writer, withArmor 
 	}
 }
 
+// crlfMangledIntro and utf16MangledIntro are the intro lines of the age format
+// after mangling by various versions of PowerShell redirection, truncated to
+// the length of the correct intro line. See issue 290.
+const crlfMangledIntro = "age-encryption.org/v1" + "\r"
+const utf16MangledIntro = "\xff\xfe" + "a\x00g\x00e\x00-\x00e\x00n\x00c\x00r\x00y\x00p\x00"
+
 func decrypt(keys []string, in io.Reader, out io.Writer) {
 	identities := []age.Identity{
 		// If there is an scrypt recipient (it will have to be the only one and)
@@ -331,6 +337,13 @@ func decrypt(keys []string, in io.Reader, out io.Writer) {
 	}
 
 	rr := bufio.NewReader(in)
+	if intro, _ := rr.Peek(len(crlfMangledIntro)); string(intro) == crlfMangledIntro ||
+		string(intro) == utf16MangledIntro {
+		errorWithHint("invalid header intro",
+			"it looks like this file was corrupted by PowerShell redirection",
+			"consider using -o or -a to encrypt files in PowerShell")
+	}
+
 	if start, _ := rr.Peek(len(armor.Header)); string(start) == armor.Header {
 		in = armor.NewReader(rr)
 	} else {
