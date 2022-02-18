@@ -184,7 +184,7 @@ An \fBIDENTITY\fR is an SSH private key \fIfile\fR passed individually to \fB\-i
 An encrypted file \fIcan\fR be linked to the SSH public key it was encrypted to\. This is so that \fBage\fR can identify the correct SSH private key before requesting its password, if any\.
 .
 .SH "EXIT STATUS"
-\fBage\fR will exit 0 if and only if encryption or decryption are succesful for the full length of the input\.
+\fBage\fR will exit 0 if and only if encryption or decryption are successful for the full length of the input\.
 .
 .P
 If an error occurs during decryption, partial output might still be generated, but only if it was possible to securely authenticate it\. No unauthenticathed output is ever released\.
