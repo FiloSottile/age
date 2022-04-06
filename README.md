@@ -187,7 +187,7 @@ Keep in mind that people might not protect SSH keys long-term, since they are re
     <tr>
         <td>NixOS / Nix</td>
         <td>
-            <code>nix-env -i age</code>
+            <code>nix-env -f '<nixpkgs>' -iA age</code>
         </td>
     </tr>
     <tr>
