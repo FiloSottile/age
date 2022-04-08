@@ -224,7 +224,7 @@ https://dl.filippo.io/age/v1.0.0-rc.1?for=darwin/arm64
 ...
 ```
 
-If your system has [a supported version of Go](https://golang.org/dl/), you can build from source.
+If your system has [a supported version of Go](https://go.dev/dl/), you can build from source.
 
 ```
 go install filippo.io/age/cmd/...@latest
