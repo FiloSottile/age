@@ -65,7 +65,10 @@ func TestVectors(t *testing.T) {
 			r, err := age.Decrypt(in, identities...)
 			if expectFailure {
 				if err == nil {
-					t.Fatal("expected Decrypt failure")
+					_, err = io.ReadAll(r)
+				}
+				if err == nil {
+					t.Fatal("expected Decrypt or Read failure")
 				}
 				if e := new(age.NoIdentityMatchError); errors.As(err, &e) {
 					t.Errorf("got ErrIncorrectIdentity, expected more specific error")
@@ -87,7 +90,7 @@ func TestVectors(t *testing.T) {
 				}
 				t.Logf("%s", out)
 			} else {
-				t.Fatal("invalid test vector")
+				t.Fatal("invalid test vector: missing prefix")
 			}
 		})
 	}

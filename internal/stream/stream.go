@@ -87,7 +87,11 @@ func (r *Reader) readChunk() (last bool, err error) {
 		// A message can't end without a marked chunk. This message is truncated.
 		return false, io.ErrUnexpectedEOF
 	case err == io.ErrUnexpectedEOF:
-		// The last chunk can be short.
+		// The last chunk can be short, but not empty unless it's the first and
+		// only chunk.
+		if !nonceIsZero(&r.nonce) && n == r.a.Overhead() {
+			return false, errors.New("last chunk is empty, try age v1.0.0, and please consider reporting this")
+		}
 		in = in[:n]
 		last = true
 		setLastChunkFlag(&r.nonce)
@@ -126,6 +130,10 @@ func incNonce(nonce *[chacha20poly1305.NonceSize]byte) {
 
 func setLastChunkFlag(nonce *[chacha20poly1305.NonceSize]byte) {
 	nonce[len(nonce)-1] = lastChunkFlag
+}
+
+func nonceIsZero(nonce *[chacha20poly1305.NonceSize]byte) bool {
+	return *nonce == [chacha20poly1305.NonceSize]byte{}
 }
 
 type Writer struct {
