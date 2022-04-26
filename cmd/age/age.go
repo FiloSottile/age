@@ -12,6 +12,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"regexp"
 	"runtime/debug"
 	"strings"
 
@@ -125,9 +126,37 @@ func main() {
 	}
 
 	if flag.NArg() > 1 {
-		errorWithHint(fmt.Sprintf("too many arguments: %q", flag.Args()),
-			"note that the input file must be specified after all flags")
+		var hints []string
+		quotedArgs := strings.Trim(fmt.Sprintf("%q", flag.Args()), "[]")
+
+		// If the second argument looks like a flag, suggest moving the first
+		// argument to the back (as long as the arguments don't need quoting).
+		if strings.HasPrefix(flag.Arg(1), "-") {
+			hints = append(hints, "the input file must be specified after all flags")
+
+			safe := true
+			unsafeShell := regexp.MustCompile(`[^\w@%+=:,./-]`)
+			for _, arg := range os.Args {
+				if unsafeShell.MatchString(arg) {
+					safe = false
+					break
+				}
+			}
+			if safe {
+				i := len(os.Args) - flag.NArg()
+				newArgs := append([]string{}, os.Args[:i]...)
+				newArgs = append(newArgs, os.Args[i+1:]...)
+				newArgs = append(newArgs, os.Args[i])
+				hints = append(hints, "did you mean:")
+				hints = append(hints, "    "+strings.Join(newArgs, " "))
+			}
+		} else {
+			hints = append(hints, "only a single input file may be specified at a time")
+		}
+
+		errorWithHint("too many INPUT arguments: "+quotedArgs, hints...)
 	}
+
 	switch {
 	case decryptFlag:
 		if encryptFlag {
