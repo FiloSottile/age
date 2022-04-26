@@ -38,7 +38,7 @@ jobs:
             freebsd-version
             pkg install -y go
             go version
-          run: go test -race ./...
+          run: go test -buildvcs=false -race ./...
   gotip:
     name: Test (Go tip)
     strategy:
