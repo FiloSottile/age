@@ -36,7 +36,7 @@ jobs:
         with:
           prepare: |
             freebsd-version
-            pkg install -y go
+            pkg install -y go git
             go version
           run: go test -race ./...
   gotip:
