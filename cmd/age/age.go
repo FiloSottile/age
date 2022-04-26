@@ -265,14 +265,12 @@ func main() {
 	}
 
 	switch {
+	case decryptFlag && len(identityFlags) == 0:
+		decryptPass(in, out)
 	case decryptFlag:
-		decrypt(identityFlags, in, out)
+		decryptNotPass(identityFlags, in, out)
 	case passFlag:
-		pass, err := passphrasePromptForEncryption()
-		if err != nil {
-			errorf("%v", err)
-		}
-		encryptPass(pass, in, out, armorFlag)
+		encryptPass(in, out, armorFlag)
 	default:
 		encryptNotPass(recipientFlags, recipientsFileFlags, identityFlags, in, out, armorFlag)
 	}
@@ -352,7 +350,12 @@ func encryptNotPass(recs, files []string, identities identityFlags, in io.Reader
 	encrypt(recipients, in, out, armor)
 }
 
-func encryptPass(pass string, in io.Reader, out io.Writer, armor bool) {
+func encryptPass(in io.Reader, out io.Writer, armor bool) {
+	pass, err := passphrasePromptForEncryption()
+	if err != nil {
+		errorf("%v", err)
+	}
+
 	r, err := age.NewScryptRecipient(pass)
 	if err != nil {
 		errorf("%v", err)
@@ -388,12 +391,19 @@ func encrypt(recipients []age.Recipient, in io.Reader, out io.Writer, withArmor 
 const crlfMangledIntro = "age-encryption.org/v1" + "\r"
 const utf16MangledIntro = "\xff\xfe" + "a\x00g\x00e\x00-\x00e\x00n\x00c\x00r\x00y\x00p\x00"
 
-func decrypt(flags identityFlags, in io.Reader, out io.Writer) {
-	identities := []age.Identity{
-		// If there is an scrypt recipient (it will have to be the only one and)
-		// this identity will be invoked.
-		&LazyScryptIdentity{passphrasePromptForDecryption},
+type rejectScryptIdentity struct{}
+
+func (rejectScryptIdentity) Unwrap(stanzas []*age.Stanza) ([]byte, error) {
+	if len(stanzas) != 1 || stanzas[0].Type != "scrypt" {
+		return nil, age.ErrIncorrectIdentity
 	}
+	errorWithHint("file is passphrase-encrypted but identities were specified with -i/--identity or -j",
+		"remove all -i/--identity/-j flags to decrypt passphrase-encrypted files")
+	panic("unreachable")
+}
+
+func decryptNotPass(flags identityFlags, in io.Reader, out io.Writer) {
+	identities := []age.Identity{rejectScryptIdentity{}}
 
 	for _, f := range flags {
 		switch f.Type {
@@ -412,6 +422,20 @@ func decrypt(flags identityFlags, in io.Reader, out io.Writer) {
 		}
 	}
 
+	decrypt(identities, in, out)
+}
+
+func decryptPass(in io.Reader, out io.Writer) {
+	identities := []age.Identity{
+		// If there is an scrypt recipient (it will have to be the only one and)
+		// this identity will be invoked.
+		&LazyScryptIdentity{passphrasePromptForDecryption},
+	}
+
+	decrypt(identities, in, out)
+}
+
+func decrypt(identities []age.Identity, in io.Reader, out io.Writer) {
 	rr := bufio.NewReader(in)
 	if intro, _ := rr.Peek(len(crlfMangledIntro)); string(intro) == crlfMangledIntro ||
 		string(intro) == utf16MangledIntro {
