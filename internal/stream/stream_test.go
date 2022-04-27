@@ -79,10 +79,6 @@ func testRoundTrip(t *testing.T, stepSize, length int) {
 	n = 0
 	readBuf := make([]byte, stepSize)
 	for n < length {
-		b := length - n
-		if b > stepSize {
-			b = stepSize
-		}
 		nn, err := r.Read(readBuf)
 		if err != nil {
 			t.Fatalf("Read error at index %d: %v", n, err)
