@@ -167,6 +167,12 @@ Keep in mind that people might not protect SSH keys long-term, since they are re
         </td>
     </tr>
     <tr>
+        <td>Alpine Linux</td>
+        <td>
+            <code>apk add age</code>
+        </td>
+    </tr>
+    <tr>
         <td>Fedora 33+</td>
         <td>
             <code>dnf install age</code>
