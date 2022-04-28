@@ -167,7 +167,7 @@ Keep in mind that people might not protect SSH keys long-term, since they are re
         </td>
     </tr>
     <tr>
-        <td>Alpine Linux</td>
+        <td>Alpine Linux v3.15+</td>
         <td>
             <code>apk add age</code>
         </td>
