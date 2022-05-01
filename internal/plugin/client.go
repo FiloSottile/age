@@ -282,7 +282,9 @@ ReadLoop:
 
 // ClientUI holds callbacks that will be invoked by (Un)Wrap if the plugin
 // wishes to interact with the user. If any of them is nil or returns an error,
-// failure will be reported to the plugin.
+// failure will be reported to the plugin, but note that the error is otherwise
+// discarded. Implementations are encouraged to display errors to the user
+// before returning them.
 type ClientUI struct {
 	// DisplayMessage displays the message, which is expected to have lowercase
 	// initials and no final period.
@@ -298,7 +300,6 @@ type ClientUI struct {
 }
 
 func (c *ClientUI) handle(name string, conn *clientConnection, s *format.Stanza) (ok bool, err error) {
-	// TODO: surface non-fatal but probably useful errors.
 	switch s.Type {
 	case "msg":
 		if c.DisplayMessage == nil {

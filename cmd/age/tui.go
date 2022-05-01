@@ -14,11 +14,12 @@ package main
 //     No capitalized initials and no periods at the end.
 
 import (
+	"errors"
 	"fmt"
+	"io"
 	"log"
 	"os"
 	"runtime"
-	"strings"
 
 	"filippo.io/age/internal/plugin"
 	"golang.org/x/term"
@@ -48,29 +49,40 @@ func errorWithHint(error string, hints ...string) {
 	l.Fatalf("age: report unexpected or unhelpful errors at https://filippo.io/age/report")
 }
 
-// Terminal escape codes to erase the previous line.
-const (
-	CUI = "\033["   // Control Sequence Introducer
-	CPL = CUI + "F" // Cursor Previous Line
-	EL  = CUI + "K" // Erase in Line
-	CHA = CUI + "G" // Cursor Horizontal Absolute
-)
+// clearLine clears the current line on the terminal, or opens a new line if
+// terminal escape codes don't work.
+func clearLine(out io.Writer) {
+	const (
+		CUI = "\033["   // Control Sequence Introducer
+		CPL = CUI + "F" // Cursor Previous Line
+		EL  = CUI + "K" // Erase in Line
+	)
 
-// readSecret reads a value from the terminal with no echo. The prompt is
-// ephemeral. readSecret does not read from a non-terminal stdin, so it does not
-// check stdinInUse.
-func readSecret(prompt string) ([]byte, error) {
+	// First, open a new line, which is guaranteed to work everywhere. Then, try
+	// to erase the line above with escape codes.
+	//
+	// (We use CRLF instead of LF to work around an apparent bug in WSL2's
+	// handling of CONOUT$. Only when running a Windows binary from WSL2, the
+	// cursor would not go back to the start of the line with a simple LF.
+	// Honestly, it's impressive CONIN$ and CONOUT$ work at all inside WSL2.)
+	fmt.Fprintf(out, "\r\n"+CPL+EL)
+}
+
+// withTerminal runs f with the terminal input and output files, if available.
+// withTerminal does not open a non-terminal stdin, so the caller does not need
+// to check stdinInUse.
+func withTerminal(f func(in, out *os.File) error) error {
 	var in, out *os.File
 	if runtime.GOOS == "windows" {
 		var err error
 		in, err = os.OpenFile("CONIN$", os.O_RDWR, 0)
 		if err != nil {
-			return nil, err
+			return err
 		}
 		defer in.Close()
 		out, err = os.OpenFile("CONOUT$", os.O_WRONLY, 0)
 		if err != nil {
-			return nil, err
+			return err
 		}
 		defer out.Close()
 	} else if tty, err := os.OpenFile("/dev/tty", os.O_RDWR, 0); err == nil {
@@ -78,23 +90,46 @@ func readSecret(prompt string) ([]byte, error) {
 		in, out = tty, tty
 	} else {
 		if !term.IsTerminal(int(os.Stdin.Fd())) {
-			return nil, fmt.Errorf("standard input is not a terminal, and /dev/tty is not available: %v", err)
+			return fmt.Errorf("standard input is not a terminal, and /dev/tty is not available: %v", err)
 		}
 		in, out = os.Stdin, os.Stderr
 	}
+	return f(in, out)
+}
 
-	fmt.Fprintf(out, "%s ", prompt)
+// readSecret reads a value from the terminal with no echo. The prompt is ephemeral.
+func readSecret(prompt string) (s []byte, err error) {
+	err = withTerminal(func(in, out *os.File) error {
+		fmt.Fprintf(out, "%s ", prompt)
+		defer clearLine(out)
+		s, err = term.ReadPassword(int(in.Fd()))
+		return err
+	})
+	return
+}
 
-	// First, open a new line (since the return character is not echoed, like
-	// the password), which is guaranteed to work everywhere. Then, try to erase
-	// the line above with escape codes. (We use CRLF instead of LF to work
-	// around an apparent bug in WSL2's handling of CONOUT$. Only when running a
-	// Windows binary from WSL2, the cursor would not go back to the start of
-	// the line with a simple LF. Honestly, it's impressive CONIN$ and CONOUT$
-	// even work at all inside WSL2.)
-	defer fmt.Fprintf(out, "\r\n"+CPL+EL)
+// readSecret reads a single character from the terminal with no echo. The
+// prompt is ephemeral.
+func readCharacter(prompt string) (c byte, err error) {
+	err = withTerminal(func(in, out *os.File) error {
+		fmt.Fprintf(out, "%s ", prompt)
+		defer clearLine(out)
 
-	return term.ReadPassword(int(in.Fd()))
+		oldState, err := term.MakeRaw(int(in.Fd()))
+		if err != nil {
+			return err
+		}
+		defer term.Restore(int(in.Fd()), oldState)
+
+		b := make([]byte, 1)
+		if _, err := in.Read(b); err != nil {
+			return err
+		}
+
+		c = b[0]
+		return nil
+	})
+	return
 }
 
 var pluginTerminalUI = &plugin.ClientUI{
@@ -102,35 +137,48 @@ var pluginTerminalUI = &plugin.ClientUI{
 		printf("%s plugin: %s", name, message)
 		return nil
 	},
-	RequestValue: func(name, message string, _ bool) (string, error) {
+	RequestValue: func(name, message string, _ bool) (s string, err error) {
+		defer func() {
+			if err != nil {
+				warningf("could not read value for age-plugin-%s: %v", name, err)
+			}
+		}()
 		secret, err := readSecret(message)
 		if err != nil {
-			return "", fmt.Errorf("could not read value for age-plugin-%s: %v", name, err)
+			return "", err
 		}
 		return string(secret), nil
 	},
-	Confirm: func(name, message, yes, no string) (bool, error) {
-		if no != "" {
-			message += fmt.Sprintf(" (1 for %q, 2 for %q)", yes, no)
-			selection, err := readSecret(message)
+	Confirm: func(name, message, yes, no string) (choseYes bool, err error) {
+		defer func() {
 			if err != nil {
-				return false, fmt.Errorf("could not read value for age-plugin-%s: %v", name, err)
+				warningf("could not read value for age-plugin-%s: %v", name, err)
 			}
-			switch strings.TrimSpace(string(selection)) {
-			case "1":
-				return true, nil
-			case "2":
-				return false, nil
-			default:
-				return false, fmt.Errorf("invalid selection %q", selection)
-			}
-		} else {
+		}()
+		if no == "" {
 			message += fmt.Sprintf(" (press enter for %q)", yes)
 			_, err := readSecret(message)
 			if err != nil {
-				return false, fmt.Errorf("could not read value for age-plugin-%s: %v", name, err)
+				return false, err
 			}
 			return true, nil
+		}
+		message += fmt.Sprintf(" (press [1] for %q or [2] for %q)", yes, no)
+		for {
+			selection, err := readCharacter(message)
+			if err != nil {
+				return false, err
+			}
+			switch selection {
+			case '1':
+				return true, nil
+			case '2':
+				return false, nil
+			case '\x03': // CTRL-C
+				return false, errors.New("user cancelled prompt")
+			default:
+				warningf("reading value for age-plugin-%s: invalid selection %q", name, selection)
+			}
 		}
 	},
 }
