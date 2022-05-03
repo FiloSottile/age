@@ -119,11 +119,7 @@ func readPassphrase(prompt string) ([]byte, error) {
 			return nil, err
 		}
 		defer out.Close()
-	} else if _, err := os.Stat("/dev/tty"); err == nil {
-		tty, err := os.OpenFile("/dev/tty", os.O_RDWR, 0)
-		if err != nil {
-			return nil, err
-		}
+	} else if tty, err := os.OpenFile("/dev/tty", os.O_RDWR, 0); err == nil {
 		defer tty.Close()
 		in, out = tty, tty
 	} else {
