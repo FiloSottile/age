@@ -1,7 +1,8 @@
 <p align="center"><img alt="The age logo, an wireframe of St. Peters dome in Rome, with the text: age, file encryption" width="600" src="https://user-images.githubusercontent.com/1225294/132245842-fda4da6a-1cea-4738-a3da-2dc860861c98.png"></p>
 
 [![Go Reference](https://pkg.go.dev/badge/filippo.io/age.svg)](https://pkg.go.dev/filippo.io/age)
-[![man page](https://img.shields.io/badge/man-page-lightgrey)](https://filippo.io/age/age.1)
+[![man page](https://img.shields.io/badge/age(1)-man%20page-lightgrey)](https://filippo.io/age/age.1)
+[![C2SP specification](https://img.shields.io/badge/%C2%A7%23-specification-blueviolet)](https://age-encryption.org/v1)
 
 age is a simple, modern and secure file encryption tool, format, and Go library.
 
