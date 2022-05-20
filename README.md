@@ -150,15 +150,9 @@ Keep in mind that people might not protect SSH keys long-term, since they are re
         </td>
     </tr>
     <tr>
-        <td>Ubuntu 21.04+</td>
+        <td>Alpine Linux v3.15+</td>
         <td>
-            <code>apt install age</code>
-        </td>
-    </tr>
-    <tr>
-        <td>Debian 11+ (Bullseye)</td>
-        <td>
-            <code>apt install age</code>
+            <code>apk add age</code>
         </td>
     </tr>
     <tr>
@@ -168,9 +162,9 @@ Keep in mind that people might not protect SSH keys long-term, since they are re
         </td>
     </tr>
     <tr>
-        <td>Alpine Linux v3.15+</td>
+        <td>Debian 11+ (Bullseye)</td>
         <td>
-            <code>apk add age</code>
+            <code>apt install age</code>
         </td>
     </tr>
     <tr>
@@ -180,15 +174,9 @@ Keep in mind that people might not protect SSH keys long-term, since they are re
         </td>
     </tr>
     <tr>
-        <td>OpenBSD 6.7+</td>
+        <td>Gentoo Linux</td>
         <td>
-            <code>pkg_add age</code> (security/age)
-        </td>
-    </tr>
-    <tr>
-        <td>FreeBSD</td>
-        <td>
-            <code>pkg install age</code> (security/age)
+            <code>emerge app-crypt/age</code>
         </td>
     </tr>
     <tr>
@@ -198,15 +186,33 @@ Keep in mind that people might not protect SSH keys long-term, since they are re
         </td>
     </tr>
     <tr>
-        <td>Gentoo Linux</td>
+        <td>openSUSE Tumbleweed</td>
         <td>
-            <code>emerge app-crypt/age</code>
+            <code>zypper install age</code>
         </td>
     </tr>
-     <tr>
+    <tr>
+        <td>Ubuntu 21.04+</td>
+        <td>
+            <code>apt install age</code>
+        </td>
+    </tr>
+    <tr>
         <td>Void Linux</td>
         <td>
             <code>xbps-install age</code>
+        </td>
+    </tr>
+    <tr>
+        <td>FreeBSD</td>
+        <td>
+            <code>pkg install age</code> (security/age)
+        </td>
+    </tr>
+    <tr>
+        <td>OpenBSD 6.7+</td>
+        <td>
+            <code>pkg_add age</code> (security/age)
         </td>
     </tr>
     <tr>
