@@ -47,7 +47,7 @@ overhead per recipient, plus 16 bytes every 64KiB of plaintext.
     Encrypt to the explicitly specified <RECIPIENT>. See the
     [RECIPIENTS AND IDENTITIES][] section for possible recipient formats.
 
-    This option can be repeated and combined with `-R`/`--recipients-file`,
+    This option can be repeated and combined with other recipient flags,
     and the file can be decrypted by all provided recipients independently.
 
 * `-R`, `--recipients-file`=<PATH>:
@@ -58,15 +58,14 @@ overhead per recipient, plus 16 bytes every 64KiB of plaintext.
     If <PATH> is `-`, the recipients are read from standard input. In
     this case, the <INPUT> argument must be specified.
 
-    This option can be repeated and combined with `-r`/`--recipient`,
+    This option can be repeated and combined with other recipient flags,
     and the file can be decrypted by all provided recipients independently.
 
 * `-p`, `--passphrase`:
     Encrypt with a passphrase, requested interactively from the terminal.
     `age` will offer to auto-generate a secure passphrase.
 
-    This option can't be used with `-r`/`--recipient` or
-    `-R`/`--recipients-file`.
+    This option can't be used with other recipient flags.
 
 * `-a`, `--armor`:
     Encrypt to an ASCII-only "armored" encoding.
@@ -76,6 +75,27 @@ overhead per recipient, plus 16 bytes every 64KiB of plaintext.
     trailing extra data.
 
     Decryption transparently detects and decodes ASCII armoring.
+
+* `-i`, `--identity`=<PATH>:
+    Encrypt to the [RECIPIENTS][RECIPIENTS AND IDENTITIES] corresponding to the
+    [IDENTITIES][RECIPIENTS AND IDENTITIES] listed in the file at <PATH>. This
+    is equivalent to converting the file at <PATH> to a recipients file with
+    `age-keygen -y` and then passing that to `-R`/`--recipients-file`.
+
+    For the format of <PATH>, see the definition of `-i`/`--identity` in the
+    [Decryption options][] section.
+
+    `-e`/`--encrypt` must be explicitly specified when using `-i`/`--identity`
+    in encryption mode to avoid confusion.
+
+* `-j` <PLUGIN>:
+    Encrypt using the data-less [plugin][Plugins] <PLUGIN>.
+
+    This is equivalent to using `-i`/`--identity` with a file that contains a
+    single plugin `IDENTITY` that encodes no plugin-specific data.
+
+    `-e`/`--encrypt` must be explicitly specified when using `-j` in encryption
+    mode to avoid confusion.
 
 ### Decryption options
 
@@ -116,19 +136,11 @@ overhead per recipient, plus 16 bytes every 64KiB of plaintext.
     Unused identities are ignored, but it is an error if the <INPUT> file is
     passphrase-encrypted and `-i`/`--identity` is specified.
 
-    If `-e`/`--encrypt` is explicitly specified (to avoid confusion),
-    `-i`/`--identity` may also be used to encrypt to the `RECIPIENTS`
-    corresponding to the `IDENTITIES` listed at <PATH>. This allows using an
-    identity file as a symmetric key, if desired.
-
 * `-j` <PLUGIN>:
     Decrypt using the data-less [plugin][Plugins] <PLUGIN>.
 
     This is equivalent to using `-i`/`--identity` with a file that contains a
     single plugin `IDENTITY` that encodes no plugin-specific data.
-
-    If `-e`/`--encrypt` is explicitly specified (to avoid confusion), `-j` may
-    also be used to encrypt with a data-less plugin.
 
 ## RECIPIENTS AND IDENTITIES
 
