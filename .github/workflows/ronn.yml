@@ -5,6 +5,8 @@ on:
       - '**'
     paths:
       - '**.ronn'
+      - '**/ronn.yml'
+      - '**/ronn/**'
 permissions:
   contents: read
 jobs:
@@ -27,10 +29,12 @@ jobs:
             mv "$f.tmp" "$f"
           done
       - name: Upload generated files
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
-          name: man-pages-html
-          path: doc/*.html
+          name: man-pages
+          path: |
+            doc/*.1
+            doc/*.html
   commit:
     name: Commit changes
     needs: ronn
@@ -43,7 +47,7 @@ jobs:
       - name: Download generated files
         uses: actions/download-artifact@v2
         with:
-          name: man-pages-html
+          name: man-pages
           path: doc/
       - name: Commit and push if changed
         run: |-
