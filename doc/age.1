@@ -13,7 +13,7 @@
 \fBage\fR [\fB\-\-encrypt\fR] \fB\-\-passphrase\fR [\fB\-\-armor\fR] [\fB\-o\fR \fIOUTPUT\fR] [\fIINPUT\fR]
 .
 .br
-\fBage\fR \fB\-\-decrypt\fR [\fB\-i\fR \fIPATH\fR]\.\.\. [\fB\-o\fR \fIOUTPUT\fR] [\fIINPUT\fR]
+\fBage\fR \fB\-\-decrypt\fR [\fB\-i\fR \fIPATH\fR | \fB\-j\fR \fIPLUGIN\fR]\.\.\. [\fB\-o\fR \fIOUTPUT\fR] [\fIINPUT\fR]
 .
 .br
 .
@@ -21,10 +21,10 @@
 \fBage\fR encrypts or decrypts \fIINPUT\fR to \fIOUTPUT\fR\. The \fIINPUT\fR argument is optional and defaults to standard input\. Only a single \fIINPUT\fR file may be specified\. If \fB\-o\fR is not specified, \fIOUTPUT\fR defaults to standard output\.
 .
 .P
-If \fB\-\-passphrase\fR is specified, the file is encrypted with a passphrase requested interactively\. Otherwise, it\'s encrypted to one or more \fIRECIPIENTS\fR specified with \fB\-r\fR/\fB\-\-recipient\fR or \fB\-R\fR/\fB\-\-recipients\-file\fR\. Every recipient can decrypt the file\.
+If \fB\-p\fR/\fB\-\-passphrase\fR is specified, the file is encrypted with a passphrase requested interactively\. Otherwise, it\'s encrypted to one or more \fIRECIPIENTS\fR specified with \fB\-r\fR/\fB\-\-recipient\fR or \fB\-R\fR/\fB\-\-recipients\-file\fR\. Every recipient can decrypt the file\.
 .
 .P
-In \fB\-\-decrypt\fR mode, passphrase\-encrypted files are detected automatically and the passphrase is requested interactively\. Otherwise, one or more \fIIDENTITIES\fR specified with \fB\-i\fR/\fB\-\-identity\fR are used to decrypt the file\.
+In \fB\-d\fR/\fB\-\-decrypt\fR mode, passphrase\-encrypted files are detected automatically and the passphrase is requested interactively\. Otherwise, one or more \fIIDENTITIES\fR specified with \fB\-i\fR/\fB\-\-identity\fR are used to decrypt the file\.
 .
 .P
 \fBage\fR encrypted files are binary and not malleable, with around 200 bytes of overhead per recipient, plus 16 bytes every 64KiB of plaintext\.
@@ -53,7 +53,7 @@ Encrypt \fIINPUT\fR to \fIOUTPUT\fR\. This is the default\.
 Encrypt to the explicitly specified \fIRECIPIENT\fR\. See the \fIRECIPIENTS AND IDENTITIES\fR section for possible recipient formats\.
 .
 .IP
-This option can be repeated and combined with \fB\-R\fR/\fB\-\-recipients\-file\fR, and the file can be decrypted by all provided recipients independently\.
+This option can be repeated and combined with other recipient flags, and the file can be decrypted by all provided recipients independently\.
 .
 .TP
 \fB\-R\fR, \fB\-\-recipients\-file\fR=\fIPATH\fR
@@ -63,14 +63,14 @@ Encrypt to the \fIRECIPIENTS\fR listed in the file at \fIPATH\fR, one per line\.
 If \fIPATH\fR is \fB\-\fR, the recipients are read from standard input\. In this case, the \fIINPUT\fR argument must be specified\.
 .
 .IP
-This option can be repeated and combined with \fB\-r\fR/\fB\-\-recipient\fR, and the file can be decrypted by all provided recipients independently\.
+This option can be repeated and combined with other recipient flags, and the file can be decrypted by all provided recipients independently\.
 .
 .TP
 \fB\-p\fR, \fB\-\-passphrase\fR
 Encrypt with a passphrase, requested interactively from the terminal\. \fBage\fR will offer to auto\-generate a secure passphrase\.
 .
 .IP
-This option can\'t be used with \fB\-r\fR/\fB\-\-recipient\fR or \fB\-R\fR/\fB\-\-recipients\-file\fR\.
+This option can\'t be used with other recipient flags\.
 .
 .TP
 \fB\-a\fR, \fB\-\-armor\fR
@@ -81,6 +81,26 @@ Encrypt to an ASCII\-only "armored" encoding\.
 .
 .IP
 Decryption transparently detects and decodes ASCII armoring\.
+.
+.TP
+\fB\-i\fR, \fB\-\-identity\fR=\fIPATH\fR
+Encrypt to the \fIRECIPIENTS\fR corresponding to the \fIIDENTITIES\fR listed in the file at \fIPATH\fR\. This is equivalent to converting the file at \fIPATH\fR to a recipients file with \fBage\-keygen \-y\fR and then passing that to \fB\-R\fR/\fB\-\-recipients\-file\fR\.
+.
+.IP
+For the format of \fIPATH\fR, see the definition of \fB\-i\fR/\fB\-\-identity\fR in the \fIDecryption options\fR section\.
+.
+.IP
+\fB\-e\fR/\fB\-\-encrypt\fR must be explicitly specified when using \fB\-i\fR/\fB\-\-identity\fR in encryption mode to avoid confusion\.
+.
+.TP
+\fB\-j\fR \fIPLUGIN\fR
+Encrypt using the data\-less \fIplugin\fR \fIPLUGIN\fR\.
+.
+.IP
+This is equivalent to using \fB\-i\fR/\fB\-\-identity\fR with a file that contains a single plugin \fBIDENTITY\fR that encodes no plugin\-specific data\.
+.
+.IP
+\fB\-e\fR/\fB\-\-encrypt\fR must be explicitly specified when using \fB\-j\fR in encryption mode to avoid confusion\.
 .
 .SS "Decryption options"
 .
@@ -114,10 +134,14 @@ c\. An SSH private key file, in PKCS#1, PKCS#8, or OpenSSH format\. If the priva
 d\. "\fB\-\fR", causing one of the options above to be read from standard input\. In this case, the \fIINPUT\fR argument must be specified\.
 .
 .IP
-This option can be repeated\. Identities are tried in the order in which are provided, and the first one matching one of the file\'s recipients is used\. Unused identities are ignored\.
+This option can be repeated\. Identities are tried in the order in which are provided, and the first one matching one of the file\'s recipients is used\. Unused identities are ignored, but it is an error if the \fIINPUT\fR file is passphrase\-encrypted and \fB\-i\fR/\fB\-\-identity\fR is specified\.
+.
+.TP
+\fB\-j\fR \fIPLUGIN\fR
+Decrypt using the data\-less \fIplugin\fR \fIPLUGIN\fR\.
 .
 .IP
-If \fB\-e\fR/\fB\-\-encrypt\fR is explicitly specified (to avoid confusion), \fB\-i\fR/\fB\-\-identity\fR may also be used to encrypt to the \fBRECIPIENTS\fR corresponding to the \fBIDENTITIES\fR listed at \fIPATH\fR\. This allows using an identity file as a symmetric key, if desired\.
+This is equivalent to using \fB\-i\fR/\fB\-\-identity\fR with a file that contains a single plugin \fBIDENTITY\fR that encodes no plugin\-specific data\.
 .
 .SH "RECIPIENTS AND IDENTITIES"
 \fBRECIPIENTS\fR are public values, like a public key, that a file can be encrypted to\. \fBIDENTITIES\fR are private values, like a private key, that allow decrypting a file encrypted to the corresponding \fBRECIPIENT\fR\.
@@ -182,6 +206,24 @@ An \fBIDENTITY\fR is an SSH private key \fIfile\fR passed individually to \fB\-i
 .
 .P
 An encrypted file \fIcan\fR be linked to the SSH public key it was encrypted to\. This is so that \fBage\fR can identify the correct SSH private key before requesting its password, if any\.
+.
+.SS "Plugins"
+\fBage\fR can be extended through plugins\. A plugin is only loaded if a corresponding \fBRECIPIENT\fR or \fBIDENTITY\fR is specified\. (Simply decrypting a file encrypted with a plugin will not cause it to load, for security reasons among others\.)
+.
+.P
+A \fBRECIPIENT\fR for a plugin named \fBexample\fR starts with \fBage1example1\fR, while an \fBIDENTITY\fR starts with \fBAGE\-PLUGIN\-EXAMPLE\-1\fR\. They both encode arbitrary plugin\-specific data, and are generated by the plugin\.
+.
+.P
+When either is specified, \fBage\fR searches for \fBage\-plugin\-example\fR in the PATH and executes it to perform the file header encryption or decryption\. The plugin may request input from the user through \fBage\fR to complete the operation\.
+.
+.P
+Plugins can be freely mixed with other plugins or natively supported keys\.
+.
+.P
+A plugin is not bound to only encrypt or decrypt files meant for or generated by the plugin\. For example, a plugin can be used to decrypt files encrypted to a native X25519 \fBRECIPIENT\fR or even with a passphrase\. Similarly, a plugin can encrypt a file such that it can be decrypted without the use of any plugin\.
+.
+.P
+Plugins for which the \fBIDENTITY\fR/\fBRECIPIENT\fR distinction doesn\'t make sense (such as a symmetric encryption plugin) may generate only an \fBIDENTITY\fR and instruct the user to perform encryption with the \fB\-e\fR/\fB\-\-encrypt\fR and \fB\-i\fR/\fB\-\-identity\fR flags\. Plugins for which the concept of separate identities doesn\'t make sense (such as a password\-encryption plugin) may instruct the user to use the \fB\-j\fR flag\.
 .
 .SH "EXIT STATUS"
 \fBage\fR will exit 0 if and only if encryption or decryption are successful for the full length of the input\.
@@ -295,6 +337,23 @@ Encrypt and decrypt with an SSH public key:
 $ age \-R ~/\.ssh/id_ed25519\.pub example\.jpg > example\.jpg\.age
 
 $ age \-d \-i ~/\.ssh/id_ed25519 example\.jpg\.age > example\.jpg
+.
+.fi
+.
+.IP "" 0
+.
+.P
+Encrypt and decrypt with age\-plugin\-yubikey:
+.
+.IP "" 4
+.
+.nf
+
+$ age\-plugin\-yubikey # run interactive setup, generate identity file and obtain recipient
+
+$ age \-r age1yubikey1qwt50d05nh5vutpdzmlg5wn80xq5negm4uj9ghv0snvdd3yysf5yw3rhl3t secrets\.txt > secrets\.txt\.age
+
+$ age \-d \-i age\-yubikey\-identity\-388178f3\.txt secrets\.txt\.age
 .
 .fi
 .
