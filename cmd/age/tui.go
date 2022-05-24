@@ -181,4 +181,7 @@ var pluginTerminalUI = &plugin.ClientUI{
 			}
 		}
 	},
+	WaitTimer: func(name string) {
+		printf("waiting on %s plugin...", name)
+	},
 }

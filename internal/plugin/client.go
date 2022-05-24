@@ -15,6 +15,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	exec "golang.org/x/sys/execabs"
 
@@ -87,7 +88,7 @@ func (r *Recipient) Wrap(fileKey []byte) (stanzas []*age.Stanza, err error) {
 	sr := format.NewStanzaReader(bufio.NewReader(conn))
 ReadLoop:
 	for {
-		s, err := sr.ReadStanza()
+		s, err := r.ui.readStanza(r.name, sr)
 		if err != nil {
 			return nil, err
 		}
@@ -228,7 +229,7 @@ func (i *Identity) Unwrap(stanzas []*age.Stanza) (fileKey []byte, err error) {
 	sr := format.NewStanzaReader(bufio.NewReader(conn))
 ReadLoop:
 	for {
-		s, err := sr.ReadStanza()
+		s, err := i.ui.readStanza(i.name, sr)
 		if err != nil {
 			return nil, err
 		}
@@ -297,6 +298,12 @@ type ClientUI struct {
 	// value are the choices provided to the user. no may be empty. The return
 	// value indicates whether the user selected the yes or no option.
 	Confirm func(name, prompt, yes, no string) (choseYes bool, err error)
+
+	// WaitTimer is invoked once (Un)Wrap has been waiting for 5 seconds on the
+	// plugin, for example because the plugin is waiting for an external event
+	// (e.g. a hardware token touch). Unlike the other callbacks, WaitTimer runs
+	// in a separate goroutine, and if missing it's simply ignored.
+	WaitTimer func(name string)
 }
 
 func (c *ClientUI) handle(name string, conn *clientConnection, s *format.Stanza) (ok bool, err error) {
@@ -348,6 +355,15 @@ func (c *ClientUI) handle(name string, conn *clientConnection, s *format.Stanza)
 	default:
 		return false, nil
 	}
+}
+
+// readStanza calls r.ReadStanza and, if set, invokes WaitTimer in a separate
+// goroutine if the call takes longer than 5 seconds.
+func (c *ClientUI) readStanza(name string, r *format.StanzaReader) (*format.Stanza, error) {
+	if c.WaitTimer != nil {
+		defer time.AfterFunc(5*time.Second, func() { c.WaitTimer(name) }).Stop()
+	}
+	return r.ReadStanza()
 }
 
 type clientConnection struct {
