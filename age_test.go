@@ -75,7 +75,7 @@ func ExampleDecrypt() {
 }
 
 func ExampleParseIdentities() {
-	keyFile, err := os.Open("testdata/keys.txt")
+	keyFile, err := os.Open("testdata/example_keys.txt")
 	if err != nil {
 		log.Fatalf("Failed to open private keys file: %v", err)
 	}
