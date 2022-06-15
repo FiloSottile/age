@@ -130,8 +130,7 @@ func (f *TestFile) HMAC() {
 	f.HMACLine(h.Sum(nil))
 }
 
-func (f *TestFile) Nonce() {
-	nonce := f.Rand(16)
+func (f *TestFile) Nonce(nonce []byte) {
 	f.streamKey = make([]byte, 32)
 	hkdf.New(sha256.New, f.fileKey, nonce, []byte("payload")).Read(f.streamKey)
 	f.Buf.Write(nonce)
@@ -152,7 +151,7 @@ func (f *TestFile) PayloadChunkFinal(plaintext []byte) {
 }
 
 func (f *TestFile) Payload(plaintext string) {
-	f.Nonce()
+	f.Nonce(f.Rand(16))
 	f.PayloadChunkFinal([]byte(plaintext))
 }
 
