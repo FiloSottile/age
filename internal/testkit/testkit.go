@@ -6,7 +6,6 @@ package testkit
 
 import (
 	"bytes"
-	"crypto/cipher"
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/base64"
@@ -31,8 +30,9 @@ var TestX25519Recipient, _ = curve25519.X25519(TestX25519Identity, curve25519.Ba
 
 type TestFile struct {
 	Buf  bytes.Buffer
-	rand io.Reader
+	Rand func(n int) []byte
 
+	fileKey    []byte
 	streamKey  []byte
 	nonce      [12]byte
 	payload    bytes.Buffer
@@ -41,19 +41,19 @@ type TestFile struct {
 	identities []string
 }
 
-type zeroReader struct{}
-
-func (zeroReader) Read(p []byte) (int, error) {
-	for n := range p {
-		p[n] = 0
-	}
-	return len(p), nil
-}
-
 func NewTestFile() *TestFile {
 	c, _ := chacha20.NewUnauthenticatedCipher(
 		[]byte("TEST RANDOMNESS TEST RANDOMNESS!"), make([]byte, chacha20.NonceSize))
-	return &TestFile{rand: cipher.StreamReader{c, zeroReader{}}, expect: "success"}
+	rand := func(n int) []byte {
+		out := make([]byte, n)
+		c.XORKeyStream(out, out)
+		return out
+	}
+	return &TestFile{Rand: rand, expect: "success", fileKey: TestFileKey}
+}
+
+func (f *TestFile) FileKey(key []byte) {
+	f.fileKey = key
 }
 
 func (f *TestFile) TextLine(s string) {
@@ -96,18 +96,25 @@ func (f *TestFile) AEADBody(key, body []byte) {
 }
 
 func (f *TestFile) X25519(identity []byte) {
+	f.X25519RecordIdentity(identity)
+	f.X25519NoRecordIdentity(identity)
+}
+
+func (f *TestFile) X25519RecordIdentity(identity []byte) {
 	id, _ := bech32.Encode("AGE-SECRET-KEY-", identity)
 	f.identities = append(f.identities, id)
+}
+
+func (f *TestFile) X25519NoRecordIdentity(identity []byte) {
 	recipient, _ := curve25519.X25519(identity, curve25519.Basepoint)
-	ephemeral := make([]byte, 32)
-	f.rand.Read(ephemeral)
+	ephemeral := f.Rand(32)
 	share, _ := curve25519.X25519(ephemeral, curve25519.Basepoint)
 	f.ArgsLine("X25519", b64(share))
 	secret, _ := curve25519.X25519(ephemeral, recipient)
 	key := make([]byte, 32)
 	hkdf.New(sha256.New, secret, append(share, recipient...),
 		[]byte("age-encryption.org/v1/X25519")).Read(key)
-	f.AEADBody(key, TestFileKey)
+	f.AEADBody(key, f.fileKey)
 }
 
 func (f *TestFile) HMACLine(h []byte) {
@@ -116,7 +123,7 @@ func (f *TestFile) HMACLine(h []byte) {
 
 func (f *TestFile) HMAC() {
 	key := make([]byte, 32)
-	hkdf.New(sha256.New, TestFileKey, nil, []byte("header")).Read(key)
+	hkdf.New(sha256.New, f.fileKey, nil, []byte("header")).Read(key)
 	h := hmac.New(sha256.New, key)
 	h.Write(f.Buf.Bytes())
 	h.Write([]byte("---"))
@@ -124,10 +131,9 @@ func (f *TestFile) HMAC() {
 }
 
 func (f *TestFile) Nonce() {
-	nonce := make([]byte, 16)
-	f.rand.Read(nonce)
+	nonce := f.Rand(16)
 	f.streamKey = make([]byte, 32)
-	hkdf.New(sha256.New, TestFileKey, nonce, []byte("payload")).Read(f.streamKey)
+	hkdf.New(sha256.New, f.fileKey, nonce, []byte("payload")).Read(f.streamKey)
 	f.Buf.Write(nonce)
 }
 
@@ -167,6 +173,7 @@ func (f *TestFile) Generate() {
 	if f.expect == "success" {
 		fmt.Printf("payload: %x\n", sha256.Sum256(f.payload.Bytes()))
 	}
+	fmt.Printf("file key: %x\n", f.fileKey)
 	for _, id := range f.identities {
 		fmt.Printf("identity: %s\n", id)
 	}

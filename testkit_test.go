@@ -9,7 +9,6 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"flag"
-	"fmt"
 	"io"
 	"log"
 	"os"
@@ -27,15 +26,26 @@ func TestMain(m *testing.M) {
 	genFlag := flag.Bool("generate", false, "regenerate test files")
 	flag.Parse()
 	if *genFlag {
+		log.SetFlags(0)
+		tests, err := filepath.Glob("testdata/*.test")
+		if err != nil {
+			log.Fatal(err)
+		}
+		for _, test := range tests {
+			os.Remove(test)
+		}
 		generators, err := filepath.Glob("testdata/*.go")
 		if err != nil {
 			log.Fatal(err)
 		}
 		for _, generator := range generators {
 			vector := strings.TrimSuffix(generator, ".go") + ".test"
-			fmt.Fprintf(os.Stderr, "%s -> %s\n", generator, vector)
+			log.Printf("%s -> %s\n", generator, vector)
 			out, err := exec.Command("go", "run", generator).Output()
 			if err != nil {
+				if err, ok := err.(*exec.ExitError); ok {
+					log.Fatalf("%s", err.Stderr)
+				}
 				log.Fatal(err)
 			}
 			os.WriteFile(vector, out, 0664)
@@ -104,6 +114,8 @@ func testVector(t *testing.T, test []byte) {
 				t.Fatal(err)
 			}
 			identities = append(identities, i)
+		case "file key":
+			// Ignored.
 		case "comment":
 			t.Log(value)
 		default:
@@ -114,6 +126,7 @@ func testVector(t *testing.T, test []byte) {
 	r, err := age.Decrypt(bytes.NewReader(test), identities...)
 	if err != nil {
 		if expectHeaderFailure {
+			t.Log(err)
 			return
 		}
 		t.Fatal("unexpected header error:", err)
@@ -123,6 +136,7 @@ func testVector(t *testing.T, test []byte) {
 	out, err := io.ReadAll(r)
 	if err != nil {
 		if expectPayloadFailure {
+			t.Log(err)
 			return
 		}
 		t.Fatal("unexpected payload error:", err)

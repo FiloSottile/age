@@ -1,0 +1,10 @@
+expect: header failure
+file key: 41204c4f4e4745522059454c4c4f57205355424d4152494e45
+identity: AGE-SECRET-KEY-1EGTZVFFV20835NWYV6270LXYVK2VKNX2MMDKWYKLMGR48UAWX40Q2P2LM0
+comment: the file key must be checked to be 16 bytes before decrypting it
+
+age-encryption.org/v1
+-> X25519 TEiF0ypqr+bpvcqXNyCVJpL7OuwPdVwPL7KQEbFDOCc
+nlObGn0CSA4pxiaG3W6nLlaFFuHmqW+bFC6sJmbsJ9yFesgSok1K0AI
+--- C49Jo3+j4I6jWB2tldSs1jVAXbv0mOTAnwdT+5vOiBg
+מֿbַ־‘´3'NhװעשLcק(­חס׀tÿַP²)€x1
