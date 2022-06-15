@@ -27,19 +27,20 @@ func TestMain(m *testing.M) {
 	flag.Parse()
 	if *genFlag {
 		log.SetFlags(0)
-		tests, err := filepath.Glob("testdata/*.test")
+		tests, err := filepath.Glob("testdata/testkit/*")
 		if err != nil {
 			log.Fatal(err)
 		}
 		for _, test := range tests {
 			os.Remove(test)
 		}
-		generators, err := filepath.Glob("testdata/*.go")
+		generators, err := filepath.Glob("tests/*.go")
 		if err != nil {
 			log.Fatal(err)
 		}
 		for _, generator := range generators {
-			vector := strings.TrimSuffix(generator, ".go") + ".test"
+			vector := strings.TrimSuffix(generator, ".go")
+			vector = "testdata/testkit/" + strings.TrimPrefix(vector, "tests/")
 			log.Printf("%s -> %s\n", generator, vector)
 			out, err := exec.Command("go", "run", generator).Output()
 			if err != nil {
@@ -56,7 +57,7 @@ func TestMain(m *testing.M) {
 }
 
 func TestVectors(t *testing.T) {
-	tests, err := filepath.Glob("testdata/*.test")
+	tests, err := filepath.Glob("testdata/testkit/*")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -65,8 +66,7 @@ func TestVectors(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		name := strings.TrimPrefix(test, "testdata/")
-		name = strings.TrimSuffix(name, ".test")
+		name := strings.TrimPrefix(test, "testdata/testkit/")
 		t.Run(name, func(t *testing.T) {
 			testVector(t, contents)
 		})
@@ -110,6 +110,12 @@ func testVector(t *testing.T, test []byte) {
 			payloadHash = (*[32]byte)(h)
 		case "identity":
 			i, err := age.ParseX25519Identity(value)
+			if err != nil {
+				t.Fatal(err)
+			}
+			identities = append(identities, i)
+		case "passphrase":
+			i, err := age.NewScryptIdentity(value)
 			if err != nil {
 				t.Fatal(err)
 			}

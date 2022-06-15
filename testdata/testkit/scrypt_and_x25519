@@ -1,0 +1,12 @@
+expect: header failure
+file key: 59454c4c4f57205355424d4152494e45
+passphrase: password
+comment: scrypt stanzas must be alone in the header
+
+age-encryption.org/v1
+-> X25519 TEiF0ypqr+bpvcqXNyCVJpL7OuwPdVwPL7KQEbFDOCc
+hjabGXwSLQ9c3S6Lw2i+S2Tu2fiwQHHslbBN6B41FLE
+-> scrypt 7s9ix86RtDMnTmjU8vkTTA 10
+0U4Pbxsl9pr9g4nHjPgkvtYkNrGiYJ43x1vbM5X5mhg
+--- f2AoyFXU2R5Cn7s38vH1pFkuKqzPh3ibwwHc/7y6RRU
+[жи.ЅУ#ИwП…=aЧYцkЧz©66Ъ¦ђвRщЫL

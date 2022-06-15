@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strconv"
 	"strings"
 
 	"filippo.io/age/internal/bech32"
@@ -19,6 +20,7 @@ import (
 	"golang.org/x/crypto/chacha20poly1305"
 	"golang.org/x/crypto/curve25519"
 	"golang.org/x/crypto/hkdf"
+	"golang.org/x/crypto/scrypt"
 )
 
 var TestFileKey = []byte("YELLOW SUBMARINE")
@@ -32,13 +34,14 @@ type TestFile struct {
 	Buf  bytes.Buffer
 	Rand func(n int) []byte
 
-	fileKey    []byte
-	streamKey  []byte
-	nonce      [12]byte
-	payload    bytes.Buffer
-	expect     string
-	comment    string
-	identities []string
+	fileKey     []byte
+	streamKey   []byte
+	nonce       [12]byte
+	payload     bytes.Buffer
+	expect      string
+	comment     string
+	identities  []string
+	passphrases []string
 }
 
 func NewTestFile() *TestFile {
@@ -117,6 +120,23 @@ func (f *TestFile) X25519NoRecordIdentity(identity []byte) {
 	f.AEADBody(key, f.fileKey)
 }
 
+func (f *TestFile) Scrypt(passphrase string, workFactor int) {
+	f.ScryptRecordPassphrase(passphrase)
+	f.ScryptNoRecordPassphrase(passphrase, workFactor)
+}
+
+func (f *TestFile) ScryptRecordPassphrase(passphrase string) {
+	f.passphrases = append(f.passphrases, passphrase)
+}
+
+func (f *TestFile) ScryptNoRecordPassphrase(passphrase string, workFactor int) {
+	salt := f.Rand(16)
+	f.ArgsLine("scrypt", b64(salt), strconv.Itoa(workFactor))
+	key, _ := scrypt.Key([]byte(passphrase), append([]byte("age-encryption.org/v1/scrypt"), salt...),
+		1<<workFactor, 8, 1, 32)
+	f.AEADBody(key, f.fileKey)
+}
+
 func (f *TestFile) HMACLine(h []byte) {
 	f.TextLine("--- " + b64(h))
 }
@@ -175,6 +195,9 @@ func (f *TestFile) Generate() {
 	fmt.Printf("file key: %x\n", f.fileKey)
 	for _, id := range f.identities {
 		fmt.Printf("identity: %s\n", id)
+	}
+	for _, p := range f.passphrases {
+		fmt.Printf("passphrase: %s\n", p)
 	}
 	if f.comment != "" {
 		fmt.Printf("comment: %s\n", f.comment)

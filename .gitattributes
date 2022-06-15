@@ -1,2 +1,2 @@
 *.age binary
-*.test binary
+testdata/testkit/* binary
