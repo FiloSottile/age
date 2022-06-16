@@ -1,0 +1,10 @@
+expect: header failure
+file key: 59454c4c4f57205355424d4152494e45
+identity: AGE-SECRET-KEY-1EGTZVFFV20835NWYV6270LXYVK2VKNX2MMDKWYKLMGR48UAWX40Q2P2LM0
+comment: the X25519 share is a low-order point, so the shared secret is the disallowed all-zero value
+
+age-encryption.org/v1
+-> X25519 X5yVvKNQjCSx0LFVnIPvWwREXMRYHI6G2CJO3dCfEdc
+3E0NpFans/m0WLWF7+54ZBdNj3iqQqpraGDFiaRkvBA
+--- sXw327YMT1/ULXe+ZyRMbMY0Z2jnWHGgI9j1we6yQ8A
+м]?7хPq╙ж FЧ╣	Х┬ўї█ошzМ(rКє╬|

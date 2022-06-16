@@ -11,8 +11,9 @@ import "filippo.io/age/internal/testkit"
 func main() {
 	f := testkit.NewTestFile()
 	f.VersionLine("v1")
-	f.ArgsLine("!\"#$%&'", "()*+,-./", "01234567", "89:;<=>?", "@ABCDEFG",
-		"HIJKLMNO", "PQRSTUVW", "XYZ[\\]^_", "`abcdefg", "hijklmno", "pqrstuvw", "xyz{|}~")
+	f.ArgsLine("!\"#$%&'", "()*+,-./", "01234567", "89:;<=>?", "@ABCDEFG", "HIJKLMNO")
+	f.Body([]byte(""))
+	f.ArgsLine("PQRSTUVW", "XYZ[\\]^_", "`abcdefg", "hijklmno", "pqrstuvw", "xyz{|}~")
 	f.Body([]byte(""))
 	f.X25519(testkit.TestX25519Recipient)
 	f.HMAC()
