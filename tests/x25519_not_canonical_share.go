@@ -11,11 +11,13 @@ import "filippo.io/age/internal/testkit"
 func main() {
 	f := testkit.NewTestFile()
 	f.VersionLine("v1")
-	f.X25519(testkit.TestX25519Identity)
-	f.FileKey(make([]byte, 16))
+	f.X25519(testkit.TestX25519Recipient)
+	body, args := f.UnreadLine(), f.UnreadLine()
+	f.TextLine(testkit.NotCanonicalBase64(args))
+	f.TextLine(body)
 	f.HMAC()
-	f.FileKey(testkit.TestFileKey)
 	f.Payload("age")
 	f.ExpectHeaderFailure()
+	f.Comment("the base64 encoding of the share is not canonical")
 	f.Generate()
 }

@@ -6,16 +6,24 @@
 
 package main
 
-import "filippo.io/age/internal/testkit"
+import (
+	"bytes"
+
+	"filippo.io/age/internal/testkit"
+)
 
 func main() {
 	f := testkit.NewTestFile()
 	f.VersionLine("v1")
 	f.X25519(testkit.TestX25519Identity)
-	f.FileKey(make([]byte, 16))
+	hdr := f.Buf.Bytes()
+	f.Buf.Reset()
+	f.Buf.Write(bytes.Replace(hdr, []byte("\n"), []byte("\r\n"), -1))
 	f.HMAC()
-	f.FileKey(testkit.TestFileKey)
+	f.Buf.WriteString(f.UnreadLine())
+	f.Buf.WriteString("\r\n")
 	f.Payload("age")
 	f.ExpectHeaderFailure()
+	f.Comment("lines in the header end with CRLF instead of LF")
 	f.Generate()
 }

@@ -6,15 +6,18 @@
 
 package main
 
-import "filippo.io/age/internal/testkit"
+import (
+	"strings"
+
+	"filippo.io/age/internal/testkit"
+)
 
 func main() {
 	f := testkit.NewTestFile()
 	f.VersionLine("v1")
 	f.X25519(testkit.TestX25519Identity)
-	f.FileKey(make([]byte, 16))
 	f.HMAC()
-	f.FileKey(testkit.TestFileKey)
+	f.TextLine(strings.Replace(f.UnreadLine(), "--- ", "---", -1))
 	f.Payload("age")
 	f.ExpectHeaderFailure()
 	f.Generate()

@@ -30,6 +30,16 @@ var _, TestX25519Identity, _ = bech32.Decode(
 
 var TestX25519Recipient, _ = curve25519.X25519(TestX25519Identity, curve25519.Basepoint)
 
+func NotCanonicalBase64(s string) string {
+	// Assuming there are spare zero bits at the end of the encoded bitstring,
+	// the character immediately after in the alphabet compared to the last one
+	// in the encoding will only flip the last bit to one, making the string a
+	// non-canonical encoding of the same value.
+	alphabet := "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
+	idx := strings.IndexByte(alphabet, s[len(s)-1])
+	return s[:len(s)-1] + string(alphabet[idx+1])
+}
+
 type TestFile struct {
 	Buf  bytes.Buffer
 	Rand func(n int) []byte
@@ -62,6 +72,14 @@ func (f *TestFile) FileKey(key []byte) {
 func (f *TestFile) TextLine(s string) {
 	f.Buf.WriteString(s)
 	f.Buf.WriteString("\n")
+}
+
+func (f *TestFile) UnreadLine() string {
+	buf := bytes.TrimSuffix(f.Buf.Bytes(), []byte("\n"))
+	idx := bytes.LastIndex(buf[:len(buf)-1], []byte("\n")) + 1
+	f.Buf.Reset()
+	f.Buf.Write(buf[:idx])
+	return string(buf[idx:])
 }
 
 func (f *TestFile) VersionLine(v string) {

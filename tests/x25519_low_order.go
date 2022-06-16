@@ -33,6 +33,7 @@ func main() {
 	f.HMAC()
 	f.Payload("age")
 	f.ExpectHeaderFailure()
-	f.Comment("the X25519 share is a low-order point, so the shared secret is the disallowed all-zero value")
+	f.Comment("the X25519 share is a low-order point, so the shared secret" +
+		"is the disallowed all-zero value")
 	f.Generate()
 }

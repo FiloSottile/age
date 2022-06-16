@@ -1,0 +1,10 @@
+expect: header failure
+file key: 59454c4c4f57205355424d4152494e45
+identity: AGE-SECRET-KEY-1EGTZVFFV20835NWYV6270LXYVK2VKNX2MMDKWYKLMGR48UAWX40Q2P2LM0
+comment: lines in the header end with CRLF instead of LF
+
+age-encryption.org/v1
+-> X25519 TEiF0ypqr+bpvcqXNyCVJpL7OuwPdVwPL7KQEbFDOCc
+hjabGXwSLQ9c3S6Lw2i+S2Tu2fiwQHHslbBN6B41FLE
+--- 2KIGb7ye32MWtUuEVWkO3MP6qCDLzOvT9wF06lelBSI
+îÏbÇÎ‘´3'NhÔòùL·L[þ÷¾ªRÈð¼™,ƒ1ûf
