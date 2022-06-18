@@ -219,6 +219,10 @@ func (f *TestFile) ExpectHMACFailure() {
 	f.expect = "HMAC failure"
 }
 
+func (f *TestFile) ExpectNoMatch() {
+	f.expect = "no match"
+}
+
 func (f *TestFile) Comment(c string) {
 	f.comment = c
 }

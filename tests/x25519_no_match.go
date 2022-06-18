@@ -16,6 +16,6 @@ func main() {
 	f.X25519NoRecordIdentity(testkit.TestX25519Recipient)
 	f.HMAC()
 	f.Payload("age")
-	f.ExpectHeaderFailure()
+	f.ExpectNoMatch()
 	f.Generate()
 }

@@ -21,7 +21,7 @@ func main() {
 	f.TextLine(body)
 	f.HMAC()
 	f.Payload("age")
-	f.ExpectHeaderFailure()
+	f.ExpectNoMatch()
 	f.Comment("the first argument in the X25519 stanza is lowercase")
 	f.Generate()
 }

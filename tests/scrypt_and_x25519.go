@@ -11,6 +11,7 @@ import "filippo.io/age/internal/testkit"
 func main() {
 	f := testkit.NewTestFile()
 	f.VersionLine("v1")
+	f.X25519RecordIdentity(f.Rand(32))
 	f.X25519NoRecordIdentity(testkit.TestX25519Identity)
 	f.Scrypt("password", 10)
 	f.HMAC()

@@ -97,6 +97,7 @@ func testVector(t *testing.T, test []byte) {
 			case "HMAC failure":
 			case "header failure":
 			case "payload failure":
+			case "no match":
 			default:
 				t.Fatal("invalid test file: unknown expect value:", value)
 			}
@@ -135,6 +136,12 @@ func testVector(t *testing.T, test []byte) {
 			return
 		}
 		t.Fatalf("expected %s, got HMAC error", expect)
+	} else if _, ok := err.(*age.NoIdentityMatchError); ok {
+		if expect == "no match" {
+			t.Log(err)
+			return
+		}
+		t.Fatalf("expected %s, got: %v", expect, err)
 	} else if err != nil {
 		if expect == "header failure" {
 			t.Log(err)

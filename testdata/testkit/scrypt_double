@@ -1,0 +1,13 @@
+expect: header failure
+file key: 59454c4c4f57205355424d4152494e45
+passphrase: password
+passphrase: hunter2
+comment: scrypt stanzas must be alone in the header
+
+age-encryption.org/v1
+-> scrypt rF0/NwblUHHTpgQgRpe5CQ 10
+gUjEymFKMVXQEKdMMHL24oYexjE3TIC0O0zGSqJ2aUY
+-> scrypt GzXG5ofdANo6w3msn3QsIQ 10
+OveITuwxakv7k2oLnioNYF4Bhgz9KZ36pb098wDoAv8
+--- a5d+4Ay1evJhoDskIzuTZV9bBgKk4573VZNfuoWJDPE
+îÏbÇÎ‘´3'NhÔòùL·L[þ÷¾ªRÈð¼™,ƒ1ûf

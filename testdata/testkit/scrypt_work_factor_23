@@ -1,5 +1,6 @@
 expect: header failure
 file key: 59454c4c4f57205355424d4152494e45
+passphrase: password
 comment: work factor is very high, would take a long time to compute
 
 age-encryption.org/v1

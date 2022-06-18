@@ -21,7 +21,7 @@ func main() {
 	f.TextLine(base64.RawStdEncoding.EncodeToString(body))
 	f.HMAC()
 	f.Payload("age")
-	f.ExpectHeaderFailure()
+	f.ExpectNoMatch()
 	f.Comment("the ChaCha20Poly1305 authentication tag on the body of the X25519 stanza is wrong")
 	f.Generate()
 }

@@ -15,6 +15,6 @@ func main() {
 	f.ScryptNoRecordPassphrase("password", 10)
 	f.HMAC()
 	f.Payload("age")
-	f.ExpectHeaderFailure()
+	f.ExpectNoMatch()
 	f.Generate()
 }
