@@ -16,6 +16,6 @@ func main() {
 	f.HMAC()
 	f.FileKey(testkit.TestFileKey)
 	f.Payload("age")
-	f.ExpectHeaderFailure()
+	f.ExpectHMACFailure()
 	f.Generate()
 }

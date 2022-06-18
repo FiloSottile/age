@@ -75,10 +75,9 @@ func TestVectors(t *testing.T) {
 
 func testVector(t *testing.T, test []byte) {
 	var (
-		expectHeaderFailure  bool
-		expectPayloadFailure bool
-		payloadHash          *[32]byte
-		identities           []age.Identity
+		expect      string
+		payloadHash *[32]byte
+		identities  []age.Identity
 	)
 
 	for {
@@ -95,13 +94,13 @@ func testVector(t *testing.T, test []byte) {
 		case "expect":
 			switch value {
 			case "success":
+			case "HMAC failure":
 			case "header failure":
-				expectHeaderFailure = true
 			case "payload failure":
-				expectPayloadFailure = true
 			default:
 				t.Fatal("invalid test file: unknown expect value:", value)
 			}
+			expect = value
 		case "payload":
 			h, err := hex.DecodeString(value)
 			if err != nil {
@@ -130,24 +129,30 @@ func testVector(t *testing.T, test []byte) {
 	}
 
 	r, err := age.Decrypt(bytes.NewReader(test), identities...)
-	if err != nil {
-		if expectHeaderFailure {
+	if err != nil && strings.HasSuffix(err.Error(), "bad header MAC") {
+		if expect == "HMAC failure" {
 			t.Log(err)
 			return
 		}
-		t.Fatal("unexpected header error:", err)
-	} else if expectHeaderFailure {
-		t.Fatal("expected header error")
+		t.Fatalf("expected %s, got HMAC error", expect)
+	} else if err != nil {
+		if expect == "header failure" {
+			t.Log(err)
+			return
+		}
+		t.Fatalf("expected %s, got: %v", expect, err)
+	} else if expect != "success" && expect != "payload failure" {
+		t.Fatalf("expected %s, got success", expect)
 	}
 	out, err := io.ReadAll(r)
 	if err != nil {
-		if expectPayloadFailure {
+		if expect == "payload failure" {
 			t.Log(err)
 			return
 		}
-		t.Fatal("unexpected payload error:", err)
-	} else if expectPayloadFailure {
-		t.Fatal("expected payload error")
+		t.Fatalf("expected %s, got: %v", expect, err)
+	} else if expect != "success" {
+		t.Fatalf("expected %s, got success", expect)
 	}
 	if sha256.Sum256(out) != *payloadHash {
 		t.Error("payload hash mismatch")

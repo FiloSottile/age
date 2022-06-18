@@ -7,7 +7,7 @@
 package main
 
 import (
-	"bytes"
+	"encoding/base64"
 
 	"filippo.io/age/internal/testkit"
 )
@@ -16,9 +16,12 @@ func main() {
 	f := testkit.NewTestFile()
 	f.VersionLine("v1")
 	f.X25519(testkit.TestX25519Recipient)
-	f.ArgsLine("stanza")
-	f.Body(bytes.Repeat([]byte("A"), 48*2))
+	body, _ := base64.RawStdEncoding.DecodeString(f.UnreadLine())
+	body[len(body)-1] ^= 0xff
+	f.TextLine(base64.RawStdEncoding.EncodeToString(body))
 	f.HMAC()
 	f.Payload("age")
+	f.ExpectHeaderFailure()
+	f.Comment("the ChaCha20Poly1305 authentication tag on the body of the X25519 stanza is wrong")
 	f.Generate()
 }

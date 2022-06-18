@@ -7,7 +7,7 @@
 package main
 
 import (
-	"bytes"
+	"strings"
 
 	"filippo.io/age/internal/testkit"
 )
@@ -17,8 +17,11 @@ func main() {
 	f.VersionLine("v1")
 	f.X25519(testkit.TestX25519Recipient)
 	f.ArgsLine("stanza")
-	f.Body(bytes.Repeat([]byte("A"), 48*2))
+	f.TextLine(strings.Repeat("A", 68))
+	f.TextLine("")
 	f.HMAC()
 	f.Payload("age")
+	f.ExpectHeaderFailure()
+	f.Comment("a body line is longer than 64 columns")
 	f.Generate()
 }

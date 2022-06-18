@@ -7,7 +7,7 @@
 package main
 
 import (
-	"bytes"
+	"strings"
 
 	"filippo.io/age/internal/testkit"
 )
@@ -16,9 +16,12 @@ func main() {
 	f := testkit.NewTestFile()
 	f.VersionLine("v1")
 	f.X25519(testkit.TestX25519Recipient)
-	f.ArgsLine("stanza")
-	f.Body(bytes.Repeat([]byte("A"), 48*2))
+	body, args := f.UnreadLine(), f.UnreadLine()
+	f.TextLine(strings.Replace(args, "X25519", "x25519", -1))
+	f.TextLine(body)
 	f.HMAC()
 	f.Payload("age")
+	f.ExpectHeaderFailure()
+	f.Comment("the first argument in the X25519 stanza is lowercase")
 	f.Generate()
 }

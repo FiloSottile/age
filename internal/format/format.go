@@ -258,7 +258,7 @@ func Parse(input io.Reader) (*Header, io.Reader, error) {
 				return nil, nil, errorf("malformed closing line: %q", line)
 			}
 			h.MAC, err = DecodeString(args[0])
-			if err != nil {
+			if err != nil || len(h.MAC) != 32 {
 				return nil, nil, errorf("malformed closing line %q: %v", line, err)
 			}
 			break

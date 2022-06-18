@@ -17,8 +17,10 @@ func main() {
 	f.VersionLine("v1")
 	f.X25519(testkit.TestX25519Recipient)
 	f.ArgsLine("stanza")
-	f.Body(bytes.Repeat([]byte("A"), 48*2))
+	f.Body(bytes.Repeat([]byte("A"), 50))
+	f.TextLine(testkit.NotCanonicalBase64(f.UnreadLine()))
 	f.HMAC()
 	f.Payload("age")
+	f.ExpectHeaderFailure()
 	f.Generate()
 }

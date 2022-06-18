@@ -6,19 +6,16 @@
 
 package main
 
-import (
-	"bytes"
-
-	"filippo.io/age/internal/testkit"
-)
+import "filippo.io/age/internal/testkit"
 
 func main() {
 	f := testkit.NewTestFile()
 	f.VersionLine("v1")
 	f.X25519(testkit.TestX25519Recipient)
-	f.ArgsLine("stanza")
-	f.Body(bytes.Repeat([]byte("A"), 48*2))
+	f.ArgsLine("stanza", "", "argument")
+	f.Body([]byte(""))
 	f.HMAC()
 	f.Payload("age")
+	f.ExpectHeaderFailure()
 	f.Generate()
 }

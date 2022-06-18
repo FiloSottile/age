@@ -106,14 +106,20 @@ func (f *TestFile) Body(body []byte) {
 	}
 }
 
-func (f *TestFile) Stanza(args []string, body []byte) {
-	f.ArgsLine(args...)
-	f.Body(body)
-}
-
 func (f *TestFile) AEADBody(key, body []byte) {
 	aead, _ := chacha20poly1305.New(key)
 	f.Body(aead.Seal(nil, make([]byte, chacha20poly1305.NonceSize), body, nil))
+}
+
+func x25519(scalar, point []byte) []byte {
+	secret, err := curve25519.X25519(scalar, point)
+	if err != nil {
+		if err.Error() == "bad input point: low order point" {
+			return make([]byte, 32)
+		}
+		panic(err)
+	}
+	return secret
 }
 
 func (f *TestFile) X25519(identity []byte) {
@@ -127,11 +133,16 @@ func (f *TestFile) X25519RecordIdentity(identity []byte) {
 }
 
 func (f *TestFile) X25519NoRecordIdentity(identity []byte) {
-	recipient, _ := curve25519.X25519(identity, curve25519.Basepoint)
-	ephemeral := f.Rand(32)
-	share, _ := curve25519.X25519(ephemeral, curve25519.Basepoint)
+	share := x25519(f.Rand(32), curve25519.Basepoint)
+	f.X25519Stanza(share, identity)
+}
+
+func (f *TestFile) X25519Stanza(share, identity []byte) {
+	recipient := x25519(identity, curve25519.Basepoint)
 	f.ArgsLine("X25519", b64(share))
-	secret, _ := curve25519.X25519(ephemeral, recipient)
+	// This would be ordinarily done as [ephemeral]recipient rather than
+	// [identity]share, but for some tests we don't have the dlog of share.
+	secret := x25519(identity, share)
 	key := make([]byte, 32)
 	hkdf.New(sha256.New, secret, append(share, recipient...),
 		[]byte("age-encryption.org/v1/X25519")).Read(key)
@@ -150,8 +161,11 @@ func (f *TestFile) ScryptRecordPassphrase(passphrase string) {
 func (f *TestFile) ScryptNoRecordPassphrase(passphrase string, workFactor int) {
 	salt := f.Rand(16)
 	f.ArgsLine("scrypt", b64(salt), strconv.Itoa(workFactor))
-	key, _ := scrypt.Key([]byte(passphrase), append([]byte("age-encryption.org/v1/scrypt"), salt...),
+	key, err := scrypt.Key([]byte(passphrase), append([]byte("age-encryption.org/v1/scrypt"), salt...),
 		1<<workFactor, 8, 1, 32)
+	if err != nil {
+		panic(err)
+	}
 	f.AEADBody(key, f.fileKey)
 }
 
@@ -199,6 +213,10 @@ func (f *TestFile) ExpectHeaderFailure() {
 
 func (f *TestFile) ExpectPayloadFailure() {
 	f.expect = "payload failure"
+}
+
+func (f *TestFile) ExpectHMACFailure() {
+	f.expect = "HMAC failure"
 }
 
 func (f *TestFile) Comment(c string) {

@@ -1,0 +1,10 @@
+expect: header failure
+file key: 59454c4c4f57205355424d4152494e45
+identity: AGE-SECRET-KEY-1EGTZVFFV20835NWYV6270LXYVK2VKNX2MMDKWYKLMGR48UAWX40Q2P2LM0
+comment: a trailing zero is missing from the X25519 share
+
+age-encryption.org/v1
+-> X25519 l7o4oTX9X5E3/KODa/7CQ0CrA9fKMWsm9IJjYzSlJg
+yUGP5aPob6YJ+vzRfBtDT9D1K/wmyheZE/Xl/mDSKA4
+--- Zn1/VRtHpD93HtIXSv1S++POXeKcQF7w1+hpXhMiAbk
+м]?7хPq╙ж FЧ╣	Х┬ўї█ошzМ(rКє╬|
