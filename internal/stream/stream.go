@@ -8,6 +8,7 @@ package stream
 import (
 	"crypto/cipher"
 	"errors"
+	"fmt"
 	"io"
 
 	"golang.org/x/crypto/chacha20poly1305"
@@ -66,7 +67,17 @@ func (r *Reader) Read(p []byte) (int, error) {
 	r.unread = r.unread[n:]
 
 	if last {
-		r.err = io.EOF
+		// Ensure there is an EOF after the last chunk as expected. In other
+		// words, check for trailing data after a full-length final chunk.
+		// Hopefully, the underlying reader supports returning EOF even if it
+		// had previously returned an EOF to ReadFull.
+		if _, err := r.src.Read(make([]byte, 1)); err == nil {
+			r.err = errors.New("trailing data after end of encrypted file")
+		} else if err != io.EOF {
+			r.err = fmt.Errorf("non-EOF error reading after end of encrypted file: %w", err)
+		} else {
+			r.err = io.EOF
+		}
 	}
 
 	return n, nil

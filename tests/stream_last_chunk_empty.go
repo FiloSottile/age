@@ -6,27 +6,18 @@
 
 package main
 
-import (
-	"bytes"
-	"encoding/hex"
-
-	"filippo.io/age/internal/testkit"
-)
+import "filippo.io/age/internal/testkit"
 
 func main() {
 	f := testkit.NewTestFile()
-	// Reuse the file key and nonce from a previous test vector to avoid
-	// bloating the git history with two versions that can't be compressed.
-	fileKey, _ := hex.DecodeString("7aa5bdac0e6afeed3dd0a7eccb42af44")
-	f.FileKey(fileKey)
+	f.FileKey(testkit.LargeTestFileKey)
 	f.VersionLine("v1")
 	f.X25519(testkit.TestX25519Identity)
 	f.HMAC()
-	nonce, _ := hex.DecodeString("c82f71eb82029b77136399e485e879f4")
-	f.Nonce(nonce)
-	f.PayloadChunk(bytes.Repeat([]byte{0}, 64*1024))
+	f.Nonce(testkit.LargeTestNonce)
+	f.PayloadChunk(testkit.LargeTestFirstChunk)
 	f.PayloadChunkFinal([]byte{})
 	f.Comment("final STREAM chunk can't be empty unless whole payload is empty")
-	f.ExpectPayloadFailure()
+	f.ExpectPartialPayload(64 * 1024)
 	f.Generate()
 }

@@ -16,5 +16,7 @@ func main() {
 	f.HMAC()
 	f.Nonce(testkit.LargeTestNonce)
 	f.PayloadChunkFinal(testkit.LargeTestFirstChunk)
+	f.PayloadChunkFinal([]byte("age"))
+	f.ExpectPartialPayload(64 * 1024)
 	f.Generate()
 }

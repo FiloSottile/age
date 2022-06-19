@@ -15,6 +15,8 @@ func main() {
 	f.X25519(testkit.TestX25519Identity)
 	f.HMAC()
 	f.Nonce(testkit.LargeTestNonce)
-	f.PayloadChunkFinal(testkit.LargeTestFirstChunk)
+	f.PayloadChunk(testkit.LargeTestFirstChunk)
+	f.PayloadChunk(testkit.LargeTestSecondChunk)
+	f.PayloadChunkFinal(testkit.LargeTestThirdChunk)
 	f.Generate()
 }

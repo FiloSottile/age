@@ -15,6 +15,8 @@ func main() {
 	f.X25519(testkit.TestX25519Identity)
 	f.HMAC()
 	f.Nonce(testkit.LargeTestNonce)
-	f.PayloadChunkFinal(testkit.LargeTestFirstChunk)
+	f.PayloadChunk(testkit.LargeTestFirstChunk)
+	f.PayloadChunk([]byte("age"))
+	f.ExpectPartialPayload(64 * 1024)
 	f.Generate()
 }

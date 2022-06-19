@@ -10,11 +10,14 @@ import "filippo.io/age/internal/testkit"
 
 func main() {
 	f := testkit.NewTestFile()
-	f.FileKey(testkit.LargeTestFileKey)
 	f.VersionLine("v1")
-	f.X25519(testkit.TestX25519Identity)
+	f.X25519(testkit.TestX25519Recipient)
 	f.HMAC()
-	f.Nonce(testkit.LargeTestNonce)
-	f.PayloadChunkFinal(testkit.LargeTestFirstChunk)
+	f.Payload("age")
+	file := f.Buf.Bytes()
+	f.Buf.Reset()
+	file[len(file)-1] ^= 0b0010_0000
+	f.Buf.Write(file)
+	f.ExpectPayloadFailure()
 	f.Generate()
 }

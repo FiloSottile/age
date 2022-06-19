@@ -15,6 +15,12 @@ func main() {
 	f.X25519(testkit.TestX25519Identity)
 	f.HMAC()
 	f.Nonce(testkit.LargeTestNonce)
-	f.PayloadChunkFinal(testkit.LargeTestFirstChunk)
+	f.PayloadChunk(testkit.LargeTestFirstChunk)
+	f.PayloadChunkFinal([]byte("age"))
+	file := f.Buf.Bytes()
+	f.Buf.Reset()
+	file[len(file)-1] ^= 0b0010_0000
+	f.Buf.Write(file)
+	f.ExpectPartialPayload(64 * 1024)
 	f.Generate()
 }

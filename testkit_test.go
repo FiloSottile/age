@@ -155,6 +155,9 @@ func testVector(t *testing.T, test []byte) {
 	if err != nil {
 		if expect == "payload failure" {
 			t.Log(err)
+			if payloadHash != nil && sha256.Sum256(out) != *payloadHash {
+				t.Error("partial payload hash mismatch")
+			}
 			return
 		}
 		t.Fatalf("expected %s, got: %v", expect, err)

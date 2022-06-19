@@ -15,6 +15,8 @@ func main() {
 	f.X25519(testkit.TestX25519Identity)
 	f.HMAC()
 	f.Nonce(testkit.LargeTestNonce)
-	f.PayloadChunkFinal(testkit.LargeTestFirstChunk)
+	f.PayloadChunk(testkit.LargeTestFirstChunk)
+	f.Nonce(f.Rand(12)) // less than the length of a Poly1305 tag
+	f.ExpectPartialPayload(64 * 1024)
 	f.Generate()
 }
