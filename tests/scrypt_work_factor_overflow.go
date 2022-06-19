@@ -6,18 +6,22 @@
 
 package main
 
-import "filippo.io/age/internal/testkit"
+import (
+	"math"
+	"strconv"
+
+	"filippo.io/age/internal/testkit"
+)
 
 func main() {
 	f := testkit.NewTestFile()
 	f.VersionLine("v1")
-	f.X25519(testkit.TestX25519Recipient)
+	f.Scrypt("password", 10)
 	body, args := f.UnreadLine(), f.UnreadArgsLine()
-	f.ArgsLine("x25519", args[1])
+	f.ArgsLine(args[0], args[1], strconv.FormatUint(math.MaxInt64+1+10, 10))
 	f.TextLine(body)
 	f.HMAC()
 	f.Payload("age")
-	f.ExpectNoMatch()
-	f.Comment("the first argument in the X25519 stanza is lowercase")
+	f.ExpectHeaderFailure()
 	f.Generate()
 }

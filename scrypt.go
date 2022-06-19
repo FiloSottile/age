@@ -8,6 +8,7 @@ import (
 	"crypto/rand"
 	"errors"
 	"fmt"
+	"regexp"
 	"strconv"
 
 	"filippo.io/age/internal/format"
@@ -128,6 +129,8 @@ func (i *ScryptIdentity) Unwrap(stanzas []*Stanza) ([]byte, error) {
 	return multiUnwrap(i.unwrap, stanzas)
 }
 
+var digitsRe = regexp.MustCompile(`^[1-9][0-9]*$`)
+
 func (i *ScryptIdentity) unwrap(block *Stanza) ([]byte, error) {
 	if block.Type != "scrypt" {
 		return nil, ErrIncorrectIdentity
@@ -142,6 +145,9 @@ func (i *ScryptIdentity) unwrap(block *Stanza) ([]byte, error) {
 	if len(salt) != scryptSaltSize {
 		return nil, errors.New("invalid scrypt recipient block")
 	}
+	if w := block.Args[1]; !digitsRe.MatchString(w) {
+		return nil, fmt.Errorf("scrypt work factor encoding invalid: %q", w)
+	}
 	logN, err := strconv.Atoi(block.Args[1])
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse scrypt work factor: %v", err)
@@ -149,13 +155,13 @@ func (i *ScryptIdentity) unwrap(block *Stanza) ([]byte, error) {
 	if logN > i.maxWorkFactor {
 		return nil, fmt.Errorf("scrypt work factor too large: %v", logN)
 	}
-	if logN <= 0 {
+	if logN <= 0 { // unreachable
 		return nil, fmt.Errorf("invalid scrypt work factor: %v", logN)
 	}
 
 	salt = append([]byte(scryptLabel), salt...)
 	k, err := scrypt.Key(i.password, salt, 1<<logN, 8, 1, chacha20poly1305.KeySize)
-	if err != nil {
+	if err != nil { // unreachable
 		return nil, fmt.Errorf("failed to generate scrypt hash: %v", err)
 	}
 

@@ -11,13 +11,12 @@ import "filippo.io/age/internal/testkit"
 func main() {
 	f := testkit.NewTestFile()
 	f.VersionLine("v1")
-	f.X25519(testkit.TestX25519Recipient)
-	body, args := f.UnreadLine(), f.UnreadArgsLine()
-	f.ArgsLine("x25519", args[1])
-	f.TextLine(body)
+	f.Scrypt("password", 10)
+	body := f.UnreadLine()
+	f.TextLine(testkit.NotCanonicalBase64(body))
 	f.HMAC()
 	f.Payload("age")
-	f.ExpectNoMatch()
-	f.Comment("the first argument in the X25519 stanza is lowercase")
+	f.ExpectHeaderFailure()
+	f.Comment("the base64 encoding of the share is not canonical")
 	f.Generate()
 }

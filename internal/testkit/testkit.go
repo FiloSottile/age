@@ -90,6 +90,11 @@ func (f *TestFile) ArgsLine(args ...string) {
 	f.TextLine(strings.Join(append([]string{"->"}, args...), " "))
 }
 
+func (f *TestFile) UnreadArgsLine() []string {
+	line := strings.TrimPrefix(f.UnreadLine(), "-> ")
+	return strings.Split(line, " ")
+}
+
 var b64 = base64.RawStdEncoding.EncodeToString
 
 func (f *TestFile) Body(body []byte) {
@@ -160,6 +165,10 @@ func (f *TestFile) ScryptRecordPassphrase(passphrase string) {
 
 func (f *TestFile) ScryptNoRecordPassphrase(passphrase string, workFactor int) {
 	salt := f.Rand(16)
+	f.ScryptNoRecordPassphraseWithSalt(passphrase, workFactor, salt)
+}
+
+func (f *TestFile) ScryptNoRecordPassphraseWithSalt(passphrase string, workFactor int, salt []byte) {
 	f.ArgsLine("scrypt", b64(salt), strconv.Itoa(workFactor))
 	key, err := scrypt.Key([]byte(passphrase), append([]byte("age-encryption.org/v1/scrypt"), salt...),
 		1<<workFactor, 8, 1, 32)

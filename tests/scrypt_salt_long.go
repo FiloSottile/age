@@ -11,13 +11,10 @@ import "filippo.io/age/internal/testkit"
 func main() {
 	f := testkit.NewTestFile()
 	f.VersionLine("v1")
-	f.X25519(testkit.TestX25519Recipient)
-	body, args := f.UnreadLine(), f.UnreadArgsLine()
-	f.ArgsLine("x25519", args[1])
-	f.TextLine(body)
+	f.ScryptRecordPassphrase("password")
+	f.ScryptNoRecordPassphraseWithSalt("password", 10, f.Rand(20))
 	f.HMAC()
 	f.Payload("age")
-	f.ExpectNoMatch()
-	f.Comment("the first argument in the X25519 stanza is lowercase")
+	f.ExpectHeaderFailure()
 	f.Generate()
 }
