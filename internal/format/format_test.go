@@ -6,6 +6,9 @@ package format_test
 
 import (
 	"bytes"
+	"io"
+	"os"
+	"path/filepath"
 	"testing"
 
 	"filippo.io/age/internal/format"
@@ -36,4 +39,40 @@ func TestStanzaMarshal(t *testing.T) {
 	if exp := "-> test 1 2 3\nQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFB\n\n"; buf.String() != exp {
 		t.Errorf("wrong 64 columns stanza encoding: expected %q, got %q", exp, buf.String())
 	}
+}
+
+func FuzzMalleability(f *testing.F) {
+	tests, err := filepath.Glob("../../testdata/testkit/*")
+	if err != nil {
+		f.Fatal(err)
+	}
+	for _, test := range tests {
+		contents, err := os.ReadFile(test)
+		if err != nil {
+			f.Fatal(err)
+		}
+		f.Add(contents)
+	}
+	f.Fuzz(func(t *testing.T, data []byte) {
+		h, payload, err := format.Parse(bytes.NewReader(data))
+		if err != nil {
+			if h != nil {
+				t.Error("h != nil on error")
+			}
+			if payload != nil {
+				t.Error("payload != nil on error")
+			}
+			t.Skip()
+		}
+		w := &bytes.Buffer{}
+		if err := h.Marshal(w); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := io.Copy(w, payload); err != nil {
+			t.Fatal(err)
+		}
+		if !bytes.Equal(w.Bytes(), data) {
+			t.Error("Marshal output different from input")
+		}
+	})
 }
