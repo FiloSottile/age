@@ -1,0 +1,20 @@
+# -help
+age -p -help
+! stdout .
+stderr 'Usage:'
+
+# -h
+age -p -h
+! stdout .
+stderr 'Usage:'
+
+# unknown flag
+! age -p -this-flag-does-not-exist
+! stdout .
+stderr 'flag provided but not defined'
+stderr 'Usage:'
+
+# no arguments
+! age
+! stdout .
+stderr 'Usage:'

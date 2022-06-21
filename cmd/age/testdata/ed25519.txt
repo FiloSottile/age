@@ -1,0 +1,29 @@
+# encrypt and decrypt a file with -R
+age -R key.pem.pub -o test.age input
+age -d -i key.pem test.age
+stdout test
+
+# encrypt and decrypt a file with -i
+age -e -i key.pem -o test.age input
+age -d -i key.pem test.age
+stdout test
+
+# encrypt and decrypt a file with the wrong key
+age -R otherkey.pem.pub -o test.age input
+! age -d -i key.pem test.age
+stderr 'no identity matched any of the recipients'
+
+-- input --
+test
+-- key.pem --
+-----BEGIN OPENSSH PRIVATE KEY-----
+b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAAAMwAAAAtzc2gtZW
+QyNTUxOQAAACB/aTuac9tiWRGrKEtixFlryYlGCPTOpdbmXN9RRmDF2gAAAKDgV/GC4Ffx
+ggAAAAtzc2gtZWQyNTUxOQAAACB/aTuac9tiWRGrKEtixFlryYlGCPTOpdbmXN9RRmDF2g
+AAAECvFoQXQzXgJLQ+Gz4PfEcfyZwC2gUjOiWTD//mTPyD8H9pO5pz22JZEasoS2LEWWvJ
+iUYI9M6l1uZc31FGYMXaAAAAG2ZpbGlwcG9AQmlzdHJvbWF0aC1NMS5sb2NhbAEC
+-----END OPENSSH PRIVATE KEY-----
+-- key.pem.pub --
+ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH9pO5pz22JZEasoS2LEWWvJiUYI9M6l1uZc31FGYMXa
+-- otherkey.pem.pub --
+ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJFlMdZUMrWjJ3hh60MLALXSqUdAjBo/qEMJzvpekpoM

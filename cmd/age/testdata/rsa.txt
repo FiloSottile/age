@@ -1,3 +1,21 @@
+# encrypt and decrypt a file with -R
+age -R key.pem.pub -o test.age input
+age -d -i key.pem test.age
+stdout test
+
+# encrypt and decrypt a file with -i
+age -e -i key.pem -o test.age input
+age -d -i key.pem test.age
+stdout test
+
+# encrypt and decrypt a file with the wrong key
+age -R otherkey.pem.pub -o test.age input
+! age -d -i key.pem test.age
+stderr 'no identity matched any of the recipients'
+
+-- input --
+test
+-- key.pem --
 -----BEGIN OPENSSH PRIVATE KEY-----
 b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAABlwAAAAdzc2gtcn
 NhAAAAAwEAAQAAAYEA1C04rdClHoW4oG4bEGmaNqFy4DLoPJ0358w4XH+XBM3TiWcheouW
@@ -36,3 +54,7 @@ EX0mNDXOlKOP2YAIMrDt5CkPdEh6qQG21LCZXTWmwheZ9iN2vOl/fKqUW9lqd/kTe6WsON
 hIpZhs2+oz54Riq1ZwzO9NkcYrvZoDKbDopL1r2ibw0mkgCJrxpWi0Yt2Iooh4GXXqP5C9
 T8hrZCbrVJkjKd5QAAABtmaWxpcHBvQEJpc3Ryb21hdGgtTTEubG9jYWwBAgMEBQY=
 -----END OPENSSH PRIVATE KEY-----
+-- key.pem.pub --
+ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDULTit0KUehbigbhsQaZo2oXLgMug8nTfnzDhcf5cEzdOJZyF6i5aRQbqbXIOYeTS3Shpp/iE6d60qi93JBBfveAZqr76tK7lVK8fstvAAGgbo9L9Ru5nhWX0HTlZUOodUT2E0rgAeoFzfvcZTaajzPmikrESmuaJLcdJ3crbCIyovkTxc85KbSn+Ky5grntdVR7GXve0HuIgwuSXGNyO0/hEQyhCEco4w53LZDXl3Dlxgb52u0QCsFFiQJmZ3RWnbCz2mNjM9Vo5KRt2pJ4u74lVsfXCvAqG4GsDd5WXCNRNaQ7gUdw1eSnvvcy3hxeEqLNN9tHaFCjEuyPfXfTVd3t0SlXreyoNbV75rYvZ2F6aLxyMMys+5bpnX0tu2LSq4Bvj5xIsBokjgEd3UXyj1eErsQdUJ0gghAMpXOjVbISwPAGMvUsH2unGbjvfaxnK57S7KAXOYznjhBf5ayIleAc+4LVD/KeMtGbpkyXXozC9jwH9cZBbGU4BtElAbzh8=
+-- otherkey.pem.pub --
+ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDF0OPu95EY25O5KmYFLIkiZZFKUlfvaRgmfIT6OcZvPRXBzo0MS/lcrYvAc0RsUVbZ1B3Y9oWmKt/IMXTztCXiza70rO1NI7ciayv5svY/wGMoveutddhA64IjrQKs4m+6Qmjs/dYTnfsk1BzmXrdRKUSqH6c4Id7pRLC1ySLu+4og3nTTpBRBpg+uSkc4Ua6ce6A6RX14PPJ+TAXMfZyKNyaubQhgzLB/CfdXxZqWdAnyooiE7fb6CEB5uppnA5BpPdcWAkSixbwxRHbRC+OSCqMOV6+z+NlO/qSOKJcXfCQnJP/qjJTJde0dYhXG4RILOzIkGVieGJJONDXvj61mMj568IhJz0AEf/UMhvEL79iJ6yZW82Go/zcYkDDfd3KRE3pW+6p9Onu3XqOiQABS+9rEVRBnqYsPajiHBIanBeXpWKGbjznakvxhdRifhOWwAsQDfLmGzh+JnV1vOUjyxKtLNv9zi/oeuYCaIyF7F6en8LMbYSz8YONMZygGxMU=

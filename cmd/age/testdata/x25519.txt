@@ -1,0 +1,21 @@
+# encrypt and decrypt a file with -r
+age -r age1xmwwc06ly3ee5rytxm9mflaz2u56jjj36s0mypdrwsvlul66mv4q47ryef -o test.age input
+age -d -i key.txt test.age
+stdout test
+
+# encrypt and decrypt a file with -i
+age -e -i key.txt -o test.age input
+age -d -i key.txt test.age
+stdout test
+
+# encrypt and decrypt a file with the wrong key
+age -r age12phkzssndd5axajas2h74vtge62c86xjhd6u9anyanqhzvdg6sps0xthgl -o test.age input
+! age -d -i key.txt test.age
+stderr 'no identity matched any of the recipients'
+
+-- input --
+test
+-- key.txt --
+# created: 2021-02-02T13:09:43+01:00
+# public key: age1xmwwc06ly3ee5rytxm9mflaz2u56jjj36s0mypdrwsvlul66mv4q47ryef
+AGE-SECRET-KEY-1EGTZVFFV20835NWYV6270LXYVK2VKNX2MMDKWYKLMGR48UAWX40Q2P2LM0
