@@ -360,8 +360,11 @@ func encryptPass(in io.Reader, out io.Writer, armor bool) {
 	if err != nil {
 		errorf("%v", err)
 	}
+	testOnlyConfigureScryptIdentity(r)
 	encrypt([]age.Recipient{r}, in, out, armor)
 }
+
+var testOnlyConfigureScryptIdentity = func(*age.ScryptRecipient) {}
 
 func encrypt(recipients []age.Recipient, in io.Reader, out io.Writer, withArmor bool) {
 	if withArmor {

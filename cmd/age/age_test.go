@@ -8,6 +8,7 @@ import (
 	"os"
 	"testing"
 
+	"filippo.io/age"
 	"github.com/rogpeppe/go-internal/testscript"
 )
 
@@ -20,6 +21,9 @@ func TestMain(m *testing.M) {
 					exitCode = recover().(int)
 				}
 			}()
+			testOnlyConfigureScryptIdentity = func(r *age.ScryptRecipient) {
+				r.SetWorkFactor(10)
+			}
 			main()
 			return 0
 		},

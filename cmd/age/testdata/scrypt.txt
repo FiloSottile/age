@@ -1,0 +1,42 @@
+[windows] skip # no pty support
+
+# Encrypt with a provided passphrase.
+pty terminal
+age -p -o test.age
+! stderr .
+! stdout .
+
+# Decrypt with a provided passphrase.
+pty terminal
+age -d test.age
+! stderr .
+! stdout .
+
+# Decrypt with the wrong passphrase.
+pty wrong
+! age -d test.age
+stderr 'incorrect passphrase'
+
+# Fail when -i is present.
+pty terminal
+! age -d -i key.txt test.age
+stderr 'file is passphrase-encrypted but identities were specified'
+
+# Fail when passphrases don't match.
+pty wrong
+! age -p -o fail.age
+stderr 'passphrases didn''t match'
+! exists fail.age
+
+-- terminal --
+password
+password
+-- wrong --
+PASSWORD
+password
+-- input --
+test
+-- key.txt --
+# created: 2021-02-02T13:09:43+01:00
+# public key: age1xmwwc06ly3ee5rytxm9mflaz2u56jjj36s0mypdrwsvlul66mv4q47ryef
+AGE-SECRET-KEY-1EGTZVFFV20835NWYV6270LXYVK2VKNX2MMDKWYKLMGR48UAWX40Q2P2LM0
