@@ -5,6 +5,7 @@
 package agessh
 
 import (
+	"crypto"
 	"crypto/ed25519"
 	"crypto/rsa"
 	"fmt"
@@ -105,24 +106,25 @@ func (i *EncryptedSSHIdentity) Unwrap(stanzas []*age.Stanza) (fileKey []byte, er
 		return nil, fmt.Errorf("failed to decrypt SSH key file: %v", err)
 	}
 
+	var pubKey interface {
+		Equal(x crypto.PublicKey) bool
+	}
 	switch k := k.(type) {
 	case *ed25519.PrivateKey:
 		i.decrypted, err = NewEd25519Identity(*k)
-		// TODO: here and below, better check that the two public keys match,
-		// rather than just the type.
-		if i.pubKey.Type() != ssh.KeyAlgoED25519 {
-			return nil, fmt.Errorf("mismatched private (%s) and public (%s) SSH key types", ssh.KeyAlgoED25519, i.pubKey.Type())
-		}
+		pubKey = k.Public().(ed25519.PublicKey)
 	case *rsa.PrivateKey:
 		i.decrypted, err = NewRSAIdentity(k)
-		if i.pubKey.Type() != ssh.KeyAlgoRSA {
-			return nil, fmt.Errorf("mismatched private (%s) and public (%s) SSH key types", ssh.KeyAlgoRSA, i.pubKey.Type())
-		}
+		pubKey = &k.PublicKey
 	default:
 		return nil, fmt.Errorf("unexpected SSH key type: %T", k)
 	}
 	if err != nil {
 		return nil, fmt.Errorf("invalid SSH key: %v", err)
+	}
+
+	if exp := i.pubKey.(ssh.CryptoPublicKey).CryptoPublicKey(); !pubKey.Equal(exp) {
+		return nil, fmt.Errorf("mismatched private and public SSH key")
 	}
 
 	return i.decrypted.Unwrap(stanzas)

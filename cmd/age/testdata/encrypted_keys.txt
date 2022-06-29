@@ -1,0 +1,98 @@
+[windows] skip # no pty support
+
+# use an encrypted OpenSSH private key without .pub file
+age -R key_ed25519.pub -o ed25519.age input
+rm key_ed25519.pub
+pty terminal
+age -d -i key_ed25519 ed25519.age
+stdout test
+
+# a file encrypted to the wrong key does not ask for the password
+age -R key_ed25519_other.pub -o ed25519_other.age input
+! age -d -i key_ed25519 ed25519_other.age
+stderr 'no identity matched any of the recipients'
+
+# use an encrypted legacy PEM private key with a .pub file
+age -R key_rsa_legacy.pub -o rsa_legacy.age input
+pty terminal
+age -d -i key_rsa_legacy rsa_legacy.age
+stdout test
+age -R key_rsa_other.pub -o rsa_other.age input
+! age -d -i key_rsa_legacy rsa_other.age
+stderr 'no identity matched any of the recipients'
+
+# legacy PEM private key without a .pub file causes an error
+rm key_rsa_legacy.pub
+! age -d -i key_rsa_legacy rsa_legacy.age
+stderr 'key_rsa_legacy.pub'
+
+# mismatched .pub file causes an error
+cp key_rsa_legacy key_rsa_other
+pty terminal
+! age -d -i key_rsa_other rsa_other.age
+stderr 'mismatched private and public SSH key'
+
+-- input --
+test
+-- terminal --
+password
+-- key_ed25519 --
+-----BEGIN OPENSSH PRIVATE KEY-----
+b3BlbnNzaC1rZXktdjEAAAAACmFlczI1Ni1jdHIAAAAGYmNyeXB0AAAAGAAAABCuvb97i7
+U6Dz4+4SaF3kK1AAAAEAAAAAEAAAAzAAAAC3NzaC1lZDI1NTE5AAAAIKaVctg4/hmFbfof
+Tv+yrC2IweO/Dd2AVDijFpaMO9fmAAAAoMO7yEnisRmzFdiExNt3XTYuLdP9m3jgOCroiF
+TtBhh1lAB2qggzWExMRP3Ak8+AloXEcWiACwBYnqwxhQMh0RDCDKC/H/4SXO+ds4HFWil+
+4bGF9wYZFU7IEjIK91CPGJ6YoWPn9dSdEjjbuCJtOMwHsysGyw5n/qSFPmSAPmA4YL2OzM
+WFOJ5gB5o1LKZkDTcdt7kPziIoVd5QkqpnYsE=
+-----END OPENSSH PRIVATE KEY-----
+-- key_ed25519.pub --
+ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIKaVctg4/hmFbfofTv+yrC2IweO/Dd2AVDijFpaMO9fm
+-- key_ed25519_other.pub --
+ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINbTd+xfSBYKR/1Hp7FsoxwQAdIOk1Khye6ALBj7e1CV
+-- key_rsa_legacy --
+-----BEGIN RSA PRIVATE KEY-----
+Proc-Type: 4,ENCRYPTED
+DEK-Info: AES-128-CBC,8045E7CF19D7794F4ADF5AC63179D985
+
+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
+-----END RSA PRIVATE KEY-----
+-- key_rsa_legacy.pub --
+ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCky7Clp8I3LVoqZWtat+QR6KmM0evFilmFhwenINIBbb8eS3ftDSkQy2YRrlAvO3h4EZffOIxANGL/yKVlRCIzvjsphi+tTHscZsQhwMnLEmxEayTq20hZKcwNA8TQdh2TW/w0KZmNZcxlTn4IK8W16komHcoH/qrRiXq8z3ROcfnv3Q4Hll9MUCwBkfy2DdBpWUMidQ1dAK4i3vXdseF74hJ0jFbPtS5mlpOsJZa0sdH1dnEl5M8wZS3PxyzM6JMkgzG7INp4sO/xGIisjl/QuSh2Fu93/EogdGXxIZChniUfzBx1DaHlerPPNSMP+uLbaOIAQrIPozhfdUdsCFDMoB7/PA6g1WVYZWAqjBZZW/GMOzPhih57NIFBSyMTzMi1KS6OBvYJvPf4IcvOa3May9ylLG/wZVhrHlQPbSsbRrraVtJ1P4gGQJ5U4d2AD2q+XtMb5f2i/holMXTVQl7Fa7RYi1TblDuW5OZCvmIawePBXAYbPg0OVFs3vAVEuAM=
+-- key_rsa_other.pub --
+ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDQiCWw2W++gX4wcwpDo6QIouwQ9PPwCVe7QPICzxztG27mzeKRM4xT2LURGSaQqg7OYIUTGrLqNsaLZW+FHHQlRAVv1LEbdEFa5JermBMJ5j/HxamE/7oV60gMRlgKW+4IZhVMPgRZaaXU0YPb9oACdMNM8kPkc5JaOJ8iO6B1RViybjLD+tsEEPXLp3Mrj+sJqs+IvNlJKXdeefOjNrGmLHKIFdHiWlZ+aAW+QLfMQiNXoTbGybFUSpNEbmK/1ITiRAly94NoUK9LoriueXR+WJIm9wP4SfHw+hMBz1cywdF2wwKmWWegizV/USEmhyNXUzHZzjbkgE84DrIq+NA7SUmw6C8ClMjdnRnnoIyga99yMIrYMny1KW/bk1NK4u6Tv17E+FFOS3vf2Gcj01/jOmAUIQwL8MjAHhnsZ4XAA5NHa2NRGWm+hw7fx5uX42Gyz8HidFda5Lij1pASBcx4U3qwb62X+IVN50jGIP6kRNmGtMLY1JgaoGDDkw9r6mU=

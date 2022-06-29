@@ -1,28 +1,28 @@
 [windows] skip # no pty support
 
-# Encrypt with a provided passphrase.
+# encrypt with a provided passphrase
 pty terminal
 age -p -o test.age
 ! stderr .
 ! stdout .
 
-# Decrypt with a provided passphrase.
+# decrypt with a provided passphrase
 pty terminal
 age -d test.age
 ! stderr .
 ! stdout .
 
-# Decrypt with the wrong passphrase.
+# decrypt with the wrong passphrase
 pty wrong
 ! age -d test.age
 stderr 'incorrect passphrase'
 
-# Fail when -i is present.
+# fail when -i is present
 pty terminal
 ! age -d -i key.txt test.age
 stderr 'file is passphrase-encrypted but identities were specified'
 
-# Fail when passphrases don't match.
+# fail when passphrases don't match
 pty wrong
 ! age -p -o fail.age
 stderr 'passphrases didn''t match'
