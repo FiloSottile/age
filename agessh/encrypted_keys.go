@@ -113,6 +113,10 @@ func (i *EncryptedSSHIdentity) Unwrap(stanzas []*age.Stanza) (fileKey []byte, er
 	case *ed25519.PrivateKey:
 		i.decrypted, err = NewEd25519Identity(*k)
 		pubKey = k.Public().(ed25519.PublicKey)
+	// ParseRawPrivateKey returns inconsistent types. See Issue 429.
+	case ed25519.PrivateKey:
+		i.decrypted, err = NewEd25519Identity(k)
+		pubKey = k.Public().(ed25519.PublicKey)
 	case *rsa.PrivateKey:
 		i.decrypted, err = NewRSAIdentity(k)
 		pubKey = &k.PublicKey

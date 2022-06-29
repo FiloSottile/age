@@ -1,0 +1,12 @@
+# https://github.com/FiloSottile/age/discussions/428
+# encrypt and decrypt a file with an Ed25519 key encoded with PKCS#8
+age -e -i key.pem -o test.age input
+age -d -i key.pem test.age
+stdout test
+
+-- input --
+test
+-- key.pem --
+-----BEGIN PRIVATE KEY-----
+MC4CAQAwBQYDK2VwBCIEIJT4Wpo+YG11yybKL/bYXQW7ekz4PAsmV/4tfmY1vU7x
+-----END PRIVATE KEY-----

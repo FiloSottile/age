@@ -274,6 +274,9 @@ func ParseIdentity(pemBytes []byte) (age.Identity, error) {
 	switch k := k.(type) {
 	case *ed25519.PrivateKey:
 		return NewEd25519Identity(*k)
+	// ParseRawPrivateKey returns inconsistent types. See Issue 429.
+	case ed25519.PrivateKey:
+		return NewEd25519Identity(k)
 	case *rsa.PrivateKey:
 		return NewRSAIdentity(k)
 	}
