@@ -88,29 +88,33 @@ func clearLine(out io.Writer) {
 // withTerminal does not open a non-terminal stdin, so the caller does not need
 // to check stdinInUse.
 func withTerminal(f func(in, out *os.File) error) error {
-	var in, out *os.File
 	if runtime.GOOS == "windows" {
-		var err error
-		in, err = os.OpenFile("CONIN$", os.O_RDWR, 0)
+		in, err := os.OpenFile("CONIN$", os.O_RDWR, 0)
 		if err != nil {
 			return err
 		}
 		defer in.Close()
-		out, err = os.OpenFile("CONOUT$", os.O_WRONLY, 0)
+		out, err := os.OpenFile("CONOUT$", os.O_WRONLY, 0)
 		if err != nil {
 			return err
 		}
 		defer out.Close()
+		return f(in, out)
 	} else if tty, err := os.OpenFile("/dev/tty", os.O_RDWR, 0); err == nil {
 		defer tty.Close()
-		in, out = tty, tty
+		return f(tty, tty)
+	} else if term.IsTerminal(int(os.Stdin.Fd())) {
+		return f(os.Stdin, os.Stdin)
 	} else {
-		if !term.IsTerminal(int(os.Stdin.Fd())) {
-			return fmt.Errorf("standard input is not a terminal, and /dev/tty is not available: %v", err)
-		}
-		in, out = os.Stdin, os.Stderr
+		return fmt.Errorf("standard input is not a terminal, and /dev/tty is not available: %v", err)
 	}
-	return f(in, out)
+}
+
+func printfToTerminal(format string, v ...interface{}) error {
+	return withTerminal(func(_, out *os.File) error {
+		_, err := fmt.Fprintf(out, "age: "+format, v...)
+		return err
+	})
 }
 
 // readSecret reads a value from the terminal with no echo. The prompt is ephemeral.
@@ -124,7 +128,7 @@ func readSecret(prompt string) (s []byte, err error) {
 	return
 }
 
-// readSecret reads a single character from the terminal with no echo. The
+// readCharacter reads a single character from the terminal with no echo. The
 // prompt is ephemeral.
 func readCharacter(prompt string) (c byte, err error) {
 	err = withTerminal(func(in, out *os.File) error {
