@@ -10,12 +10,12 @@
 // ScryptRecipient and ScryptIdentity. For compatibility with existing SSH keys
 // use the filippo.io/age/agessh package.
 //
-// Age encrypted files are binary and not malleable. For encoding them as text,
+// age encrypted files are binary and not malleable. For encoding them as text,
 // use the filippo.io/age/armor package.
 //
 // Key management
 //
-// Age does not have a global keyring. Instead, since age keys are small,
+// age does not have a global keyring. Instead, since age keys are small,
 // textual, and cheap, you are encouraged to generate dedicated keys for each
 // task and application.
 //
