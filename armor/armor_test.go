@@ -2,6 +2,9 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
+//go:build go1.18
+// +build go1.18
+
 package armor_test
 
 import (
@@ -11,6 +14,8 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -127,4 +132,51 @@ func testArmor(t *testing.T, size int) {
 	if !bytes.Equal(out, plain) {
 		t.Error("decoded value doesn't match")
 	}
+}
+
+func FuzzMalleability(f *testing.F) {
+	tests, err := filepath.Glob("../testdata/testkit/*")
+	if err != nil {
+		f.Fatal(err)
+	}
+	for _, test := range tests {
+		contents, err := os.ReadFile(test)
+		if err != nil {
+			f.Fatal(err)
+		}
+		header, contents, ok := bytes.Cut(contents, []byte("\n\n"))
+		if !ok {
+			f.Fatal("testkit file without header")
+		}
+		if bytes.Contains(header, []byte("armored: yes")) {
+			f.Add(contents)
+		}
+	}
+	f.Fuzz(func(t *testing.T, data []byte) {
+		r := armor.NewReader(bytes.NewReader(data))
+		content, err := io.ReadAll(r)
+		if err != nil {
+			if _, ok := err.(*armor.Error); !ok {
+				t.Errorf("error type is %T: %v", err, err)
+			}
+			t.Skip()
+		}
+		buf := &bytes.Buffer{}
+		w := armor.NewWriter(buf)
+		if _, err := w.Write(content); err != nil {
+			t.Fatal(err)
+		}
+		if err := w.Close(); err != nil {
+			t.Fatal(err)
+		}
+		if !bytes.Equal(normalize(buf.Bytes()), normalize(data)) {
+			t.Error("re-encoded output different from input")
+		}
+	})
+}
+
+func normalize(f []byte) []byte {
+	f = bytes.TrimSpace(f)
+	f = bytes.Replace(f, []byte("\r\n"), []byte("\n"), -1)
+	return f
 }

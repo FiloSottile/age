@@ -54,6 +54,10 @@ func FuzzMalleability(f *testing.F) {
 		if err != nil {
 			f.Fatal(err)
 		}
+		_, contents, ok := bytes.Cut(contents, []byte("\n\n"))
+		if !ok {
+			f.Fatal("testkit file without header")
+		}
 		f.Add(contents)
 	}
 	f.Fuzz(func(t *testing.T, data []byte) {
