@@ -175,7 +175,7 @@ func (r *StanzaReader) ReadStanza() (s *Stanza, err error) {
 
 	line, err := r.r.ReadBytes('\n')
 	if err != nil {
-		return nil, fmt.Errorf("failed to read line: %v", err)
+		return nil, fmt.Errorf("failed to read line: %w", err)
 	}
 	if !bytes.HasPrefix(line, stanzaPrefix) {
 		return nil, fmt.Errorf("malformed stanza opening line: %q", line)
@@ -195,7 +195,7 @@ func (r *StanzaReader) ReadStanza() (s *Stanza, err error) {
 	for {
 		line, err := r.r.ReadBytes('\n')
 		if err != nil {
-			return nil, fmt.Errorf("failed to read line: %v", err)
+			return nil, fmt.Errorf("failed to read line: %w", err)
 		}
 
 		b, err := DecodeString(strings.TrimSuffix(string(line), "\n"))
@@ -216,14 +216,20 @@ func (r *StanzaReader) ReadStanza() (s *Stanza, err error) {
 	}
 }
 
-type ParseError string
+type ParseError struct {
+	err error
+}
 
-func (e ParseError) Error() string {
-	return "parsing age header: " + string(e)
+func (e *ParseError) Error() string {
+	return "parsing age header: " + e.err.Error()
+}
+
+func (e *ParseError) Unwrap() error {
+	return e.err
 }
 
 func errorf(format string, a ...interface{}) error {
-	return ParseError(fmt.Sprintf(format, a...))
+	return &ParseError{fmt.Errorf(format, a...)}
 }
 
 // Parse returns the header and a Reader that begins at the start of the
@@ -234,7 +240,7 @@ func Parse(input io.Reader) (*Header, io.Reader, error) {
 
 	line, err := rr.ReadString('\n')
 	if err != nil {
-		return nil, nil, errorf("failed to read intro: %v", err)
+		return nil, nil, errorf("failed to read intro: %w", err)
 	}
 	if line != intro {
 		return nil, nil, errorf("unexpected intro: %q", line)
@@ -244,13 +250,13 @@ func Parse(input io.Reader) (*Header, io.Reader, error) {
 	for {
 		peek, err := rr.Peek(len(footerPrefix))
 		if err != nil {
-			return nil, nil, errorf("failed to read header: %v", err)
+			return nil, nil, errorf("failed to read header: %w", err)
 		}
 
 		if bytes.Equal(peek, footerPrefix) {
 			line, err := rr.ReadBytes('\n')
 			if err != nil {
-				return nil, nil, fmt.Errorf("failed to read header: %v", err)
+				return nil, nil, fmt.Errorf("failed to read header: %w", err)
 			}
 
 			prefix, args := splitArgs(line)
@@ -266,7 +272,7 @@ func Parse(input io.Reader) (*Header, io.Reader, error) {
 
 		s, err := sr.ReadStanza()
 		if err != nil {
-			return nil, nil, fmt.Errorf("failed to parse header: %v", err)
+			return nil, nil, fmt.Errorf("failed to parse header: %w", err)
 		}
 		h.Recipients = append(h.Recipients, s)
 	}

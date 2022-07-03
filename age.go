@@ -179,7 +179,7 @@ func Decrypt(src io.Reader, identities ...Identity) (io.Reader, error) {
 
 	hdr, payload, err := format.Parse(src)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read header: %v", err)
+		return nil, fmt.Errorf("failed to read header: %w", err)
 	}
 
 	stanzas := make([]*Stanza, 0, len(hdr.Recipients))
@@ -212,7 +212,7 @@ func Decrypt(src io.Reader, identities ...Identity) (io.Reader, error) {
 
 	nonce := make([]byte, streamNonceSize)
 	if _, err := io.ReadFull(payload, nonce); err != nil {
-		return nil, fmt.Errorf("failed to read nonce: %v", err)
+		return nil, fmt.Errorf("failed to read nonce: %w", err)
 	}
 
 	return stream.NewReader(streamKey(fileKey, nonce), payload)

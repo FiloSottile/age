@@ -14,6 +14,7 @@ import (
 	"bytes"
 	"encoding/base64"
 	"errors"
+	"fmt"
 	"io"
 
 	"filippo.io/age/internal/format"
@@ -90,7 +91,7 @@ func (r *armoredReader) Read(p []byte) (int, error) {
 		line, err := r.r.ReadBytes('\n')
 		if err != nil && len(line) == 0 {
 			if err == io.EOF {
-				err = errors.New("invalid armor: unexpected EOF")
+				err = io.ErrUnexpectedEOF
 			}
 			return nil, err
 		}
@@ -103,7 +104,7 @@ func (r *armoredReader) Read(p []byte) (int, error) {
 			return 0, r.setErr(err)
 		}
 		if string(line) != Header {
-			return 0, r.setErr(errors.New("invalid armor first line: " + string(line)))
+			return 0, r.setErr(fmt.Errorf("invalid first line: %q", line))
 		}
 		r.started = true
 	}
@@ -115,12 +116,12 @@ func (r *armoredReader) Read(p []byte) (int, error) {
 		return 0, r.setErr(io.EOF)
 	}
 	if len(line) > format.ColumnsPerLine {
-		return 0, r.setErr(errors.New("invalid armor: column limit exceeded"))
+		return 0, r.setErr(errors.New("column limit exceeded"))
 	}
 	r.unread = r.buf[:]
 	n, err := base64.StdEncoding.Strict().Decode(r.unread, line)
 	if err != nil {
-		return 0, r.setErr(errors.New("invalid armor: " + err.Error()))
+		return 0, r.setErr(err)
 	}
 	r.unread = r.unread[:n]
 
@@ -130,7 +131,7 @@ func (r *armoredReader) Read(p []byte) (int, error) {
 			return 0, r.setErr(err)
 		}
 		if string(line) != Footer {
-			return 0, r.setErr(errors.New("invalid armor closing line: " + string(line)))
+			return 0, r.setErr(fmt.Errorf("invalid closing line: %q", line))
 		}
 		r.err = io.EOF
 	}
@@ -140,7 +141,22 @@ func (r *armoredReader) Read(p []byte) (int, error) {
 	return nn, nil
 }
 
+type Error struct {
+	err error
+}
+
+func (e *Error) Error() string {
+	return "invalid armor: " + e.err.Error()
+}
+
+func (e *Error) Unwrap() error {
+	return e.err
+}
+
 func (r *armoredReader) setErr(err error) error {
+	if err != io.EOF {
+		err = &Error{err}
+	}
 	r.err = err
 	return err
 }
