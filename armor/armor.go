@@ -89,19 +89,44 @@ func (r *armoredReader) Read(p []byte) (int, error) {
 
 	getLine := func() ([]byte, error) {
 		line, err := r.r.ReadBytes('\n')
-		if err != nil && len(line) == 0 {
-			if err == io.EOF {
-				err = io.ErrUnexpectedEOF
-			}
+		if err == io.EOF && len(line) == 0 {
+			return nil, io.ErrUnexpectedEOF
+		} else if err != nil && err != io.EOF {
 			return nil, err
 		}
-		return bytes.TrimSpace(line), nil
+		line = bytes.TrimSuffix(line, []byte("\n"))
+		line = bytes.TrimSuffix(line, []byte("\r"))
+		return line, nil
 	}
 
-	if !r.started {
+	const maxWhitespace = 1024
+	drainTrailing := func() error {
+		buf, err := io.ReadAll(io.LimitReader(r.r, maxWhitespace))
+		if err != nil {
+			return err
+		}
+		if len(bytes.TrimSpace(buf)) != 0 {
+			return errors.New("trailing data after armored file")
+		}
+		if len(buf) == maxWhitespace {
+			return errors.New("too much trailing whitespace")
+		}
+		return io.EOF
+	}
+
+	var removedWhitespace int
+	for !r.started {
 		line, err := getLine()
 		if err != nil {
 			return 0, r.setErr(err)
+		}
+		// Ignore leading whitespace.
+		if len(bytes.TrimSpace(line)) == 0 {
+			removedWhitespace += len(line) + 1
+			if removedWhitespace > maxWhitespace {
+				return 0, r.setErr(errors.New("too much leading whitespace"))
+			}
+			continue
 		}
 		if string(line) != Header {
 			return 0, r.setErr(fmt.Errorf("invalid first line: %q", line))
@@ -113,7 +138,7 @@ func (r *armoredReader) Read(p []byte) (int, error) {
 		return 0, r.setErr(err)
 	}
 	if string(line) == Footer {
-		return 0, r.setErr(io.EOF)
+		return 0, r.setErr(drainTrailing())
 	}
 	if len(line) > format.ColumnsPerLine {
 		return 0, r.setErr(errors.New("column limit exceeded"))
@@ -133,7 +158,7 @@ func (r *armoredReader) Read(p []byte) (int, error) {
 		if string(line) != Footer {
 			return 0, r.setErr(fmt.Errorf("invalid closing line: %q", line))
 		}
-		r.err = io.EOF
+		r.setErr(drainTrailing())
 	}
 
 	nn := copy(p, r.unread)
