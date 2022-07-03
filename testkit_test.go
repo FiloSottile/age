@@ -11,6 +11,7 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
 	"flag"
 	"io"
 	"log"
@@ -21,6 +22,7 @@ import (
 	"testing"
 
 	"filippo.io/age"
+	"filippo.io/age/armor"
 )
 
 //go:generate go test -generate -run ^$
@@ -81,6 +83,7 @@ func testVector(t *testing.T, test []byte) {
 		expect      string
 		payloadHash *[32]byte
 		identities  []age.Identity
+		armored     bool
 	)
 
 	for {
@@ -99,6 +102,7 @@ func testVector(t *testing.T, test []byte) {
 			case "success":
 			case "HMAC failure":
 			case "header failure":
+			case "armor failure":
 			case "payload failure":
 			case "no match":
 			default:
@@ -123,6 +127,8 @@ func testVector(t *testing.T, test []byte) {
 				t.Fatal(err)
 			}
 			identities = append(identities, i)
+		case "armored":
+			armored = true
 		case "file key":
 			// Ignored.
 		case "comment":
@@ -132,13 +138,23 @@ func testVector(t *testing.T, test []byte) {
 		}
 	}
 
-	r, err := age.Decrypt(bytes.NewReader(test), identities...)
+	var in io.Reader = bytes.NewReader(test)
+	if armored {
+		in = armor.NewReader(in)
+	}
+	r, err := age.Decrypt(in, identities...)
 	if err != nil && strings.HasSuffix(err.Error(), "bad header MAC") {
 		if expect == "HMAC failure" {
 			t.Log(err)
 			return
 		}
 		t.Fatalf("expected %s, got HMAC error", expect)
+	} else if e := new(armor.Error); errors.As(err, &e) {
+		if expect == "armor failure" {
+			t.Log(err)
+			return
+		}
+		t.Fatalf("expected %s, got: %v", expect, err)
 	} else if _, ok := err.(*age.NoIdentityMatchError); ok {
 		if expect == "no match" {
 			t.Log(err)
@@ -151,19 +167,24 @@ func testVector(t *testing.T, test []byte) {
 			return
 		}
 		t.Fatalf("expected %s, got: %v", expect, err)
-	} else if expect != "success" && expect != "payload failure" {
+	} else if expect != "success" && expect != "payload failure" &&
+		expect != "armor failure" {
 		t.Fatalf("expected %s, got success", expect)
 	}
 	out, err := io.ReadAll(r)
-	if err != nil {
-		if expect == "payload failure" {
-			t.Log(err)
-			if payloadHash != nil && sha256.Sum256(out) != *payloadHash {
-				t.Error("partial payload hash mismatch")
-			}
-			return
-		}
+	if err != nil && expect == "success" {
 		t.Fatalf("expected %s, got: %v", expect, err)
+	} else if err != nil {
+		t.Log(err)
+		if expect == "armor failure" {
+			if e := new(armor.Error); !errors.As(err, &e) {
+				t.Errorf("expected armor.Error, got %T", err)
+			}
+		}
+		if payloadHash != nil && sha256.Sum256(out) != *payloadHash {
+			t.Error("partial payload hash mismatch")
+		}
+		return
 	} else if expect != "success" {
 		t.Fatalf("expected %s, got success", expect)
 	}

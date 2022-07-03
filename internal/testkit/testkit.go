@@ -63,6 +63,7 @@ type TestFile struct {
 	comment     string
 	identities  []string
 	passphrases []string
+	armor       bool
 }
 
 func NewTestFile() *TestFile {
@@ -87,7 +88,7 @@ func (f *TestFile) TextLine(s string) {
 
 func (f *TestFile) UnreadLine() string {
 	buf := bytes.TrimSuffix(f.Buf.Bytes(), []byte("\n"))
-	idx := bytes.LastIndex(buf[:len(buf)-1], []byte("\n")) + 1
+	idx := bytes.LastIndex(buf, []byte("\n")) + 1
 	f.Buf.Reset()
 	f.Buf.Write(buf[:idx])
 	return string(buf[idx:])
@@ -120,6 +121,16 @@ func (f *TestFile) Body(body []byte) {
 			break
 		}
 	}
+}
+
+func (f *TestFile) Base64Padding() {
+	line := f.UnreadLine()
+	paddingLen := 4 - len(line)%4
+	if paddingLen == 4 {
+		paddingLen = 0
+	}
+	padding := strings.Repeat("=", paddingLen)
+	f.TextLine(line + padding)
 }
 
 func (f *TestFile) AEADBody(key, body []byte) {
@@ -231,6 +242,11 @@ func (f *TestFile) ExpectHeaderFailure() {
 	f.expect = "header failure"
 }
 
+func (f *TestFile) ExpectArmorFailure() {
+	f.armor = true
+	f.expect = "armor failure"
+}
+
 func (f *TestFile) ExpectPayloadFailure() {
 	f.expect = "payload failure"
 	f.payload.Reset()
@@ -255,6 +271,22 @@ func (f *TestFile) Comment(c string) {
 	f.comment = c
 }
 
+func (f *TestFile) BeginArmor(t string) {
+	f.armor = true
+	f.TextLine("-----BEGIN " + t + "-----")
+}
+
+func (f *TestFile) EndArmor(t string) {
+	f.armor = true
+	f.TextLine("-----END " + t + "-----")
+}
+
+func (f *TestFile) Bytes() []byte {
+	out := make([]byte, f.Buf.Len())
+	copy(out, f.Buf.Bytes())
+	return out
+}
+
 func (f *TestFile) Generate() {
 	fmt.Printf("expect: %s\n", f.expect)
 	if f.expect == "success" || f.expect == "payload failure" {
@@ -266,6 +298,9 @@ func (f *TestFile) Generate() {
 	}
 	for _, p := range f.passphrases {
 		fmt.Printf("passphrase: %s\n", p)
+	}
+	if f.armor {
+		fmt.Printf("armored: yes\n")
 	}
 	if f.comment != "" {
 		fmt.Printf("comment: %s\n", f.comment)
