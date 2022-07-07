@@ -164,7 +164,8 @@ Keep in mind that people might not protect SSH keys long-term, since they are re
     <tr>
         <td>Debian 11+ (Bullseye)</td>
         <td>
-            <code>apt install age</code>
+            <code>apt install age/bullseye-backports</code>
+            (<a href="https://backports.debian.org/Instructions/#index2h2">enable backports</a> for age v1.0.0+)
         </td>
     </tr>
     <tr>
@@ -192,7 +193,7 @@ Keep in mind that people might not protect SSH keys long-term, since they are re
         </td>
     </tr>
     <tr>
-        <td>Ubuntu 21.04+</td>
+        <td>Ubuntu 22.04+</td>
         <td>
             <code>apt install age</code>
         </td>
