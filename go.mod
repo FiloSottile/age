@@ -4,10 +4,12 @@ go 1.17
 
 require (
 	filippo.io/edwards25519 v1.0.0-rc.1
-	golang.org/x/crypto v0.0.0-20210817164053-32db794688a5
-	golang.org/x/sys v0.0.0-20210903071746-97244b99971b
+	golang.org/x/crypto v0.0.0-20220622213112-05595931fe9d
+	golang.org/x/sys v0.0.0-20220624220833-87e55d714810
 	golang.org/x/term v0.0.0-20210615171337-6886f2dfbf5b
 )
+
+require github.com/cloudflare/circl v1.2.1-0.20220708165439-f3c1b0d5f66f // indirect
 
 // Test dependencies.
 require (
