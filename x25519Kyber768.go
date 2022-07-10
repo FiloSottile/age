@@ -11,11 +11,10 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"strings"
 
-	"filippo.io/age/internal/bech32"
 	"filippo.io/age/internal/format"
 	"golang.org/x/crypto/chacha20poly1305"
-	"golang.org/x/crypto/curve25519"
 	"golang.org/x/crypto/hkdf"
 
 	"github.com/cloudflare/circl/kem/hybrid"
@@ -36,11 +35,11 @@ var _ Recipient = &x25519Kyber768Recipient{}
 
 // newx25519Kyber768RecipientFromPoint returns a new x25519Kyber768Recipient from a raw Curve25519 point.
 func newx25519Kyber768RecipientFromPoint(publicKey []byte) (*x25519Kyber768Recipient, error) {
-	if len(publicKey) != curve25519.PointSize {
+	if len(publicKey) != kem.PublicKeySize() {
 		return nil, errors.New("invalid x25519Kyber768 public key")
 	}
 	r := &x25519Kyber768Recipient{
-		theirPublicKey: make([]byte, curve25519.PointSize),
+		theirPublicKey: make([]byte, kem.PublicKeySize()),
 	}
 	copy(r.theirPublicKey, publicKey)
 	return r, nil
@@ -49,13 +48,19 @@ func newx25519Kyber768RecipientFromPoint(publicKey []byte) (*x25519Kyber768Recip
 // Parsex25519Kyber768Recipient returns a new x25519Kyber768Recipient from a Bech32 public key
 // encoding with the "age1" prefix.
 func Parsex25519Kyber768Recipient(s string) (*x25519Kyber768Recipient, error) {
-	t, k, err := bech32.Decode(s)
+	if !strings.HasPrefix(s, publicKeyIdenerty) {
+		return nil, fmt.Errorf("malformed recipient missing prefix %v", publicKeyIdenerty)
+	}
+
+	s = strings.TrimLeft(s, publicKeyIdenerty)
+
+	k, err := format.DecodeString(s)
 	if err != nil {
 		return nil, fmt.Errorf("malformed recipient %q: %v", s, err)
 	}
-	if t != "age" {
-		return nil, fmt.Errorf("malformed recipient %q: invalid type %q", s, t)
-	}
+	// if t != "age" {
+	// 	return nil, fmt.Errorf("malformed recipient %q: invalid type %q", s, t)
+	// }
 	r, err := newx25519Kyber768RecipientFromPoint(k)
 	if err != nil {
 		return nil, fmt.Errorf("malformed recipient %q: %v", s, err)
@@ -99,12 +104,14 @@ func (r *x25519Kyber768Recipient) Wrap(fileKey []byte) ([]*Stanza, error) {
 	return []*Stanza{l}, nil
 }
 
+const publicKeyIdenerty = "agePQ."
+
 // String returns the Bech32 public key encoding of r.
 // 👷‍♂️
 func (r *x25519Kyber768Recipient) String() string {
 	// TODO Prefix
 	// s, _ := bech32.Encode("age", r.theirPublicKey)
-	s := base64.StdEncoding.EncodeToString(r.theirPublicKey)
+	s := publicKeyIdenerty + format.EncodeToString(r.theirPublicKey)
 	return s
 }
 
