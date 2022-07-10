@@ -91,13 +91,11 @@ func (r *x25519Kyber768Recipient) Wrap(fileKey []byte) ([]*Stanza, error) {
 		return nil, err
 	}
 
-	fmt.Printf("aeadEncrypt: key: %x\n pt: %x\n", wrappingKey, fileKey)
 	wrappedKey, err := aeadEncrypt(wrappingKey, fileKey)
 	if err != nil {
 		return nil, err
 	}
 	l.Body = wrappedKey
-	fmt.Printf("aeadEncrypt: ct: %x\n", wrappedKey)
 
 	return []*Stanza{l}, nil
 }
@@ -206,7 +204,6 @@ func (i *X25519Kyber768Identity) unwrap(block *Stanza) ([]byte, error) {
 		return nil, err
 	}
 
-	fmt.Printf("aeadDecrypt: key: %x\n size: %v ct: %x\n", wrappingKey, fileKeySize, block.Body)
 	fileKey, err := aeadDecrypt(wrappingKey, fileKeySize, block.Body)
 	if err == errIncorrectCiphertextSize {
 		return nil, errors.New("invalid x25519Kyber768 recipient block: incorrect file key size")
