@@ -20,9 +20,15 @@ import (
 	"github.com/cloudflare/circl/kem/hybrid"
 )
 
-const x25519Kyber768Label = "age-encryption.org/v1/x25519Kyber768"
+const (
+	x25519Kyber768Label = "age-encryption.org/v1/x25519Kyber768"
+	// TODO add Version
+	prefexPublicKey = "agePQ."
+	// TODO add Version
+	prefixSecretKey = "AGE-PQ-SECRET-KEY-"
+)
 
-// x25519Kyber768Recipient is the standard age public key. Messages encrypted to this
+// x25519Kyber768Recipient is the PQ age public key. Messages encrypted to this
 // recipient can be decrypted with the corresponding x25519Kyber768Identity.
 //
 // This recipient is anonymous, in the sense that an attacker can't tell from
@@ -33,7 +39,7 @@ type x25519Kyber768Recipient struct {
 
 var _ Recipient = &x25519Kyber768Recipient{}
 
-// newx25519Kyber768RecipientFromPoint returns a new x25519Kyber768Recipient from a raw Curve25519 point.
+// newx25519Kyber768RecipientFromPoint returns a new x25519Kyber768Recipient from a hybrid (classical/quantum) key encapsulation mechanism (KEM).
 func newx25519Kyber768RecipientFromPoint(publicKey []byte) (*x25519Kyber768Recipient, error) {
 	if len(publicKey) != kem.PublicKeySize() {
 		return nil, errors.New("invalid x25519Kyber768 public key")
@@ -45,8 +51,8 @@ func newx25519Kyber768RecipientFromPoint(publicKey []byte) (*x25519Kyber768Recip
 	return r, nil
 }
 
-// Parsex25519Kyber768Recipient returns a new x25519Kyber768Recipient from a Bech32 public key
-// encoding with the "age1" prefix.
+// Parsex25519Kyber768Recipient returns a new x25519Kyber768Recipient from a Base64 public key
+// encoding with the "agePQ." prefix.
 func Parsex25519Kyber768Recipient(s string) (*x25519Kyber768Recipient, error) {
 	if !strings.HasPrefix(s, prefexPublicKey) {
 		return nil, fmt.Errorf("malformed recipient missing prefix %v", prefexPublicKey)
@@ -100,14 +106,8 @@ func (r *x25519Kyber768Recipient) Wrap(fileKey []byte) ([]*Stanza, error) {
 	return []*Stanza{l}, nil
 }
 
-const prefexPublicKey = "agePQ."
-const prefixSecretKey = "AGE-PQ-SECRET-KEY-"
-
-// String returns the Bech32 public key encoding of r.
-// 👷‍♂️
+// String returns the Baee64 public key encoding of r.
 func (r *x25519Kyber768Recipient) String() string {
-	// TODO Prefix
-	// s, _ := bech32.Encode("age", r.theirPublicKey)
 	s := prefexPublicKey + format.EncodeToString(r.theirPublicKey)
 	return s
 }
@@ -116,15 +116,14 @@ func (r *x25519Kyber768Recipient) String() string {
 // encrypted to the corresponding x25519Kyber768Recipient.
 type X25519Kyber768Identity struct {
 	secretKey, ourPublicKey []byte
-	// TODO Maybe hold the kem.PrivateKey directly?
+	// TODO Maybe hold the kem.PrivateKey directly for better performance
 }
 
 var _ Identity = &X25519Kyber768Identity{}
 
 var kem = hybrid.Kyber768X25519()
 
-// newx25519Kyber768IdentityFromScalar returns a new x25519Kyber768Identity from a raw Curve25519 scalar.
-// 👷‍♂️
+// newx25519Kyber768IdentityFromScalar returns a new x25519Kyber768Identity derived from a secret key.
 func newx25519Kyber768IdentityFromScalar(secretKey []byte) (*X25519Kyber768Identity, error) {
 	if len(secretKey) != kem.SeedSize() {
 		return nil, errors.New("invalid x25519Kyber768 secret key")
@@ -149,9 +148,8 @@ func Generatex25519Kyber768Identity() (*X25519Kyber768Identity, error) {
 	return newx25519Kyber768IdentityFromScalar(secretKey)
 }
 
-// Parsex25519Kyber768Identity returns a new x25519Kyber768Identity from a Bech32 private key
-// encoding with the "AGE-SECRET-KEY-1" prefix.
-// 👷‍♂️
+// Parsex25519Kyber768Identity returns a new x25519Kyber768Identity from a Base64 private key
+// encoding with the "AGE-PQ-SECRET-KEY" prefix.
 func Parsex25519Kyber768Identity(s string) (*X25519Kyber768Identity, error) {
 	if !strings.HasPrefix(s, prefixSecretKey) {
 		return nil, fmt.Errorf("malformed secret key: prefix %v missing", prefixSecretKey)
@@ -196,7 +194,7 @@ func (i *X25519Kyber768Identity) unwrap(block *Stanza) ([]byte, error) {
 	}
 
 	salt := make([]byte, 0, len(i.ourPublicKey))
-	// TODO add more netropy? salt = append(salt, publicKey...)
+	// TODO add more entropy? salt = append(salt, publicKey...)
 	salt = append(salt, i.ourPublicKey...)
 	h := hkdf.New(sha256.New, sharedSecret, salt, []byte(x25519Kyber768Label))
 	wrappingKey := make([]byte, chacha20poly1305.KeySize)
@@ -220,8 +218,7 @@ func (i *X25519Kyber768Identity) Recipient() *x25519Kyber768Recipient {
 	return r
 }
 
-// String returns the Bech32 private key encoding of i.
-// 👷‍♂️
+// String returns the Base64 private key encoding of i.
 func (i *X25519Kyber768Identity) String() string {
 	// TODO Base64 best format?
 	return prefixSecretKey + base64.StdEncoding.EncodeToString(i.secretKey)
