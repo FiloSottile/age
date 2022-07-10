@@ -3,13 +3,13 @@ module filippo.io/age
 go 1.17
 
 require (
-	filippo.io/edwards25519 v1.0.0-rc.1
+	filippo.io/edwards25519 v1.0.0
 	golang.org/x/crypto v0.0.0-20220622213112-05595931fe9d
-	golang.org/x/sys v0.0.0-20220624220833-87e55d714810
-	golang.org/x/term v0.0.0-20210615171337-6886f2dfbf5b
+	golang.org/x/sys v0.0.0-20220708085239-5a0f0661e09d
+	golang.org/x/term v0.0.0-20220526004731-065cf7ba2467
 )
 
-require github.com/cloudflare/circl v1.2.1-0.20220708165439-f3c1b0d5f66f // indirect
+require github.com/cloudflare/circl v1.2.1-0.20220708165439-f3c1b0d5f66f
 
 // Test dependencies.
 require (
