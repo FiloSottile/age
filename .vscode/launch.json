@@ -1,0 +1,36 @@
+{
+    // Verwendet IntelliSense zum Ermitteln möglicher Attribute.
+    // Zeigen Sie auf vorhandene Attribute, um die zugehörigen Beschreibungen anzuzeigen.
+    // Weitere Informationen finden Sie unter https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Encrypt",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "program": "${workspaceFolder}/cmd/age",
+            "args": [
+                "-e",
+                "-r",
+                "agePQ.KIcbwjZZ6fsk07A2j8gG+eZkghs/nUobmRq0/OxSW+fIqVAiWdtZRzOcuOPCtbQvRuYyEaxeAsYgzykfr3fFUXXBg5akxVe1G8YpGAIvpFOMg4sSbQKPJoi6rvHFDUm8MPhHu4BU3NWtXNZYJzV0OCJWTuVlClJ5mLu7h/ROLMwcORFPmYiWaEtf3mA+BEmtfge/ePS8lTwB1RJbCvSUuMcaeTCRddVhwyUQ6RwzD5ltg6kq7xBZIuS9kQZ+2PIe+eYIxFVhnSRKNdOWDFRjWbuQOwRkhBsAQ8FAF4XKWHd8gKCKNQU6lUWI6thm0uiU3si6diIUi5pR7SwZ3LNstYq7aspyteITj1HLeSwMcHdF96d6CuiWHCUJbBibHJk5J7w4JMxubTCpEosOGjA3HsUs3BgwyqqRgVJyD0tondVqwNqv83l5bIGsJgmqRfK/GGMh2vsKx3zOyswcPGIBHnMa1TaHqBVFVImljAIBJUJiHDGc5Ni08wrBF5BSvDV1UOgMy9lE7mte9UULK2AJ+wJYSQBqzwAzrBG6IgijjagQUhoDKpkxERpYh0lDUliDzsKhhTIYwWFWhoQhwbSt2YZUWPp5kruS1FNZz5VYOSfCD6cW/Kdk8Rm97kbNVOzHKPRBOqah9ky8NdqOCBnHxHFZtGlq2+Qm+lAURtMaoRBEKSe2e/N9UbxonPosQBoQMoEBLxqgM7iUmJJ/fNlF1yBEwGNMvmcDXZqSKYRb39Vk52VKtojObGh4faleeBR4jheW8XcwyVJGfbZ8rxOjkjFQx/SnVLwVQcWuAonP+sou0IMxkwsJTkxhqFLG7jyy/qujRpKT89dHv1ARJmdnCwSyt4Om9tYIX7GnSplHJwR3rqQ9L9Z7fuwSSAMuQXczDqAP/sl0weawp/PP34LL7WmDzryAQ2hOWoOmvUx9RdVKBxME8KsLUJpnksIe0/xrRjVfCWaCN4mI/ioEOIVAyiZK8HKXNICrubWCPxqkuzyR72oeZoAWh6k0WiCwCxwhgHt1O4uqloYYtoGvP5U9WuAMp6IRp1mXAzcQoXk/7koT6Mp7FsU4jkCa5pGDmKld0pmqvTMhhgaFBvRuNsOGveNSeqS8OLFR94MVT4Y9J1IGz4U/sfW5YKxzFam4RlCAGiu6r9WJY8A6rsSI8IyC8KtZs9RAzMk9dhcSpke+5ie320Ob8nsihIwGDNVJ56hlPGab17UnUHxDRaZgs8q7v3kAC3irgeg4K3PKwWsGmnctgrxuf+NSLjNUW/qrIgYDR6NhQnPEuUd8GIqbBKSUxUYykBVivqcJK/Z6ClVDMdmeQoyC9+wBtBtB2gBKu6GU80U3pwW8v/ppqap2RKhBPcYOhTssnMchonzCYII311GL8SMzmVI7hsnNmjdFSxWxHHqM/Cy81PwI/Do1uDsKveMT9cxX/MmxKCoSy0OuK0YgEGWrXehdncAnVWMNRoWPXtAGgPLMWKcrKQwpXSmGgpVMc3VQiBVGO2oM7QldYxMsnNGY45MW0SdiQ7st22Mg/dLi5cy4zThwLOkre7xhcGzh9tzLKSOUFgYavUZ/zXT/fTpTo3ADxzSkWAPqEgNgOIaDsfY+55qJU9p/FDAXMg",
+                "-o",
+                "${workspaceFolder}/debug/debug-out",
+                "${workspaceFolder}/AUTHORS",
+            ],
+        },
+        {
+            "name": "Decrypt",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "program": "${workspaceFolder}/cmd/age",
+            "args": [
+                "-d",
+                "-i",
+                "${workspaceFolder}/debug/agepq.key",
+                "${workspaceFolder}/debug/debug-out"
+            ],
+        }
+    ]
+}

@@ -24,6 +24,7 @@ const usage = `Usage:
 Options:
     -o, --output OUTPUT       Write the result to the file at path OUTPUT.
     -y                        Convert an identity file to a recipients file.
+	-pq                       Use hybrid (classical and quantum) KEM of Kyber768 and X25519
 
 age-keygen generates a new native X25519 key pair, and outputs it to
 standard output or to the OUTPUT file.
@@ -64,7 +65,7 @@ func main() {
 	)
 
 	flag.BoolVar(&versionFlag, "version", false, "print the version")
-	flag.BoolVar(&pqFlag, "pq", false, "") // TODO Usage
+	flag.BoolVar(&pqFlag, "pq", false, "Use hybrid (classical and quantum) KEM of Kyber768 and X25519")
 	flag.BoolVar(&convertFlag, "y", false, "convert identities to recipients")
 	flag.StringVar(&outFlag, "o", "", "output to `FILE` (default stdout)")
 	flag.StringVar(&outFlag, "output", "", "output to `FILE` (default stdout)")

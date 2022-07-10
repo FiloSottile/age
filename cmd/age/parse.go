@@ -34,6 +34,8 @@ func parseRecipient(arg string) (age.Recipient, error) {
 		return plugin.NewRecipient(arg, pluginTerminalUI)
 	case strings.HasPrefix(arg, "age1"):
 		return age.ParseX25519Recipient(arg)
+	case strings.HasPrefix(arg, "agePQ"):
+		return age.Parsex25519Kyber768Recipient(arg)
 	case strings.HasPrefix(arg, "ssh-"):
 		return agessh.ParseRecipient(arg)
 	case strings.HasPrefix(arg, "github:"):
@@ -201,6 +203,8 @@ func parseIdentity(s string) (age.Identity, error) {
 		return plugin.NewIdentity(s, pluginTerminalUI)
 	case strings.HasPrefix(s, "AGE-SECRET-KEY-1"):
 		return age.ParseX25519Identity(s)
+	case strings.HasPrefix(s, "AGE-PQ-SECRET-KEY"):
+		return age.Parsex25519Kyber768Identity(s)
 	default:
 		return nil, fmt.Errorf("unknown identity type")
 	}
