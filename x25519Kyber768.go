@@ -120,8 +120,7 @@ func (r *x25519Kyber768Recipient) String() string {
 // encrypted to the corresponding x25519Kyber768Recipient.
 type x25519Kyber768Identity struct {
 	secretKey, ourPublicKey []byte
-	// TODO
-	NO_NEED_ourPrivateKey []byte
+	// TODO Maybe hold the kem.PrivateKey directly?
 }
 
 var _ Identity = &x25519Kyber768Identity{}
@@ -135,14 +134,13 @@ func newx25519Kyber768IdentityFromScalar(secretKey []byte) (*x25519Kyber768Ident
 		return nil, errors.New("invalid x25519Kyber768 secret key")
 	}
 
-	pub, priv := kem.DeriveKeyPair(secretKey)
+	pub, _ := kem.DeriveKeyPair(secretKey)
 
 	i := &x25519Kyber768Identity{
 		secretKey: make([]byte, kem.SeedSize()),
 	}
 	copy(i.secretKey, secretKey)
 	i.ourPublicKey, _ = pub.MarshalBinary()
-	i.NO_NEED_ourPrivateKey, _ = priv.MarshalBinary()
 	return i, nil
 }
 
