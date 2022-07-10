@@ -59,10 +59,12 @@ func main() {
 
 	var (
 		versionFlag, convertFlag bool
+		pqFlag                   bool
 		outFlag                  string
 	)
 
 	flag.BoolVar(&versionFlag, "version", false, "print the version")
+	flag.BoolVar(&pqFlag, "pq", false, "") // TODO Usage
 	flag.BoolVar(&convertFlag, "y", false, "convert identities to recipients")
 	flag.StringVar(&outFlag, "o", "", "output to `FILE` (default stdout)")
 	flag.StringVar(&outFlag, "output", "", "output to `FILE` (default stdout)")
@@ -116,8 +118,28 @@ func main() {
 		if fi, err := out.Stat(); err == nil && fi.Mode().IsRegular() && fi.Mode().Perm()&0004 != 0 {
 			warning("writing secret key to a world-readable file")
 		}
-		generate(out)
+		if pqFlag {
+			generatePq(out)
+		} else {
+			generate(out)
+		}
+
 	}
+}
+
+func generatePq(out *os.File) {
+	k, err := age.Generatex25519Kyber768Identity()
+	if err != nil {
+		errorf("internal error: %v", err)
+	}
+
+	if !term.IsTerminal(int(out.Fd())) {
+		fmt.Fprintf(os.Stderr, "Public key: %s\n", k.Recipient())
+	}
+
+	fmt.Fprintf(out, "# created: %s\n", time.Now().Format(time.RFC3339))
+	fmt.Fprintf(out, "# public key: %s\n", k.Recipient())
+	fmt.Fprintf(out, "%s\n", k)
 }
 
 func generate(out *os.File) {
