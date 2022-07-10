@@ -114,27 +114,27 @@ func (r *x25519Kyber768Recipient) String() string {
 	return s
 }
 
-// x25519Kyber768Identity is the standard age private key, which can decrypt messages
+// X25519Kyber768Identity is the standard age private key, which can decrypt messages
 // encrypted to the corresponding x25519Kyber768Recipient.
-type x25519Kyber768Identity struct {
+type X25519Kyber768Identity struct {
 	secretKey, ourPublicKey []byte
 	// TODO Maybe hold the kem.PrivateKey directly?
 }
 
-var _ Identity = &x25519Kyber768Identity{}
+var _ Identity = &X25519Kyber768Identity{}
 
 var kem = hybrid.Kyber768X25519()
 
 // newx25519Kyber768IdentityFromScalar returns a new x25519Kyber768Identity from a raw Curve25519 scalar.
 // 👷‍♂️
-func newx25519Kyber768IdentityFromScalar(secretKey []byte) (*x25519Kyber768Identity, error) {
+func newx25519Kyber768IdentityFromScalar(secretKey []byte) (*X25519Kyber768Identity, error) {
 	if len(secretKey) != kem.SeedSize() {
 		return nil, errors.New("invalid x25519Kyber768 secret key")
 	}
 
 	pub, _ := kem.DeriveKeyPair(secretKey)
 
-	i := &x25519Kyber768Identity{
+	i := &X25519Kyber768Identity{
 		secretKey: make([]byte, kem.SeedSize()),
 	}
 	copy(i.secretKey, secretKey)
@@ -143,7 +143,7 @@ func newx25519Kyber768IdentityFromScalar(secretKey []byte) (*x25519Kyber768Ident
 }
 
 // Generatex25519Kyber768Identity randomly generates a new x25519Kyber768Identity.
-func Generatex25519Kyber768Identity() (*x25519Kyber768Identity, error) {
+func Generatex25519Kyber768Identity() (*X25519Kyber768Identity, error) {
 	secretKey := make([]byte, kem.SeedSize())
 	if _, err := rand.Read(secretKey); err != nil {
 		return nil, fmt.Errorf("internal error: %v", err)
@@ -154,7 +154,7 @@ func Generatex25519Kyber768Identity() (*x25519Kyber768Identity, error) {
 // Parsex25519Kyber768Identity returns a new x25519Kyber768Identity from a Bech32 private key
 // encoding with the "AGE-SECRET-KEY-1" prefix.
 // 👷‍♂️
-func Parsex25519Kyber768Identity(s string) (*x25519Kyber768Identity, error) {
+func Parsex25519Kyber768Identity(s string) (*X25519Kyber768Identity, error) {
 	if !strings.HasPrefix(s, prefixSecretKey) {
 		return nil, fmt.Errorf("malformed secret key: prefix %v missing", prefixSecretKey)
 	}
@@ -172,11 +172,11 @@ func Parsex25519Kyber768Identity(s string) (*x25519Kyber768Identity, error) {
 	return r, nil
 }
 
-func (i *x25519Kyber768Identity) Unwrap(stanzas []*Stanza) ([]byte, error) {
+func (i *X25519Kyber768Identity) Unwrap(stanzas []*Stanza) ([]byte, error) {
 	return multiUnwrap(i.unwrap, stanzas)
 }
 
-func (i *x25519Kyber768Identity) unwrap(block *Stanza) ([]byte, error) {
+func (i *X25519Kyber768Identity) unwrap(block *Stanza) ([]byte, error) {
 	if block.Type != "x25519Kyber768" {
 		return nil, ErrIncorrectIdentity
 	}
@@ -217,7 +217,7 @@ func (i *x25519Kyber768Identity) unwrap(block *Stanza) ([]byte, error) {
 }
 
 // Recipient returns the public x25519Kyber768Recipient value corresponding to i.
-func (i *x25519Kyber768Identity) Recipient() *x25519Kyber768Recipient {
+func (i *X25519Kyber768Identity) Recipient() *x25519Kyber768Recipient {
 	r := &x25519Kyber768Recipient{}
 	r.theirPublicKey = i.ourPublicKey
 	return r
@@ -225,7 +225,7 @@ func (i *x25519Kyber768Identity) Recipient() *x25519Kyber768Recipient {
 
 // String returns the Bech32 private key encoding of i.
 // 👷‍♂️
-func (i *x25519Kyber768Identity) String() string {
+func (i *X25519Kyber768Identity) String() string {
 	// TODO Base64 best format?
 	return prefixSecretKey + base64.StdEncoding.EncodeToString(i.secretKey)
 }

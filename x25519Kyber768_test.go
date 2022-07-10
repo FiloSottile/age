@@ -109,7 +109,7 @@ func TestParsex25519Kyber768Recipient(t *testing.T) {
 func Test_x25519Kyber768Identity_String(t *testing.T) {
 	tests := []struct {
 		name string
-		i    *x25519Kyber768Identity
+		i    *X25519Kyber768Identity
 		want string
 	}{
 		{
@@ -134,7 +134,7 @@ func TestParsex25519Kyber768Identity(t *testing.T) {
 	tests := []struct {
 		name    string
 		args    args
-		want    *x25519Kyber768Identity
+		want    *X25519Kyber768Identity
 		wantErr bool
 	}{
 		{
