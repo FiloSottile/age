@@ -48,11 +48,11 @@ func newx25519Kyber768RecipientFromPoint(publicKey []byte) (*x25519Kyber768Recip
 // Parsex25519Kyber768Recipient returns a new x25519Kyber768Recipient from a Bech32 public key
 // encoding with the "age1" prefix.
 func Parsex25519Kyber768Recipient(s string) (*x25519Kyber768Recipient, error) {
-	if !strings.HasPrefix(s, publicKeyIdenerty) {
-		return nil, fmt.Errorf("malformed recipient missing prefix %v", publicKeyIdenerty)
+	if !strings.HasPrefix(s, prefexPublicKey) {
+		return nil, fmt.Errorf("malformed recipient missing prefix %v", prefexPublicKey)
 	}
 
-	s = strings.TrimLeft(s, publicKeyIdenerty)
+	s = strings.TrimLeft(s, prefexPublicKey)
 
 	k, err := format.DecodeString(s)
 	if err != nil {
@@ -104,14 +104,15 @@ func (r *x25519Kyber768Recipient) Wrap(fileKey []byte) ([]*Stanza, error) {
 	return []*Stanza{l}, nil
 }
 
-const publicKeyIdenerty = "agePQ."
+const prefexPublicKey = "agePQ."
+const prefixSecretKey = "AGE-PQ-SECRET-KEY-"
 
 // String returns the Bech32 public key encoding of r.
 // 👷‍♂️
 func (r *x25519Kyber768Recipient) String() string {
 	// TODO Prefix
 	// s, _ := bech32.Encode("age", r.theirPublicKey)
-	s := publicKeyIdenerty + format.EncodeToString(r.theirPublicKey)
+	s := prefexPublicKey + format.EncodeToString(r.theirPublicKey)
 	return s
 }
 
@@ -158,6 +159,12 @@ func Generatex25519Kyber768Identity() (*x25519Kyber768Identity, error) {
 // encoding with the "AGE-SECRET-KEY-1" prefix.
 // 👷‍♂️
 func Parsex25519Kyber768Identity(s string) (*x25519Kyber768Identity, error) {
+	if !strings.HasPrefix(s, prefixSecretKey) {
+		return nil, fmt.Errorf("malformed secret key: prefix %v missing", prefixSecretKey)
+	}
+
+	s = strings.TrimLeft(s, prefixSecretKey)
+
 	data, err := base64.StdEncoding.DecodeString(s)
 	if err != nil {
 		return nil, fmt.Errorf("malformed secret key: %v", err)
@@ -240,5 +247,5 @@ func (i *x25519Kyber768Identity) Recipient() *x25519Kyber768Recipient {
 func (i *x25519Kyber768Identity) String() string {
 	// TODO add prefix
 	// s, _ := bech32.Encode("AGE-SECRET-KEY-", i.secretKey)
-	return base64.StdEncoding.EncodeToString(i.secretKey)
+	return prefixSecretKey + base64.StdEncoding.EncodeToString(i.secretKey)
 }

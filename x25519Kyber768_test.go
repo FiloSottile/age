@@ -105,3 +105,57 @@ func TestParsex25519Kyber768Recipient(t *testing.T) {
 		})
 	}
 }
+
+func Test_x25519Kyber768Identity_String(t *testing.T) {
+	tests := []struct {
+		name string
+		i    *x25519Kyber768Identity
+		want string
+	}{
+		{
+			name: "",
+			i:    their,
+			want: "AGE-PQ-SECRET-KEY-II1ZlNxTYa1CJej8IVc9J4nG4c0XonSfwGdObIiutBWKr0iRligej09dVLJgv8/Lf7vbp0qwa23/8Ul3phsZLg==",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.i.String(); got != tt.want {
+				t.Errorf("x25519Kyber768Identity.String() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestParsex25519Kyber768Identity(t *testing.T) {
+	type args struct {
+		s string
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    *x25519Kyber768Identity
+		wantErr bool
+	}{
+		{
+			name: "",
+			args: args{
+				s: "AGE-PQ-SECRET-KEY-II1ZlNxTYa1CJej8IVc9J4nG4c0XonSfwGdObIiutBWKr0iRligej09dVLJgv8/Lf7vbp0qwa23/8Ul3phsZLg==",
+			},
+			want:    their,
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := Parsex25519Kyber768Identity(tt.args.s)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("Parsex25519Kyber768Identity() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("Parsex25519Kyber768Identity() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
