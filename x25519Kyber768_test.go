@@ -159,3 +159,24 @@ func TestParsex25519Kyber768Identity(t *testing.T) {
 		})
 	}
 }
+
+func TestGeneratex25519Kyber768Identity(t *testing.T) {
+	tests := []struct {
+		name    string
+		wantErr bool
+	}{
+		{
+			name:    "",
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := Generatex25519Kyber768Identity()
+			if (err != nil) != tt.wantErr {
+				t.Errorf("Generatex25519Kyber768Identity() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+		})
+	}
+}

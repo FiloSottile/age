@@ -58,9 +58,7 @@ func Parsex25519Kyber768Recipient(s string) (*x25519Kyber768Recipient, error) {
 	if err != nil {
 		return nil, fmt.Errorf("malformed recipient %q: %v", s, err)
 	}
-	// if t != "age" {
-	// 	return nil, fmt.Errorf("malformed recipient %q: invalid type %q", s, t)
-	// }
+
 	r, err := newx25519Kyber768RecipientFromPoint(k)
 	if err != nil {
 		return nil, fmt.Errorf("malformed recipient %q: %v", s, err)
@@ -161,16 +159,12 @@ func Parsex25519Kyber768Identity(s string) (*x25519Kyber768Identity, error) {
 		return nil, fmt.Errorf("malformed secret key: prefix %v missing", prefixSecretKey)
 	}
 
-	s = strings.TrimLeft(s, prefixSecretKey)
+	s = strings.TrimPrefix(s, prefixSecretKey)
 
 	data, err := base64.StdEncoding.DecodeString(s)
 	if err != nil {
 		return nil, fmt.Errorf("malformed secret key: %v", err)
 	}
-	// TODO add prefix
-	// if t != "AGE-SECRET-KEY-" {
-	// 	return nil, fmt.Errorf("malformed secret key: unknown type %q", t)
-	// }
 	r, err := newx25519Kyber768IdentityFromScalar(data)
 	if err != nil {
 		return nil, fmt.Errorf("malformed secret key: %v", err)
@@ -193,17 +187,6 @@ func (i *x25519Kyber768Identity) unwrap(block *Stanza) ([]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse x25519Kyber768 recipient: %v", err)
 	}
-	// if err != nil {
-	// 	return nil, fmt.Errorf("failed to parse x25519Kyber768 recipient: %v", err)
-	// }
-	// if len(publicKey) != curve25519.PointSize {
-	// 	return nil, errors.New("invalid x25519Kyber768 recipient block")
-	// }
-
-	// sharedSecret, err := curve25519.x25519Kyber768(i.secretKey, publicKey)
-	// if err != nil {
-	// 	return nil, fmt.Errorf("invalid x25519Kyber768 recipient: %v", err)
-	// }
 
 	_, myPrivateKey := kem.DeriveKeyPair(i.secretKey)
 	if err != nil {
@@ -215,7 +198,7 @@ func (i *x25519Kyber768Identity) unwrap(block *Stanza) ([]byte, error) {
 	}
 
 	salt := make([]byte, 0, len(i.ourPublicKey))
-	// salt = append(salt, publicKey...)
+	// TODO add more netropy? salt = append(salt, publicKey...)
 	salt = append(salt, i.ourPublicKey...)
 	h := hkdf.New(sha256.New, sharedSecret, salt, []byte(x25519Kyber768Label))
 	wrappingKey := make([]byte, chacha20poly1305.KeySize)
@@ -243,7 +226,6 @@ func (i *x25519Kyber768Identity) Recipient() *x25519Kyber768Recipient {
 // String returns the Bech32 private key encoding of i.
 // 👷‍♂️
 func (i *x25519Kyber768Identity) String() string {
-	// TODO add prefix
-	// s, _ := bech32.Encode("AGE-SECRET-KEY-", i.secretKey)
+	// TODO Base64 best format?
 	return prefixSecretKey + base64.StdEncoding.EncodeToString(i.secretKey)
 }
