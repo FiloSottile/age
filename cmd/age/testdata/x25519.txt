@@ -1,12 +1,14 @@
 # encrypt and decrypt a file with -r
 age -r age1xmwwc06ly3ee5rytxm9mflaz2u56jjj36s0mypdrwsvlul66mv4q47ryef -o test.age input
 age -d -i key.txt test.age
-stdout test
+cmp stdout input
+! stderr .
 
 # encrypt and decrypt a file with -i
 age -e -i key.txt -o test.age input
 age -d -i key.txt test.age
-stdout test
+cmp stdout input
+! stderr .
 
 # encrypt and decrypt a file with the wrong key
 age -r age12phkzssndd5axajas2h74vtge62c86xjhd6u9anyanqhzvdg6sps0xthgl -o test.age input

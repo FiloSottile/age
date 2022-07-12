@@ -10,7 +10,12 @@ import (
 	"strings"
 )
 
+var testOnlyFixedRandomWord string
+
 func randomWord() string {
+	if testOnlyFixedRandomWord != "" {
+		return testOnlyFixedRandomWord
+	}
 	buf := make([]byte, 2)
 	if _, err := rand.Read(buf); err != nil {
 		panic(err)

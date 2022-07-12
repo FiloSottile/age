@@ -1,3 +1,5 @@
+# TODO: age-encrypted private keys, multiple identities, -i ordering, -e -i
+
 [windows] skip # no pty support
 
 # use an encrypted OpenSSH private key without .pub file
@@ -5,7 +7,14 @@ age -R key_ed25519.pub -o ed25519.age input
 rm key_ed25519.pub
 pty terminal
 age -d -i key_ed25519 ed25519.age
-stdout test
+cmp stdout input
+! stderr .
+
+# -e -i with an encrypted OpenSSH private key
+age -e -i key_ed25519 -o ed25519.age input
+pty terminal
+age -d -i key_ed25519 ed25519.age
+cmp stdout input
 
 # a file encrypted to the wrong key does not ask for the password
 age -R key_ed25519_other.pub -o ed25519_other.age input
@@ -16,10 +25,17 @@ stderr 'no identity matched any of the recipients'
 age -R key_rsa_legacy.pub -o rsa_legacy.age input
 pty terminal
 age -d -i key_rsa_legacy rsa_legacy.age
-stdout test
+cmp stdout input
+! stderr .
 age -R key_rsa_other.pub -o rsa_other.age input
 ! age -d -i key_rsa_legacy rsa_other.age
 stderr 'no identity matched any of the recipients'
+
+# -e -i with an encrypted legacy PEM private key
+age -e -i key_rsa_legacy -o rsa_legacy.age input
+pty terminal
+age -d -i key_rsa_legacy rsa_legacy.age
+cmp stdout input
 
 # legacy PEM private key without a .pub file causes an error
 rm key_rsa_legacy.pub

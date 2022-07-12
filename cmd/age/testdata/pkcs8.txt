@@ -2,7 +2,8 @@
 # encrypt and decrypt a file with an Ed25519 key encoded with PKCS#8
 age -e -i key.pem -o test.age input
 age -d -i key.pem test.age
-stdout test
+cmp stdout input
+! stderr .
 
 -- input --
 test

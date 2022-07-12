@@ -16,4 +16,4 @@ require (
 	github.com/rogpeppe/go-internal v1.8.1
 )
 
-replace github.com/rogpeppe/go-internal => github.com/FiloSottile/go-internal v1.8.2-0.20220703103932-d3b1faae2802
+replace github.com/rogpeppe/go-internal => github.com/FiloSottile/go-internal v1.8.2-0.20220712170627-21d77b294581

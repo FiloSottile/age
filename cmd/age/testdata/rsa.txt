@@ -1,12 +1,14 @@
 # encrypt and decrypt a file with -R
 age -R key.pem.pub -o test.age input
 age -d -i key.pem test.age
-stdout test
+cmp stdout input
+! stderr .
 
 # encrypt and decrypt a file with -i
 age -e -i key.pem -o test.age input
 age -d -i key.pem test.age
-stdout test
+cmp stdout input
+! stderr .
 
 # encrypt and decrypt a file with the wrong key
 age -R otherkey.pem.pub -o test.age input
