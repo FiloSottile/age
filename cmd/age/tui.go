@@ -112,7 +112,7 @@ func withTerminal(f func(in, out *os.File) error) error {
 
 func printfToTerminal(format string, v ...interface{}) error {
 	return withTerminal(func(_, out *os.File) error {
-		_, err := fmt.Fprintf(out, "age: "+format, v...)
+		_, err := fmt.Fprintf(out, "age: "+format+"\n", v...)
 		return err
 	})
 }
