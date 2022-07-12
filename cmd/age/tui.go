@@ -14,6 +14,7 @@ package main
 //     No capitalized initials and no periods at the end.
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"io"
@@ -21,6 +22,7 @@ import (
 	"os"
 	"runtime"
 
+	"filippo.io/age/armor"
 	"filippo.io/age/internal/plugin"
 	"golang.org/x/term"
 )
@@ -205,3 +207,20 @@ var pluginTerminalUI = &plugin.ClientUI{
 		printf("waiting on %s plugin...", name)
 	},
 }
+
+func bufferTerminalInput(in io.Reader) (io.Reader, error) {
+	buf := &bytes.Buffer{}
+	if _, err := buf.ReadFrom(ReaderFunc(func(p []byte) (n int, err error) {
+		if bytes.Contains(buf.Bytes(), []byte(armor.Footer+"\n")) {
+			return 0, io.EOF
+		}
+		return in.Read(p)
+	})); err != nil {
+		return nil, err
+	}
+	return buf, nil
+}
+
+type ReaderFunc func(p []byte) (n int, err error)
+
+func (f ReaderFunc) Read(p []byte) (n int, err error) { return f(p) }

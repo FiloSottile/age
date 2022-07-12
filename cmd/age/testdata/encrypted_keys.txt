@@ -1,4 +1,5 @@
-# TODO: age-encrypted private keys, multiple identities, -i ordering, -e -i
+# TODO: age-encrypted private keys, multiple identities, -i ordering, -e -i,
+# age file password prompt during encryption
 
 [windows] skip # no pty support
 
@@ -47,6 +48,16 @@ cp key_rsa_legacy key_rsa_other
 pty terminal
 ! age -d -i key_rsa_other rsa_other.age
 stderr 'mismatched private and public SSH key'
+
+# buffer armored ciphertext before prompting if stdin is the terminal
+pty terminal
+age -e -i key_ed25519 -a -o test.age input
+exec cat test.age terminal # concatenated ciphertext + password
+pty -stdin stdout
+age -d -i key_ed25519
+ptyout 'Enter passphrase'
+! stderr .
+cmp stdout input
 
 -- input --
 test

@@ -37,6 +37,16 @@ pty terminal
 age -d test.age
 cmp stdout input
 
+# buffer armored ciphertext before prompting if stdin is the terminal
+pty terminal
+age -p -a -o test.age input
+exec cat test.age terminal # concatenated ciphertext + password
+pty -stdin stdout
+age -d
+ptyout 'Enter passphrase'
+! stderr .
+cmp stdout input
+
 -- input --
 test
 -- terminal --

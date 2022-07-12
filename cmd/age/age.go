@@ -234,6 +234,16 @@ func main() {
 		in = f
 	} else {
 		stdinInUse = true
+		if decryptFlag && term.IsTerminal(int(os.Stdin.Fd())) {
+			// If the input comes from a TTY, assume it's armored, and buffer up
+			// to the END line (or EOF/EOT) so that a password prompt or the
+			// output don't get in the way of typing the input. See Issue 364.
+			buf, err := bufferTerminalInput(in)
+			if err != nil {
+				errorf("failed to buffer terminal input: %v", err)
+			}
+			in = buf
+		}
 	}
 	if name := outFlag; name != "" && name != "-" {
 		f := newLazyOpener(name)
