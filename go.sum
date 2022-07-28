@@ -1,7 +1,7 @@
 filippo.io/edwards25519 v1.0.0-rc.1 h1:m0VOOB23frXZvAOK44usCgLWvtsxIoMCTBGJZlpmGfU=
 filippo.io/edwards25519 v1.0.0-rc.1/go.mod h1:N1IkdkCkiLB6tki+MYJoSx2JTY9NUlxZE7eHn5EwJns=
-github.com/FiloSottile/go-internal v1.8.2-0.20220712170627-21d77b294581 h1:L4v4ojdBajPuAUjuv4WmkXI2oOkvXr4cXJM7O8tMs3k=
-github.com/FiloSottile/go-internal v1.8.2-0.20220712170627-21d77b294581/go.mod h1:dNbK7mWDMlmf5ttOAJJg+a4CyamnqDRrw+Uja1sBETc=
+github.com/FiloSottile/go-internal v1.8.2-0.20220728122003-0ced171a3e0e h1:hLDldUUKSNgXte+2H8yZzPVStWa7697IJer9wwfW/dg=
+github.com/FiloSottile/go-internal v1.8.2-0.20220728122003-0ced171a3e0e/go.mod h1:dNbK7mWDMlmf5ttOAJJg+a4CyamnqDRrw+Uja1sBETc=
 github.com/creack/pty v1.1.18 h1:n56/Zwd5o6whRC5PMGretI4IdRLlmBXYNjScPaBgsbY=
 github.com/creack/pty v1.1.18/go.mod h1:MOBLtS5ELjhRRrroQr9kyvTxUAFNvYEK993ew/Vr4O4=
 github.com/pkg/diff v0.0.0-20210226163009-20ebb0f2a09e h1:aoZm08cpOy4WuID//EZDgcC4zIxODThtZNPirFr42+A=
