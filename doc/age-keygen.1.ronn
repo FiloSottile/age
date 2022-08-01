@@ -19,7 +19,7 @@ standard error.
 
 * `-o`, `--output`=<OUTPUT>:
     Write the identity to <OUTPUT> instead of standard output.
-    
+
     If <OUTPUT> already exists, it is not overwritten.
 
 * `-y`:
