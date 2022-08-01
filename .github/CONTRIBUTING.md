@@ -22,11 +22,11 @@ In particular, I'm unlikely to merge into the main repo anything I don't use mys
 
 age itself is not community maintained, but its ecosystem very much is, and that's where a lot of the strength of age is! Here are some ideas for ways to contribute to age and its ecosystem, besides contributing to this repository.
 
-* **Write an article about how to use age for a certain community or use case.** The number one reason people don't use age is because they haven't heard about it and existsing tutorials present more complex alternatives.
+* **Write an article about how to use age for a certain community or use case.** The number one reason people don't use age is because they haven't heard about it and existing tutorials present more complex alternatives.
 * Integrate age into existing projects that might use it, for example replacing legacy alternatives.
 * Build and maintain an [age plugin](https://c2sp.org/age-plugin) for a KMS or platform.
 * Watch the [discussions](https://github.com/FiloSottile/age/discussions) and help other users.
-* Provide bindings in a langauge or framework that doesn't support age well.
+* Provide bindings in a language or framework that doesn't support age well.
 * Package age for an ecosystem that doesn't have packages yet.
 
 If you build or write something related to age, [let me know](https://github.com/FiloSottile/age/discussions/new?category=general)! 💖
