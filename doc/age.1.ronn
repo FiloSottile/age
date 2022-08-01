@@ -69,7 +69,7 @@ overhead per recipient, plus 16 bytes every 64KiB of plaintext.
 
 * `-a`, `--armor`:
     Encrypt to an ASCII-only "armored" encoding.
-    
+
     `age` armor is a strict version of PEM with type `AGE ENCRYPTED FILE`,
     canonical "strict" Base64, no headers, and no support for leading and
     trailing extra data.
@@ -127,7 +127,7 @@ overhead per recipient, plus 16 bytes every 64KiB of plaintext.
     If the private key is password-protected, the password is requested
     interactively only if the SSH identity matches the file. See the
     [SSH keys][] section for more information, including supported key types.
-    
+
     d\. "`-`", causing one of the options above to be read from standard input.
     In this case, the <INPUT> argument must be specified.
 

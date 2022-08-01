@@ -96,5 +96,5 @@ jobs:
                 release_id: release.data.id,
                 name: file,
                 data: await fs.readFile(file),
-              });            
+              });
             }
