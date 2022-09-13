@@ -19,7 +19,7 @@ The format specification is at [age-encryption.org/v1](https://age-encryption.or
 
 An alternative interoperable Rust implementation is available at [github.com/str4d/rage](https://github.com/str4d/rage).
 
-The author pronounces it `[aɡe̞]`, like the Italian [“aghe”](https://translate.google.com/?sl=it&text=aghe).
+The author pronounces it `[aɡe̞]`, like the Italian [“aghi”](https://translate.google.com/?sl=it&text=aghi).
 
 ## Usage
 
