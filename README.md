@@ -1,7 +1,7 @@
 <p align="center"><img alt="The age logo, an wireframe of St. Peters dome in Rome, with the text: age, file encryption" width="600" src="https://user-images.githubusercontent.com/1225294/132245842-fda4da6a-1cea-4738-a3da-2dc860861c98.png"></p>
 
 [![Go Reference](https://pkg.go.dev/badge/filippo.io/age.svg)](https://pkg.go.dev/filippo.io/age)
-[![man page](https://img.shields.io/badge/age(1)-man%20page-lightgrey)](https://filippo.io/age/age.1)
+[![man page](<https://img.shields.io/badge/age(1)-man%20page-lightgrey>)](https://filippo.io/age/age.1)
 [![C2SP specification](https://img.shields.io/badge/%C2%A7%23-specification-blueviolet)](https://age-encryption.org/v1)
 
 age is a simple, modern and secure file encryption tool, format, and Go library.
@@ -20,6 +20,118 @@ The format specification is at [age-encryption.org/v1](https://age-encryption.or
 An alternative interoperable Rust implementation is available at [github.com/str4d/rage](https://github.com/str4d/rage).
 
 The author pronounces it `[aɡe̞]`, like the Italian [“aghe”](https://translate.google.com/?sl=it&text=aghe).
+
+## Installation
+
+<table>
+    <tr>
+        <td>Homebrew (macOS or Linux)</td>
+        <td>
+            <code>brew install age</code>
+        </td>
+    </tr>
+    <tr>
+        <td>MacPorts</td>
+        <td>
+            <code>port install age</code>
+        </td>
+    </tr>
+    <tr>
+        <td>Alpine Linux v3.15+</td>
+        <td>
+            <code>apk add age</code>
+        </td>
+    </tr>
+    <tr>
+        <td>Arch Linux</td>
+        <td>
+            <code>pacman -S age</code>
+        </td>
+    </tr>
+    <tr>
+        <td>Debian 11+ (Bullseye)</td>
+        <td>
+            <code>apt install age/bullseye-backports</code>
+            (<a href="https://backports.debian.org/Instructions/#index2h2">enable backports</a> for age v1.0.0+)
+        </td>
+    </tr>
+    <tr>
+        <td>Fedora 33+</td>
+        <td>
+            <code>dnf install age</code>
+        </td>
+    </tr>
+    <tr>
+        <td>Gentoo Linux</td>
+        <td>
+            <code>emerge app-crypt/age</code>
+        </td>
+    </tr>
+    <tr>
+        <td>NixOS / Nix</td>
+        <td>
+            <code>nix-env -i age</code>
+        </td>
+    </tr>
+    <tr>
+        <td>openSUSE Tumbleweed</td>
+        <td>
+            <code>zypper install age</code>
+        </td>
+    </tr>
+    <tr>
+        <td>Ubuntu 22.04+</td>
+        <td>
+            <code>apt install age</code>
+        </td>
+    </tr>
+    <tr>
+        <td>Void Linux</td>
+        <td>
+            <code>xbps-install age</code>
+        </td>
+    </tr>
+    <tr>
+        <td>FreeBSD</td>
+        <td>
+            <code>pkg install age</code> (security/age)
+        </td>
+    </tr>
+    <tr>
+        <td>OpenBSD 6.7+</td>
+        <td>
+            <code>pkg_add age</code> (security/age)
+        </td>
+    </tr>
+    <tr>
+        <td>Chocolatey (Windows)</td>
+        <td>
+            <code>choco install age.portable</code>
+        </td>
+    </tr>
+    <tr>
+        <td>Scoop (Windows)</td>
+        <td>
+            <code>scoop bucket add extras; scoop install age</code>
+        </td>
+    </tr>
+</table>
+
+On Windows, Linux, macOS, and FreeBSD you can use the pre-built binaries.
+
+```
+https://dl.filippo.io/age/latest?for=linux/amd64
+https://dl.filippo.io/age/v1.0.0-rc.1?for=darwin/arm64
+...
+```
+
+If your system has [a supported version of Go](https://go.dev/dl/), you can build from source.
+
+```
+go install filippo.io/age/cmd/...@latest
+```
+
+Help from new packagers is very welcome.
 
 ## Usage
 
@@ -133,115 +245,3 @@ $ curl https://github.com/benjojo.keys | age -R - example.jpg > example.jpg.age
 ```
 
 Keep in mind that people might not protect SSH keys long-term, since they are revokable when used only for authentication, and that SSH keys held on YubiKeys can't be used to decrypt files.
-
-## Installation
-
-<table>
-    <tr>
-        <td>Homebrew (macOS or Linux)</td>
-        <td>
-            <code>brew install age</code>
-        </td>
-    </tr>
-    <tr>
-        <td>MacPorts</td>
-        <td>
-            <code>port install age</code>
-        </td>
-    </tr>
-    <tr>
-        <td>Alpine Linux v3.15+</td>
-        <td>
-            <code>apk add age</code>
-        </td>
-    </tr>
-    <tr>
-        <td>Arch Linux</td>
-        <td>
-            <code>pacman -S age</code>
-        </td>
-    </tr>
-    <tr>
-        <td>Debian 11+ (Bullseye)</td>
-        <td>
-            <code>apt install age/bullseye-backports</code>
-            (<a href="https://backports.debian.org/Instructions/#index2h2">enable backports</a> for age v1.0.0+)
-        </td>
-    </tr>
-    <tr>
-        <td>Fedora 33+</td>
-        <td>
-            <code>dnf install age</code>
-        </td>
-    </tr>
-    <tr>
-        <td>Gentoo Linux</td>
-        <td>
-            <code>emerge app-crypt/age</code>
-        </td>
-    </tr>
-    <tr>
-        <td>NixOS / Nix</td>
-        <td>
-            <code>nix-env -i age</code>
-        </td>
-    </tr>
-    <tr>
-        <td>openSUSE Tumbleweed</td>
-        <td>
-            <code>zypper install age</code>
-        </td>
-    </tr>
-    <tr>
-        <td>Ubuntu 22.04+</td>
-        <td>
-            <code>apt install age</code>
-        </td>
-    </tr>
-    <tr>
-        <td>Void Linux</td>
-        <td>
-            <code>xbps-install age</code>
-        </td>
-    </tr>
-    <tr>
-        <td>FreeBSD</td>
-        <td>
-            <code>pkg install age</code> (security/age)
-        </td>
-    </tr>
-    <tr>
-        <td>OpenBSD 6.7+</td>
-        <td>
-            <code>pkg_add age</code> (security/age)
-        </td>
-    </tr>
-    <tr>
-        <td>Chocolatey (Windows)</td>
-        <td>
-            <code>choco install age.portable</code>
-        </td>
-    </tr>
-    <tr>
-        <td>Scoop (Windows)</td>
-        <td>
-            <code>scoop bucket add extras; scoop install age</code>
-        </td>
-    </tr>
-</table>
-
-On Windows, Linux, macOS, and FreeBSD you can use the pre-built binaries.
-
-```
-https://dl.filippo.io/age/latest?for=linux/amd64
-https://dl.filippo.io/age/v1.0.0-rc.1?for=darwin/arm64
-...
-```
-
-If your system has [a supported version of Go](https://go.dev/dl/), you can build from source.
-
-```
-go install filippo.io/age/cmd/...@latest
-```
-
-Help from new packagers is very welcome.
