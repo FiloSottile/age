@@ -1,7 +1,7 @@
 .\" generated with Ronn/v0.7.3
 .\" http://github.com/rtomayko/ronn/tree/0.7.3
 .
-.TH "AGE" "1" "June 2022" "" ""
+.TH "AGE" "1" "September 2022" "" ""
 .
 .SH "NAME"
 \fBage\fR \- simple, modern, and secure file encryption
@@ -229,7 +229,7 @@ Plugins for which the \fBIDENTITY\fR/\fBRECIPIENT\fR distinction doesn\'t make s
 \fBage\fR will exit 0 if and only if encryption or decryption are successful for the full length of the input\.
 .
 .P
-If an error occurs during decryption, partial output might still be generated, but only if it was possible to securely authenticate it\. No unauthenticathed output is ever released\.
+If an error occurs during decryption, partial output might still be generated, but only if it was possible to securely authenticate it\. No unauthenticated output is ever released\.
 .
 .SH "BACKWARDS COMPATIBILITY"
 Files encrypted with a stable version (not alpha, beta, or release candidate) of \fBage\fR, or with any v1\.0\.0 beta or release candidate, will decrypt with any later version of the tool\.
