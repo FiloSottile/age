@@ -64,7 +64,7 @@ jobs:
           path: age-*
   upload:
     name: Upload release binaries
-    if: ${{ github.event_name == 'release' }}
+    if: github.event_name == 'release'
     needs: build
     permissions:
       contents: write
