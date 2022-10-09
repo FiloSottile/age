@@ -30,7 +30,7 @@ jobs:
         uses: actions/checkout@v2
         with:
           fetch-depth: 0
-      - name: Build binaries
+      - name: Build binary
         run: |
           cp LICENSE "$RUNNER_TEMP/LICENSE"
           echo -e "\n---\n" >> "$RUNNER_TEMP/LICENSE"
