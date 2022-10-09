@@ -75,26 +75,6 @@ jobs:
         with:
           name: age-binaries
       - name: Upload release artifacts
-        uses: actions/github-script@v3
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          script: |
-            const fs = require("fs").promises;
-            const { repo: { owner, repo }, sha } = context;
-
-            const release = await github.repos.getReleaseByTag({
-              owner, repo,
-              tag: process.env.GITHUB_REF.replace("refs/tags/", ""),
-            });
-            console.log("Release:", { release });
-
-            for (let file of await fs.readdir(".")) {
-              if (!file.startsWith("age-")) continue;
-              console.log("Uploading", file);
-              await github.repos.uploadReleaseAsset({
-                owner, repo,
-                release_id: release.data.id,
-                name: file,
-                data: await fs.readFile(file),
-              });
-            }
+        run: gh release upload "$GITHUB_REF_NAME" age-*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
