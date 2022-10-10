@@ -14,13 +14,13 @@ jobs:
     strategy:
       matrix:
         include:
-          - {os: linux, arch: amd64}
-          - {os: linux, arch: arm, arm: 6}
-          - {os: linux, arch: arm64}
-          - {os: darwin, arch: amd64}
-          - {os: darwin, arch: arm64}
-          - {os: windows, arch: amd64}
-          - {os: freebsd, arch: amd64}
+          - {GOOS: linux, GOARCH: amd64}
+          - {GOOS: linux, GOARCH: arm, GOARM: 6}
+          - {GOOS: linux, GOARCH: arm64}
+          - {GOOS: darwin, GOARCH: amd64}
+          - {GOOS: darwin, GOARCH: arm64}
+          - {GOOS: windows, GOARCH: amd64}
+          - {GOOS: freebsd, GOARCH: amd64}
     steps:
       - name: Install Go
         uses: actions/setup-go@v2
@@ -59,9 +59,9 @@ jobs:
           fi
         env:
           CGO_ENABLED: 0
-          GOARCH: ${{ matrix.arch }}
-          GOARM: ${{ matrix.arm }}
-          GOOS: ${{ matrix.os }}
+          GOOS: ${{ matrix.GOOS }}
+          GOARCH: ${{ matrix.GOARCH }}
+          GOARM: ${{ matrix.GOARM }}
       - name: Upload workflow artifacts
         uses: actions/upload-artifact@v2
         with:
