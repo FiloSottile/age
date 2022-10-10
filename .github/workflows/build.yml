@@ -11,6 +11,16 @@ jobs:
     name: Build binaries
     runs-on: ubuntu-latest
     environment: "Build, sign, release binaries"
+    strategy:
+      matrix:
+        include:
+          - {GOOS: linux, GOARCH: amd64}
+          - {GOOS: linux, GOARCH: arm, GOARM: 6}
+          - {GOOS: linux, GOARCH: arm64}
+          - {GOOS: darwin, GOARCH: amd64}
+          - {GOOS: darwin, GOARCH: arm64}
+          - {GOOS: windows, GOARCH: amd64}
+          - {GOOS: freebsd, GOARCH: amd64}
     steps:
       - name: Install Go
         uses: actions/setup-go@v2
@@ -20,43 +30,38 @@ jobs:
         uses: actions/checkout@v2
         with:
           fetch-depth: 0
-      - name: Build binaries
+      - name: Build binary
         run: |
-          sudo apt-get update && sudo apt-get install -y osslsigncode
           cp LICENSE "$RUNNER_TEMP/LICENSE"
           echo -e "\n---\n" >> "$RUNNER_TEMP/LICENSE"
           curl -L "https://go.dev/LICENSE?m=text" >> "$RUNNER_TEMP/LICENSE"
           VERSION="$(git describe --tags)"
-          function build_age() {
-            DIR="$(mktemp -d)"
-            mkdir "$DIR/age"
-            cp "$RUNNER_TEMP/LICENSE" "$DIR/age"
-            go build -o "$DIR/age" -ldflags "-X main.Version=$VERSION" -trimpath ./cmd/...
-            if [ "$GOOS" == "windows" ]; then
-              if [ -n "${{ secrets.SIGN_PASS }}" ]; then
-                for exe in "$DIR"/age/*.exe; do
-                  /usr/bin/osslsigncode sign -t "http://timestamp.comodoca.com" \
-                    -certs .github/workflows/certs/uitacllc.crt \
-                    -key .github/workflows/certs/uitacllc.key \
-                    -pass "${{ secrets.SIGN_PASS }}" \
-                    -n age -in "$exe" -out "$exe.signed"
-                  mv "$exe.signed" "$exe"
-                done
-              fi
-              ( cd "$DIR"; zip age.zip -r age )
-              mv "$DIR/age.zip" "age-$VERSION-$GOOS-$GOARCH.zip"
-            else
-              tar -cvzf "age-$VERSION-$GOOS-$GOARCH.tar.gz" -C "$DIR" age
+          DIR="$(mktemp -d)"
+          mkdir "$DIR/age"
+          cp "$RUNNER_TEMP/LICENSE" "$DIR/age"
+          go build -o "$DIR/age" -ldflags "-X main.Version=$VERSION" -trimpath ./cmd/...
+          if [ "$GOOS" == "windows" ]; then
+            sudo apt-get update && sudo apt-get install -y osslsigncode
+            if [ -n "${{ secrets.SIGN_PASS }}" ]; then
+              for exe in "$DIR"/age/*.exe; do
+                /usr/bin/osslsigncode sign -t "http://timestamp.comodoca.com" \
+                  -certs .github/workflows/certs/uitacllc.crt \
+                  -key .github/workflows/certs/uitacllc.key \
+                  -pass "${{ secrets.SIGN_PASS }}" \
+                  -n age -in "$exe" -out "$exe.signed"
+                mv "$exe.signed" "$exe"
+              done
             fi
-          }
-          export CGO_ENABLED=0
-          GOOS=linux GOARCH=amd64 build_age
-          GOOS=linux GOARCH=arm GOARM=6 build_age
-          GOOS=linux GOARCH=arm64 build_age
-          GOOS=darwin GOARCH=amd64 build_age
-          GOOS=darwin GOARCH=arm64 build_age
-          GOOS=windows GOARCH=amd64 build_age
-          GOOS=freebsd GOARCH=amd64 build_age
+            ( cd "$DIR"; zip age.zip -r age )
+            mv "$DIR/age.zip" "age-$VERSION-$GOOS-$GOARCH.zip"
+          else
+            tar -cvzf "age-$VERSION-$GOOS-$GOARCH.tar.gz" -C "$DIR" age
+          fi
+        env:
+          CGO_ENABLED: 0
+          GOOS: ${{ matrix.GOOS }}
+          GOARCH: ${{ matrix.GOARCH }}
+          GOARM: ${{ matrix.GOARM }}
       - name: Upload workflow artifacts
         uses: actions/upload-artifact@v2
         with:
