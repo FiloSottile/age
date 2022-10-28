@@ -1,10 +1,0 @@
-expect: header failure
-file key: 59454c4c4f57205355424d4152494e45
-passphrase: password
-comment: work factor is very high, would take a long time to compute
-
-age-encryption.org/v1
--> scrypt rF0/NwblUHHTpgQgRpe5CQ 23
-qW9eVsT0NVb/Vswtw8kPIxUnaYmm9Px1dYmq2+4+qZA
---- 38TpQMxQRRNMfmYYpBX6DDrPx4/QY5UmJnhPyVoX/cw
-м]?7хPq╙ж FЧ╣	Х┬ўї█ошzМ(rКє╬|

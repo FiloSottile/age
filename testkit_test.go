@@ -11,10 +11,9 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
-	"flag"
 	"io"
-	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -25,53 +24,37 @@ import (
 	"filippo.io/age/armor"
 )
 
-//go:generate go test -generate -run ^$
-
-func TestMain(m *testing.M) {
-	genFlag := flag.Bool("generate", false, "regenerate test files")
-	flag.Parse()
-	if *genFlag {
-		log.SetFlags(0)
-		tests, err := filepath.Glob("testdata/testkit/*")
-		if err != nil {
-			log.Fatal(err)
-		}
-		for _, test := range tests {
-			os.Remove(test)
-		}
-		generators, err := filepath.Glob("tests/*.go")
-		if err != nil {
-			log.Fatal(err)
-		}
-		for _, generator := range generators {
-			vector := strings.TrimSuffix(generator, ".go")
-			vector = "testdata/testkit/" + strings.TrimPrefix(vector, "tests/")
-			log.Printf("%s -> %s\n", generator, vector)
-			out, err := exec.Command("go", "run", generator).Output()
-			if err != nil {
-				if err, ok := err.(*exec.ExitError); ok {
-					log.Fatalf("%s", err.Stderr)
-				}
-				log.Fatal(err)
-			}
-			os.WriteFile(vector, out, 0664)
-		}
+func TestVectors(t *testing.T) {
+	if _, err := exec.LookPath("go"); err != nil {
+		t.Skipf("skipping test because 'go' command is unavailable: %v", err)
 	}
 
-	os.Exit(m.Run())
-}
-
-func TestVectors(t *testing.T) {
-	tests, err := filepath.Glob("testdata/testkit/*")
+	// Download the testkit files from CCTV using `go mod download -json` so the
+	// cached source of the testdata can be reused.
+	path := "c2sp.org/CCTV/age@v0.0.0-20221027185432-cfaa74dc42af"
+	cmd := exec.Command("go", "mod", "download", "-json", path)
+	output, err := cmd.Output()
 	if err != nil {
-		log.Fatal(err)
+		t.Fatalf("failed to run `go mod download -json %s`, output: %s", path, output)
+	}
+	var dm struct {
+		Dir string // absolute path to cached source root directory
+	}
+	if err := json.Unmarshal(output, &dm); err != nil {
+		t.Fatal(err)
+	}
+	testkitDir := filepath.Join(dm.Dir, "testdata")
+
+	tests, err := filepath.Glob(testkitDir + "/*")
+	if err != nil {
+		t.Fatal(err)
 	}
 	for _, test := range tests {
 		contents, err := os.ReadFile(test)
 		if err != nil {
 			t.Fatal(err)
 		}
-		name := strings.TrimPrefix(test, "testdata/testkit/")
+		name := filepath.Base(test)
 		t.Run(name, func(t *testing.T) {
 			testVector(t, contents)
 		})
