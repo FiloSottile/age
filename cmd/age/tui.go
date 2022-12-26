@@ -67,6 +67,11 @@ func exit(code int) {
 	os.Exit(code)
 }
 
+// avoidTerminalEscapeSequences is set if we need to avoid using escape
+// sequences to prevent weird characters being printed to the console. This will
+// happen on Windows when virtual terminal processing cannot be enabled.
+var avoidTerminalEscapeSequences bool
+
 // clearLine clears the current line on the terminal, or opens a new line if
 // terminal escape codes don't work.
 func clearLine(out io.Writer) {
@@ -77,13 +82,16 @@ func clearLine(out io.Writer) {
 	)
 
 	// First, open a new line, which is guaranteed to work everywhere. Then, try
-	// to erase the line above with escape codes.
+	// to erase the line above with escape codes, if possible.
 	//
 	// (We use CRLF instead of LF to work around an apparent bug in WSL2's
 	// handling of CONOUT$. Only when running a Windows binary from WSL2, the
 	// cursor would not go back to the start of the line with a simple LF.
 	// Honestly, it's impressive CONIN$ and CONOUT$ work at all inside WSL2.)
-	fmt.Fprintf(out, "\r\n"+CPL+EL)
+	fmt.Fprintf(out, "\r\n")
+	if !avoidTerminalEscapeSequences {
+		fmt.Fprintf(out, CPL+EL)
+	}
 }
 
 // withTerminal runs f with the terminal input and output files, if available.
