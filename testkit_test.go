@@ -11,50 +11,29 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"encoding/hex"
-	"encoding/json"
 	"errors"
 	"io"
-	"os"
-	"os/exec"
-	"path/filepath"
+	"io/fs"
 	"strings"
 	"testing"
 
 	"filippo.io/age"
 	"filippo.io/age/armor"
+
+	agetest "c2sp.org/CCTV/age"
 )
 
 func TestVectors(t *testing.T) {
-	if _, err := exec.LookPath("go"); err != nil {
-		t.Skipf("skipping test because 'go' command is unavailable: %v", err)
-	}
-
-	// Download the testkit files from CCTV using `go mod download -json` so the
-	// cached source of the testdata can be reused.
-	path := "c2sp.org/CCTV/age@v0.0.0-20221027185432-cfaa74dc42af"
-	cmd := exec.Command("go", "mod", "download", "-json", path)
-	output, err := cmd.Output()
-	if err != nil {
-		t.Fatalf("failed to run `go mod download -json %s`, output: %s", path, output)
-	}
-	var dm struct {
-		Dir string // absolute path to cached source root directory
-	}
-	if err := json.Unmarshal(output, &dm); err != nil {
-		t.Fatal(err)
-	}
-	testkitDir := filepath.Join(dm.Dir, "testdata")
-
-	tests, err := filepath.Glob(testkitDir + "/*")
+	tests, err := fs.ReadDir(agetest.Vectors, ".")
 	if err != nil {
 		t.Fatal(err)
 	}
 	for _, test := range tests {
-		contents, err := os.ReadFile(test)
+		name := test.Name()
+		contents, err := fs.ReadFile(agetest.Vectors, name)
 		if err != nil {
 			t.Fatal(err)
 		}
-		name := filepath.Base(test)
 		t.Run(name, func(t *testing.T) {
 			testVector(t, contents)
 		})
