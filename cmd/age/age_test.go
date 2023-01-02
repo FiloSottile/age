@@ -43,6 +43,8 @@ func TestMain(m *testing.M) {
 				scanner.Scan() // body
 				os.Stdout.WriteString("-> recipient-stanza 0 test\n")
 				os.Stdout.WriteString(fileKey + "\n")
+				scanner.Scan() // ok
+				scanner.Scan() // body
 				os.Stdout.WriteString("-> done\n\n")
 				return 0
 			case "--age-plugin=identity-v1":
@@ -56,6 +58,8 @@ func TestMain(m *testing.M) {
 				scanner.Scan() // body
 				os.Stdout.WriteString("-> file-key 0\n")
 				os.Stdout.WriteString(fileKey + "\n")
+				scanner.Scan() // ok
+				scanner.Scan() // body
 				os.Stdout.WriteString("-> done\n\n")
 				return 0
 			default:
