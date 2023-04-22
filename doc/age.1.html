@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta http-equiv='content-type' value='text/html;charset=utf8'>
-  <meta name='generator' value='Ronn/v0.7.3 (http://github.com/rtomayko/ronn/tree/0.7.3)'>
+  <meta http-equiv='content-type' content='text/html;charset=utf8'>
+  <meta name='generator' content='Ronn-NG/v0.9.1 (http://github.com/apjanke/ronn-ng/tree/0.9.1)'>
   <title>age(1) - simple, modern, and secure file encryption</title>
   <style type='text/css' media='all'>
   /* style: man */
@@ -71,16 +71,17 @@
     <li class='tr'>age(1)</li>
   </ol>
 
-  <h2 id="NAME">NAME</h2>
+  
+
+<h2 id="NAME">NAME</h2>
 <p class="man-name">
   <code>age</code> - <span class="man-whatis">simple, modern, and secure file encryption</span>
 </p>
-
 <h2 id="SYNOPSIS">SYNOPSIS</h2>
 
-<p><code>age</code> [<code>--encrypt</code>] (<code>-r</code> <var>RECIPIENT</var> | <code>-R</code> <var>PATH</var>)... [<code>--armor</code>] [<code>-o</code> <var>OUTPUT</var>] [<var>INPUT</var>]<br />
-<code>age</code> [<code>--encrypt</code>] <code>--passphrase</code> [<code>--armor</code>] [<code>-o</code> <var>OUTPUT</var>] [<var>INPUT</var>]<br />
-<code>age</code> <code>--decrypt</code> [<code>-i</code> <var>PATH</var> | <code>-j</code> <var>PLUGIN</var>]... [<code>-o</code> <var>OUTPUT</var>] [<var>INPUT</var>]<br /></p>
+<p><code>age</code> [<code>--encrypt</code>] (<code>-r</code> <var>RECIPIENT</var> | <code>-R</code> <var>PATH</var>)... [<code>--armor</code>] [<code>-o</code> <var>OUTPUT</var>] [<var>INPUT</var>]<br>
+<code>age</code> [<code>--encrypt</code>] <code>--passphrase</code> [<code>--armor</code>] [<code>-o</code> <var>OUTPUT</var>] [<var>INPUT</var>]<br>
+<code>age</code> <code>--decrypt</code> [<code>-i</code> <var>PATH</var> | <code>-j</code> <var>PLUGIN</var>]... [<code>-o</code> <var>OUTPUT</var>] [<var>INPUT</var>]<br></p>
 
 <h2 id="DESCRIPTION">DESCRIPTION</h2>
 
@@ -104,106 +105,147 @@ overhead per recipient, plus 16 bytes every 64KiB of plaintext.</p>
 <h2 id="OPTIONS">OPTIONS</h2>
 
 <dl>
-<dt><code>-o</code>, <code>--output</code>=<var>OUTPUT</var></dt><dd><p>  Write encrypted or decrypted file to <var>OUTPUT</var> instead of standard output.
-  If <var>OUTPUT</var> already exists it will be overwritten.</p>
+<dt>
+<code>-o</code>, <code>--output</code>=<var>OUTPUT</var>
+</dt>
+<dd>  Write encrypted or decrypted file to <var>OUTPUT</var> instead of standard output.
+  If <var>OUTPUT</var> already exists it will be overwritten.
 
-<p>  If encrypting without <code>--armor</code>, <code>age</code> will refuse to output binary to a
-  TTY. This can be forced by specifying <code>-</code> as <var>OUTPUT</var>.</p></dd>
-<dt><code>--version</code></dt><dd><p>  Print the version and exit.</p></dd>
+    <p>If encrypting without <code>--armor</code>, <code>age</code> will refuse to output binary to a
+  TTY. This can be forced by specifying <code>-</code> as <var>OUTPUT</var>.</p>
+</dd>
+<dt><code>--version</code></dt>
+<dd>  Print the version and exit.</dd>
 </dl>
-
 
 <h3 id="Encryption-options">Encryption options</h3>
 
 <dl>
-<dt><code>-e</code>, <code>--encrypt</code></dt><dd><p>  Encrypt <var>INPUT</var> to <var>OUTPUT</var>. This is the default.</p></dd>
-<dt><code>-r</code>, <code>--recipient</code>=<var>RECIPIENT</var></dt><dd><p>  Encrypt to the explicitly specified <var>RECIPIENT</var>. See the
-  <a href="#RECIPIENTS-AND-IDENTITIES" title="RECIPIENTS AND IDENTITIES" data-bare-link="true">RECIPIENTS AND IDENTITIES</a> section for possible recipient formats.</p>
+<dt>
+<code>-e</code>, <code>--encrypt</code>
+</dt>
+<dd>  Encrypt <var>INPUT</var> to <var>OUTPUT</var>. This is the default.</dd>
+<dt>
+<code>-r</code>, <code>--recipient</code>=<var>RECIPIENT</var>
+</dt>
+<dd>  Encrypt to the explicitly specified <var>RECIPIENT</var>. See the
+  <a href="#RECIPIENTS-AND-IDENTITIES" title="RECIPIENTS AND IDENTITIES" data-bare-link="true">RECIPIENTS AND IDENTITIES</a> section for possible recipient formats.
 
-<p>  This option can be repeated and combined with other recipient flags,
-  and the file can be decrypted by all provided recipients independently.</p></dd>
-<dt><code>-R</code>, <code>--recipients-file</code>=<var>PATH</var></dt><dd><p>  Encrypt to the <a href="#RECIPIENTS-AND-IDENTITIES" title="RECIPIENTS AND IDENTITIES" data-bare-link="true">RECIPIENTS</a> listed in the
+    <p>This option can be repeated and combined with other recipient flags,
+  and the file can be decrypted by all provided recipients independently.</p>
+</dd>
+<dt>
+<code>-R</code>, <code>--recipients-file</code>=<var>PATH</var>
+</dt>
+<dd>  Encrypt to the <a href="#RECIPIENTS-AND-IDENTITIES" title="RECIPIENTS AND IDENTITIES" data-bare-link="true">RECIPIENTS</a> listed in the
   file at <var>PATH</var>, one per line. Empty lines and lines starting with <code>#</code>
-  are ignored as comments.</p>
+  are ignored as comments.
 
-<p>  If <var>PATH</var> is <code>-</code>, the recipients are read from standard input. In
+    <p>If <var>PATH</var> is <code>-</code>, the recipients are read from standard input. In
   this case, the <var>INPUT</var> argument must be specified.</p>
 
-<p>  This option can be repeated and combined with other recipient flags,
-  and the file can be decrypted by all provided recipients independently.</p></dd>
-<dt><code>-p</code>, <code>--passphrase</code></dt><dd><p>  Encrypt with a passphrase, requested interactively from the terminal.
-  <code>age</code> will offer to auto-generate a secure passphrase.</p>
+    <p>This option can be repeated and combined with other recipient flags,
+  and the file can be decrypted by all provided recipients independently.</p>
+</dd>
+<dt>
+<code>-p</code>, <code>--passphrase</code>
+</dt>
+<dd>  Encrypt with a passphrase, requested interactively from the terminal.
+  <code>age</code> will offer to auto-generate a secure passphrase.
 
-<p>  This option can't be used with other recipient flags.</p></dd>
-<dt><code>-a</code>, <code>--armor</code></dt><dd><p>  Encrypt to an ASCII-only "armored" encoding.</p>
+    <p>This option can't be used with other recipient flags.</p>
+</dd>
+<dt>
+<code>-a</code>, <code>--armor</code>
+</dt>
+<dd>  Encrypt to an ASCII-only "armored" encoding.
 
-<p>  <code>age</code> armor is a strict version of PEM with type <code>AGE ENCRYPTED FILE</code>,
+    <p><code>age</code> armor is a strict version of PEM with type <code>AGE ENCRYPTED FILE</code>,
   canonical "strict" Base64, no headers, and no support for leading and
   trailing extra data.</p>
 
-<p>  Decryption transparently detects and decodes ASCII armoring.</p></dd>
-<dt><code>-i</code>, <code>--identity</code>=<var>PATH</var></dt><dd><p>  Encrypt to the <a href="#RECIPIENTS-AND-IDENTITIES" title="RECIPIENTS AND IDENTITIES" data-bare-link="true">RECIPIENTS</a> corresponding to the
+    <p>Decryption transparently detects and decodes ASCII armoring.</p>
+</dd>
+<dt>
+<code>-i</code>, <code>--identity</code>=<var>PATH</var>
+</dt>
+<dd>  Encrypt to the <a href="#RECIPIENTS-AND-IDENTITIES" title="RECIPIENTS AND IDENTITIES" data-bare-link="true">RECIPIENTS</a> corresponding to the
   <a href="#RECIPIENTS-AND-IDENTITIES" title="RECIPIENTS AND IDENTITIES" data-bare-link="true">IDENTITIES</a> listed in the file at <var>PATH</var>. This
   is equivalent to converting the file at <var>PATH</var> to a recipients file with
-  <code>age-keygen -y</code> and then passing that to <code>-R</code>/<code>--recipients-file</code>.</p>
+  <code>age-keygen -y</code> and then passing that to <code>-R</code>/<code>--recipients-file</code>.
 
-<p>  For the format of <var>PATH</var>, see the definition of <code>-i</code>/<code>--identity</code> in the
+    <p>For the format of <var>PATH</var>, see the definition of <code>-i</code>/<code>--identity</code> in the
   <a href="#Decryption-options" title="Decryption options" data-bare-link="true">Decryption options</a> section.</p>
 
-<p>  <code>-e</code>/<code>--encrypt</code> must be explicitly specified when using <code>-i</code>/<code>--identity</code>
-  in encryption mode to avoid confusion.</p></dd>
-<dt><code>-j</code> <var>PLUGIN</var></dt><dd><p>  Encrypt using the data-less <a href="#Plugins" title="Plugins" data-bare-link="true">plugin</a> <var>PLUGIN</var>.</p>
+    <p><code>-e</code>/<code>--encrypt</code> must be explicitly specified when using <code>-i</code>/<code>--identity</code>
+  in encryption mode to avoid confusion.</p>
+</dd>
+<dt>
+<code>-j</code> <var>PLUGIN</var>
+</dt>
+<dd>  Encrypt using the data-less <a href="#Plugins" title="Plugins" data-bare-link="true">plugin</a> <var>PLUGIN</var>.
 
-<p>  This is equivalent to using <code>-i</code>/<code>--identity</code> with a file that contains a
+    <p>This is equivalent to using <code>-i</code>/<code>--identity</code> with a file that contains a
   single plugin <code>IDENTITY</code> that encodes no plugin-specific data.</p>
 
-<p>  <code>-e</code>/<code>--encrypt</code> must be explicitly specified when using <code>-j</code> in encryption
-  mode to avoid confusion.</p></dd>
+    <p><code>-e</code>/<code>--encrypt</code> must be explicitly specified when using <code>-j</code> in encryption
+  mode to avoid confusion.</p>
+</dd>
 </dl>
-
 
 <h3 id="Decryption-options">Decryption options</h3>
 
 <dl>
-<dt><code>-d</code>, <code>--decrypt</code></dt><dd><p>  Decrypt <var>INPUT</var> to <var>OUTPUT</var>.</p>
+<dt>
+<code>-d</code>, <code>--decrypt</code>
+</dt>
+<dd>  Decrypt <var>INPUT</var> to <var>OUTPUT</var>.
 
-<p>  If <var>INPUT</var> is passphrase encrypted, it will be automatically detected
+    <p>If <var>INPUT</var> is passphrase encrypted, it will be automatically detected
   and the passphrase will be requested interactively. Otherwise, the
   <a href="#RECIPIENTS-AND-IDENTITIES" title="RECIPIENTS AND IDENTITIES" data-bare-link="true">IDENTITIES</a> specified with <code>-i</code>/<code>--identity</code>
   are used.</p>
 
-<p>  ASCII armoring is transparently detected and decoded.</p></dd>
-<dt><code>-i</code>, <code>--identity</code>=<var>PATH</var></dt><dd><p>  Decrypt using the <a href="#RECIPIENTS-AND-IDENTITIES" title="RECIPIENTS AND IDENTITIES" data-bare-link="true">IDENTITIES</a> at <var>PATH</var>.</p>
+    <p>ASCII armoring is transparently detected and decoded.</p>
+</dd>
+<dt>
+<code>-i</code>, <code>--identity</code>=<var>PATH</var>
+</dt>
+<dd>  Decrypt using the <a href="#RECIPIENTS-AND-IDENTITIES" title="RECIPIENTS AND IDENTITIES" data-bare-link="true">IDENTITIES</a> at <var>PATH</var>.
 
-<p>  <var>PATH</var> may be one of the following:</p>
+    <p><var>PATH</var> may be one of the following:</p>
 
-<p>  a. A file listing <a href="#RECIPIENTS-AND-IDENTITIES" title="RECIPIENTS AND IDENTITIES" data-bare-link="true">IDENTITIES</a> one per line.
+    <p>a. A file listing <a href="#RECIPIENTS-AND-IDENTITIES" title="RECIPIENTS AND IDENTITIES" data-bare-link="true">IDENTITIES</a> one per line.
   Empty lines and lines starting with "<code>#</code>" are ignored as comments.</p>
 
-<p>  b. A passphrase encrypted age file, containing
+    <p>b. A passphrase encrypted age file, containing
   <a href="#RECIPIENTS-AND-IDENTITIES" title="RECIPIENTS AND IDENTITIES" data-bare-link="true">IDENTITIES</a> one per line like above.
   The passphrase is requested interactively. Note that passphrase-protected
   identity files are not necessary for most use cases, where access to the
   encrypted identity file implies access to the whole system.</p>
 
-<p>  c. An SSH private key file, in PKCS#1, PKCS#8, or OpenSSH format.
+    <p>c. An SSH private key file, in PKCS#1, PKCS#8, or OpenSSH format.
   If the private key is password-protected, the password is requested
   interactively only if the SSH identity matches the file. See the
   <a href="#SSH-keys" title="SSH keys" data-bare-link="true">SSH keys</a> section for more information, including supported key types.</p>
 
-<p>  d. "<code>-</code>", causing one of the options above to be read from standard input.
+    <p>d. "<code>-</code>", causing one of the options above to be read from standard input.
   In this case, the <var>INPUT</var> argument must be specified.</p>
 
-<p>  This option can be repeated. Identities are tried in the order in which are
+    <p>This option can be repeated. Identities are tried in the order in which are
   provided, and the first one matching one of the file's recipients is used.
   Unused identities are ignored, but it is an error if the <var>INPUT</var> file is
-  passphrase-encrypted and <code>-i</code>/<code>--identity</code> is specified.</p></dd>
-<dt><code>-j</code> <var>PLUGIN</var></dt><dd><p>  Decrypt using the data-less <a href="#Plugins" title="Plugins" data-bare-link="true">plugin</a> <var>PLUGIN</var>.</p>
+  passphrase-encrypted and <code>-i</code>/<code>--identity</code> is specified.</p>
+</dd>
+<dt>
+<code>-j</code> <var>PLUGIN</var>
+</dt>
+<dd>  Decrypt using the data-less <a href="#Plugins" title="Plugins" data-bare-link="true">plugin</a> <var>PLUGIN</var>.
 
-<p>  This is equivalent to using <code>-i</code>/<code>--identity</code> with a file that contains a
-  single plugin <code>IDENTITY</code> that encodes no plugin-specific data.</p></dd>
+    <p>This is equivalent to using <code>-i</code>/<code>--identity</code> with a file that contains a
+  single plugin <code>IDENTITY</code> that encodes no plugin-specific data.</p>
+</dd>
 </dl>
-
 
 <h2 id="RECIPIENTS-AND-IDENTITIES">RECIPIENTS AND IDENTITIES</h2>
 
@@ -388,10 +430,9 @@ $ age -d -i age-yubikey-identity-388178f3.txt secrets.txt.age
 
 <p>Filippo Valsorda <a href="mailto:age@filippo.io" data-bare-link="true">age@filippo.io</a></p>
 
-
   <ol class='man-decor man-foot man foot'>
     <li class='tl'></li>
-    <li class='tc'>September 2022</li>
+    <li class='tc'>January 2023</li>
     <li class='tr'>age(1)</li>
   </ol>
 

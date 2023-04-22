@@ -6,7 +6,6 @@ on:
     paths:
       - '**.ronn'
       - '**/ronn.yml'
-      - '**/ronn/**'
 permissions:
   contents: read
 jobs:
@@ -16,9 +15,10 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
+      - name: Install ronn
+        run: sudo apt-get update && sudo apt-get install -y ronn
       - name: Run ronn
-        uses: ./.github/workflows/ronn
-        id: ronn
+        run: bash -O globstar -c 'ronn **/*.ronn'
       - name: Undo email mangling
         # rdiscount randomizes the output for no good reason, which causes
         # changes to always get committed. Sigh.

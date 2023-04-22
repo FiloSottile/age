@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta http-equiv='content-type' value='text/html;charset=utf8'>
-  <meta name='generator' value='Ronn/v0.7.3 (http://github.com/rtomayko/ronn/tree/0.7.3)'>
+  <meta http-equiv='content-type' content='text/html;charset=utf8'>
+  <meta name='generator' content='Ronn-NG/v0.9.1 (http://github.com/apjanke/ronn-ng/tree/0.9.1)'>
   <title>age-keygen(1) - generate age(1) key pairs</title>
   <style type='text/css' media='all'>
   /* style: man */
@@ -68,15 +68,16 @@
     <li class='tr'>age-keygen(1)</li>
   </ol>
 
-  <h2 id="NAME">NAME</h2>
+  
+
+<h2 id="NAME">NAME</h2>
 <p class="man-name">
   <code>age-keygen</code> - <span class="man-whatis">generate <a class="man-ref" href="age.1.html">age<span class="s">(1)</span></a> key pairs</span>
 </p>
-
 <h2 id="SYNOPSIS">SYNOPSIS</h2>
 
-<p><code>age-keygen</code> [<code>-o</code> <var>OUTPUT</var>]<br />
-<code>age-keygen</code> <code>-y</code> [<code>-o</code> <var>OUTPUT</var>] [<var>INPUT</var>]<br /></p>
+<p><code>age-keygen</code> [<code>-o</code> <var>OUTPUT</var>]<br>
+<code>age-keygen</code> <code>-y</code> [<code>-o</code> <var>OUTPUT</var>] [<var>INPUT</var>]<br></p>
 
 <h2 id="DESCRIPTION">DESCRIPTION</h2>
 
@@ -90,14 +91,19 @@ standard error.</p>
 <h2 id="OPTIONS">OPTIONS</h2>
 
 <dl>
-<dt><code>-o</code>, <code>--output</code>=<var>OUTPUT</var></dt><dd><p>  Write the identity to <var>OUTPUT</var> instead of standard output.</p>
+<dt>
+<code>-o</code>, <code>--output</code>=<var>OUTPUT</var>
+</dt>
+<dd>  Write the identity to <var>OUTPUT</var> instead of standard output.
 
-<p>  If <var>OUTPUT</var> already exists, it is not overwritten.</p></dd>
-<dt class="flush"><code>-y</code></dt><dd><p>  Read an identity file from <var>INPUT</var> or from standard input and output the
-  corresponding recipient(s), one per line, with no comments.</p></dd>
-<dt><code>--version</code></dt><dd><p>  Print the version and exit.</p></dd>
+    <p>If <var>OUTPUT</var> already exists, it is not overwritten.</p>
+</dd>
+<dt><code>-y</code></dt>
+<dd>  Read an identity file from <var>INPUT</var> or from standard input and output the
+  corresponding recipient(s), one per line, with no comments.</dd>
+<dt><code>--version</code></dt>
+<dd>  Print the version and exit.</dd>
 </dl>
-
 
 <h2 id="EXAMPLES">EXAMPLES</h2>
 
@@ -129,10 +135,9 @@ age1ql3z7hjy54pw3hyww5ayyfg7zqgvc7w3j2elw8zmrj2kg5sfn9aqmcac8p
 
 <p>Filippo Valsorda <a href="mailto:age@filippo.io" data-bare-link="true">age@filippo.io</a></p>
 
-
   <ol class='man-decor man-foot man foot'>
     <li class='tl'></li>
-    <li class='tc'>September 2022</li>
+    <li class='tc'>January 2023</li>
     <li class='tr'>age-keygen(1)</li>
   </ol>
 
