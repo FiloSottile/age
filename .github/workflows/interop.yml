@@ -8,8 +8,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Trigger interoperability tests in str4d/rage
-        run: |
-          curl -X POST https://api.github.com/repos/str4d/rage/dispatches \
-          -H 'Accept: application/vnd.github.v3+json' \
-          -H 'Authorization: token ${{ secrets.RAGE_INTEROP_ACCESS_TOKEN }}' \
-          --data '{"event_type": "age-interop-request", "client_payload": { "sha": "'"$GITHUB_SHA"'" }}'
+        run: >
+          gh api repos/str4d/rage/dispatches
+            --field event_type="age-interop-request"
+            --field client_payload[sha]="$GITHUB_SHA"
+        env:
+          GITHUB_TOKEN: ${{ secrets.RAGE_INTEROP_ACCESS_TOKEN }}
