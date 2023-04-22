@@ -29,7 +29,9 @@ $ age --decrypt -i key.txt data.tar.gz.age > data.tar.gz
 
 🔑 Hardware PIV tokens such as YubiKeys are supported through the [age-plugin-yubikey](https://github.com/str4d/age-plugin-yubikey) plugin.
 
-💬 The author pronounces it `[aɡe̞]`, like the Italian [“aghe”](https://translate.google.com/?sl=it&text=aghe).
+✨ For more plugins, implementations, tools, and integrations, check out the [awesome age](https://github.com/FiloSottile/awesome-age) list.
+
+💬 The author pronounces it `[aɡe̞]` [with a hard *g*](https://translate.google.com/?sl=it&text=aghe), like GIF, and is always spelled lowercase.
 
 ## Installation
 
