@@ -168,6 +168,37 @@ func (*NoIdentityMatchError) Error() string {
 	return "no identity matched any of the recipients"
 }
 
+type FileInfo struct {
+	// RecipientCounts contains a count of recipients by recipient type.
+	RecipientCounts map[string]int64
+	Version         string
+	PayloadSize     int64
+}
+
+// Inspect inspects an encrypted file and returns information about it.
+func Inspect(src io.Reader) (*FileInfo, error) {
+	hdr, payload, err := format.Parse(src)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read header: %w", err)
+	}
+
+	recipientCounts := make(map[string]int64)
+	for _, r := range hdr.Recipients {
+		recipientCounts[r.Type] += 1
+	}
+
+	size, err := io.Copy(io.Discard, payload)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read payload: %w", err)
+	}
+
+	return &FileInfo{
+		RecipientCounts: recipientCounts,
+		Version:         hdr.Version,
+		PayloadSize:     size,
+	}, nil
+}
+
 // Decrypt decrypts a file encrypted to one or more identities.
 //
 // It returns a Reader reading the decrypted plaintext of the age file read

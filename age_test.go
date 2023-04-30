@@ -152,6 +152,45 @@ func TestEncryptDecryptX25519(t *testing.T) {
 	}
 }
 
+func TestInspectX25519(t *testing.T) {
+	a, err := age.GenerateX25519Identity()
+	if err != nil {
+		t.Fatal(err)
+	}
+	b, err := age.GenerateX25519Identity()
+	if err != nil {
+		t.Fatal(err)
+	}
+	buf := &bytes.Buffer{}
+	w, err := age.Encrypt(buf, a.Recipient(), b.Recipient())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := io.WriteString(w, helloWorld); err != nil {
+		t.Fatal(err)
+	}
+	if err := w.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	info, err := age.Inspect(buf)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if count := len(info.RecipientCounts); count != 1 {
+		t.Errorf("recipient type count wrong: %v, expected %v", count, 1)
+	}
+
+	if count := info.RecipientCounts["X25519"]; count != 2 {
+		t.Errorf("x25519 recipient count wrong: %v, expected %v", count, 2)
+	}
+
+	if info.Version != "age-encryption.org/v1" {
+		t.Errorf("version wrong: %q, expected %q", info.Version, "age-encryption.org/v1")
+	}
+}
+
 func TestEncryptDecryptScrypt(t *testing.T) {
 	password := "twitch.tv/filosottile"
 
@@ -186,6 +225,44 @@ func TestEncryptDecryptScrypt(t *testing.T) {
 	}
 	if string(outBytes) != helloWorld {
 		t.Errorf("wrong data: %q, excepted %q", outBytes, helloWorld)
+	}
+}
+
+func TestInspectScrypt(t *testing.T) {
+	password := "twitch.tv/filosottile"
+
+	r, err := age.NewScryptRecipient(password)
+	if err != nil {
+		t.Fatal(err)
+	}
+	r.SetWorkFactor(15)
+	buf := &bytes.Buffer{}
+	w, err := age.Encrypt(buf, r)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := io.WriteString(w, helloWorld); err != nil {
+		t.Fatal(err)
+	}
+	if err := w.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	info, err := age.Inspect(buf)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if count := len(info.RecipientCounts); count != 1 {
+		t.Errorf("recipient type count wrong: %v, expected %v", count, 1)
+	}
+
+	if count := info.RecipientCounts["scrypt"]; count != 1 {
+		t.Errorf("scrypt recipient count wrong: %v, expected %v", count, 1)
+	}
+
+	if info.Version != "age-encryption.org/v1" {
+		t.Errorf("version wrong: %q, expected %q", info.Version, "age-encryption.org/v1")
 	}
 }
 
