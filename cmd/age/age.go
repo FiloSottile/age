@@ -18,7 +18,7 @@ import (
 	"filippo.io/age"
 	"filippo.io/age/agessh"
 	"filippo.io/age/armor"
-	"filippo.io/age/internal/plugin"
+	"filippo.io/age/plugin"
 	"golang.org/x/term"
 )
 
