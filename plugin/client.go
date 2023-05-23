@@ -14,13 +14,11 @@ import (
 	"io"
 	"os"
 	"strconv"
-	"strings"
 	"time"
 
 	exec "golang.org/x/sys/execabs"
 
 	"filippo.io/age"
-	"filippo.io/age/internal/bech32"
 	"filippo.io/age/internal/format"
 )
 
@@ -36,14 +34,10 @@ type Recipient struct {
 var _ age.Recipient = &Recipient{}
 
 func NewRecipient(s string, ui *ClientUI) (*Recipient, error) {
-	hrp, _, err := bech32.Decode(s)
+	name, _, err := ParseRecipient(s)
 	if err != nil {
-		return nil, fmt.Errorf("invalid recipient encoding %q: %v", s, err)
+		return nil, err
 	}
-	if !strings.HasPrefix(hrp, "age1") {
-		return nil, fmt.Errorf("not a plugin recipient %q: %v", s, err)
-	}
-	name := strings.TrimPrefix(hrp, "age1")
 	return &Recipient{
 		name: name, encoding: s, ui: ui,
 	}, nil
@@ -151,25 +145,17 @@ type Identity struct {
 var _ age.Identity = &Identity{}
 
 func NewIdentity(s string, ui *ClientUI) (*Identity, error) {
-	hrp, _, err := bech32.Decode(s)
+	name, _, err := ParseIdentity(s)
 	if err != nil {
-		return nil, fmt.Errorf("invalid identity encoding: %v", err)
+		return nil, err
 	}
-	if !strings.HasPrefix(hrp, "AGE-PLUGIN-") || !strings.HasSuffix(hrp, "-") {
-		return nil, fmt.Errorf("not a plugin identity: %v", err)
-	}
-	name := strings.TrimSuffix(strings.TrimPrefix(hrp, "AGE-PLUGIN-"), "-")
-	name = strings.ToLower(name)
 	return &Identity{
 		name: name, encoding: s, ui: ui,
 	}, nil
 }
 
 func NewIdentityWithoutData(name string, ui *ClientUI) (*Identity, error) {
-	s, err := bech32.Encode("AGE-PLUGIN-"+strings.ToUpper(name)+"-", nil)
-	if err != nil {
-		return nil, err
-	}
+	s := EncodeIdentity(name, nil)
 	return &Identity{
 		name: name, encoding: s, ui: ui,
 	}, nil
