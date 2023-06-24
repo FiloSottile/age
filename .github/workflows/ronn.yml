@@ -14,7 +14,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: Install ronn
         run: sudo apt-get update && sudo apt-get install -y ronn
       - name: Run ronn
@@ -43,9 +43,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: Download generated files
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
         with:
           name: man-pages
           path: doc/
