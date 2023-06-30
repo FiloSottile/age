@@ -207,7 +207,7 @@ age1lggyhqrw2nlhcxprm67z43rta597azn8gknawjehu9d9dl0jq3yqqvfafg
 $ age -R recipients.txt example.jpg > example.jpg.age
 ```
 
-If the argument to `-R` (or `-i`) is `-`, the file is read from standard input.
+If the argument to `-R` (or `-i` is `-`), the file is read from standard input.
 
 ### Passphrases
 
