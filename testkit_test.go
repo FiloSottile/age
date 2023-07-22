@@ -182,11 +182,13 @@ func TestVectorsRoundTrip(t *testing.T) {
 
 func testVectorRoundTrip(t *testing.T, v *vector) {
 	if v.armored {
+		if v.expect == "armor failure" {
+			t.SkipNow()
+		}
 		t.Run("armor", func(t *testing.T) {
 			payload, err := io.ReadAll(armor.NewReader(bytes.NewReader(v.file)))
 			if err != nil {
-				// If the error is unexpected, it will be caught by TestVectors.
-				t.Skip(err)
+				t.Fatal(err)
 			}
 			buf := &bytes.Buffer{}
 			w := armor.NewWriter(buf)
@@ -209,10 +211,12 @@ func testVectorRoundTrip(t *testing.T, v *vector) {
 		return
 	}
 
+	if v.expect == "header failure" {
+		t.SkipNow()
+	}
 	hdr, p, err := format.Parse(bytes.NewReader(v.file))
 	if err != nil {
-		// If the error is unexpected, it will be caught by TestVectors.
-		t.Skip(err)
+		t.Fatal(err)
 	}
 	payload, err := io.ReadAll(p)
 	if err != nil {
@@ -230,7 +234,7 @@ func testVectorRoundTrip(t *testing.T, v *vector) {
 		}
 	})
 
-	if v.fileKey != nil && len(payload) > 16 {
+	if v.expect == "success" {
 		t.Run("STREAM", func(t *testing.T) {
 			nonce, payload := payload[:16], payload[16:]
 			key := streamKey(v.fileKey[:], nonce)
@@ -240,8 +244,7 @@ func testVectorRoundTrip(t *testing.T, v *vector) {
 			}
 			plaintext, err := io.ReadAll(r)
 			if err != nil {
-				// If the error is unexpected, it will be caught by TestVectors.
-				t.Skip(err)
+				t.Fatal(err)
 			}
 			buf := &bytes.Buffer{}
 			w, err := stream.NewWriter(key, buf)
