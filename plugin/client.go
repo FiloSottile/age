@@ -12,6 +12,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"math/rand"
 	"os"
 	"strconv"
 	"time"
@@ -69,6 +70,9 @@ func (r *Recipient) Wrap(fileKey []byte) (stanzas []*age.Stanza, err error) {
 		addType = "add-identity"
 	}
 	if err := writeStanza(conn, addType, r.encoding); err != nil {
+		return nil, err
+	}
+	if err := writeStanza(conn, fmt.Sprintf("grease-%x", rand.Int())); err != nil {
 		return nil, err
 	}
 	if err := writeStanzaWithBody(conn, "wrap-file-key", fileKey); err != nil {
@@ -195,6 +199,9 @@ func (i *Identity) Unwrap(stanzas []*age.Stanza) (fileKey []byte, err error) {
 
 	// Phase 1: client sends the plugin the identity string and the stanzas
 	if err := writeStanza(conn, "add-identity", i.encoding); err != nil {
+		return nil, err
+	}
+	if err := writeStanza(conn, fmt.Sprintf("grease-%x", rand.Int())); err != nil {
 		return nil, err
 	}
 	for _, rs := range stanzas {
