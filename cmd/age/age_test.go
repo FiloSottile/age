@@ -41,6 +41,8 @@ func TestMain(m *testing.M) {
 				scanner.Scan() // wrap-file-key
 				scanner.Scan() // body
 				fileKey := scanner.Text()
+				scanner.Scan() // extension-labels
+				scanner.Scan() // body
 				scanner.Scan() // done
 				scanner.Scan() // body
 				os.Stdout.WriteString("-> recipient-stanza 0 test\n")
