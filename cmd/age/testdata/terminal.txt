@@ -1,4 +1,5 @@
 [windows] skip # no pty support
+[go1.20] skip # https://go.dev/issue/61779
 
 # controlling terminal is used instead of stdin/stderr
 pty terminal

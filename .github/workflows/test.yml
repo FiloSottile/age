@@ -8,7 +8,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        go: [1.18.x, 1.19.x]
+        go: [1.19.x, 1.x]
         os: [ubuntu-latest, macos-latest, windows-latest]
     runs-on: ${{ matrix.os }}
     steps:
@@ -24,7 +24,7 @@ jobs:
         run: go test -race ./...
   freebsd:
     name: Test (FreeBSD)
-    runs-on: macos-10.15
+    runs-on: macos-12
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
