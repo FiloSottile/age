@@ -5,7 +5,6 @@
 package plugin
 
 import (
-	"crypto/ecdh"
 	"fmt"
 	"strings"
 
@@ -53,14 +52,4 @@ func ParseRecipient(s string) (name string, data []byte, err error) {
 	}
 	name = strings.TrimPrefix(hrp, "age1")
 	return name, data, nil
-}
-
-// EncodeX25519Recipient encodes a native X25519 recipient from a
-// [crypto/ecdh.X25519] public key. It's meant for plugins that implement
-// identities that are compatible with native recipients.
-func EncodeX25519Recipient(pk *ecdh.PublicKey) (string, error) {
-	if pk.Curve() != ecdh.X25519() {
-		return "", fmt.Errorf("wrong ecdh Curve")
-	}
-	return bech32.Encode("age", pk.Bytes())
 }
