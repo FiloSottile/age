@@ -11,6 +11,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 
 	"filippo.io/age"
@@ -77,6 +78,9 @@ func TestMain(m *testing.M) {
 }
 
 func TestLabels(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("Windows support is TODO")
+	}
 	temp := t.TempDir()
 	testOnlyPluginPath = temp
 	t.Cleanup(func() { testOnlyPluginPath = "" })
