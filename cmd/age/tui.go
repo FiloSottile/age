@@ -130,6 +130,26 @@ func readSecret(prompt string) (s []byte, err error) {
 	return
 }
 
+// readPublic reads a value from the terminal. The prompt is ephemeral.
+func readPublic(prompt string) (s []byte, err error) {
+	err = withTerminal(func(in, out *os.File) error {
+		fmt.Fprintf(out, "%s ", prompt)
+		defer clearLine(out)
+
+		oldState, err := term.MakeRaw(int(in.Fd()))
+		if err != nil {
+			return err
+		}
+		defer term.Restore(int(in.Fd()), oldState)
+
+		t := term.NewTerminal(in, "")
+		line, err := t.ReadLine()
+		s = []byte(line)
+		return err
+	})
+	return
+}
+
 // readCharacter reads a single character from the terminal with no echo. The
 // prompt is ephemeral.
 func readCharacter(prompt string) (c byte, err error) {
@@ -159,17 +179,25 @@ var pluginTerminalUI = &plugin.ClientUI{
 		printf("%s plugin: %s", name, message)
 		return nil
 	},
-	RequestValue: func(name, message string, _ bool) (s string, err error) {
+	RequestValue: func(name, message string, isSecret bool) (s string, err error) {
 		defer func() {
 			if err != nil {
 				warningf("could not read value for age-plugin-%s: %v", name, err)
 			}
 		}()
-		secret, err := readSecret(message)
-		if err != nil {
-			return "", err
+		if isSecret {
+			secret, err := readSecret(message)
+			if err != nil {
+				return "", err
+			}
+			return string(secret), nil
+		} else {
+			public, err := readPublic(message)
+			if err != nil {
+				return "", err
+			}
+			return string(public), nil
 		}
-		return string(secret), nil
 	},
 	Confirm: func(name, message, yes, no string) (choseYes bool, err error) {
 		defer func() {
