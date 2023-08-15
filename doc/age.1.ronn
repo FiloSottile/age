@@ -14,14 +14,16 @@ optional and defaults to standard input. Only a single <INPUT> file may be
 specified. If `-o` is not specified, <OUTPUT> defaults to standard output.
 
 If `-p`/`--passphrase` is specified, the file is encrypted with a passphrase
-requested interactively. Otherwise, it's encrypted to one or more
+requested either interactively, or through the AGE_PASSPHRASE environment
+variable. Otherwise, it's encrypted to one or more
 [RECIPIENTS][RECIPIENTS AND IDENTITIES] specified with `-r`/`--recipient` or
 `-R`/`--recipients-file`. Every recipient can decrypt the file.
 
 In `-d`/`--decrypt` mode, passphrase-encrypted files are detected automatically
-and the passphrase is requested interactively. Otherwise, one or more
-[IDENTITIES][RECIPIENTS AND IDENTITIES] specified with `-i`/`--identity` are
-used to decrypt the file.
+and the passphrase is requested either interactively, or read from the
+AGE_PASSPHRASE environment variable.
+Otherwise, one or more [IDENTITIES][RECIPIENTS AND IDENTITIES] specified
+with `-i`/`--identity` are used to decrypt the file.
 
 `age` encrypted files are binary and not malleable, with around 200 bytes of
 overhead per recipient, plus 16 bytes every 64KiB of plaintext.
@@ -62,8 +64,10 @@ overhead per recipient, plus 16 bytes every 64KiB of plaintext.
     and the file can be decrypted by all provided recipients independently.
 
 * `-p`, `--passphrase`:
-    Encrypt with a passphrase, requested interactively from the terminal.
+    Encrypt with a passphrase, requested either:
+    - interactively from the terminal.
     `age` will offer to auto-generate a secure passphrase.
+    - through the AGE_PASSPHRASE environment variable.
 
     This option can't be used with other recipient flags.
 
