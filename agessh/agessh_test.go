@@ -6,7 +6,9 @@ package agessh_test
 
 import (
 	"bytes"
+	"crypto/ecdsa"
 	"crypto/ed25519"
+	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/rsa"
 	"reflect"
@@ -74,6 +76,49 @@ func TestSSHEd25519RoundTrip(t *testing.T) {
 		t.Fatal(err)
 	}
 	i, err := agessh.NewEd25519Identity(priv)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// TODO: replace this with (and go-diff) with go-cmp.
+	if !reflect.DeepEqual(r, i.Recipient()) {
+		t.Fatalf("i.Recipient is different from r")
+	}
+
+	fileKey := make([]byte, 16)
+	if _, err := rand.Read(fileKey); err != nil {
+		t.Fatal(err)
+	}
+	stanzas, err := r.Wrap(fileKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	out, err := i.Unwrap(stanzas)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !bytes.Equal(fileKey, out) {
+		t.Errorf("invalid output: %x, expected %x", out, fileKey)
+	}
+}
+
+func TestSSHECDSARoundTrip(t *testing.T) {
+	key, err := ecdsa.GenerateKey(elliptic.P521(), rand.Reader)
+	if err != nil {
+		t.Fatal(err)
+	}
+	sshPubKey, err := ssh.NewPublicKey(&key.PublicKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	r, err := agessh.NewECDSARecipient(sshPubKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+	i, err := agessh.NewECDSAIdentity(key)
 	if err != nil {
 		t.Fatal(err)
 	}

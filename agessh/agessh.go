@@ -14,6 +14,8 @@
 package agessh
 
 import (
+	"crypto/ecdh"
+	"crypto/ecdsa"
 	"crypto/ed25519"
 	"crypto/rand"
 	"crypto/rsa"
@@ -135,11 +137,21 @@ func (i *RSAIdentity) unwrap(block *age.Stanza) ([]byte, error) {
 }
 
 type Ed25519Recipient struct {
-	sshKey         ssh.PublicKey
-	theirPublicKey []byte
+	sshKey ssh.PublicKey
+	k      *ecdh.PublicKey
 }
 
 var _ age.Recipient = &Ed25519Recipient{}
+
+func ed25519PublicKeyToCurve25519(pk ed25519.PublicKey) ([]byte, error) {
+	// See https://blog.filippo.io/using-ed25519-keys-for-encryption and
+	// https://pkg.go.dev/filippo.io/edwards25519#Point.BytesMontgomery.
+	p, err := new(edwards25519.Point).SetBytes(pk)
+	if err != nil {
+		return nil, err
+	}
+	return p.BytesMontgomery(), nil
+}
 
 func NewEd25519Recipient(pk ssh.PublicKey) (*Ed25519Recipient, error) {
 	if pk.Type() != "ssh-ed25519" {
@@ -158,11 +170,81 @@ func NewEd25519Recipient(pk ssh.PublicKey) (*Ed25519Recipient, error) {
 	if err != nil {
 		return nil, fmt.Errorf("invalid Ed25519 public key: %v", err)
 	}
-
+	k, err := ecdh.X25519().NewPublicKey(mpk)
+	if err != nil {
+		return nil, err
+	}
 	return &Ed25519Recipient{
-		sshKey:         pk,
-		theirPublicKey: mpk,
+		sshKey: pk,
+		k:      k,
 	}, nil
+}
+
+type ECDSARecipient struct {
+	sshKey ssh.PublicKey
+	k      *ecdh.PublicKey
+}
+
+var _ age.Recipient = &ECDSARecipient{}
+
+func NewECDSARecipient(pk ssh.PublicKey) (*ECDSARecipient, error) {
+	if pk.Type() != "ecdsa-sha2-nistp521" {
+		return nil, errors.New("SSH publick key is not an ECDSA key")
+	}
+
+	cpk, ok := pk.(ssh.CryptoPublicKey)
+	if !ok {
+		return nil, errors.New("pk does not implement ssh.CryptoPublicKey")
+	}
+	epk, ok := cpk.CryptoPublicKey().(*ecdsa.PublicKey)
+	if !ok {
+		return nil, errors.New("unexpected public key type")
+	}
+	k, err := epk.ECDH()
+	if err != nil {
+		return nil, err
+	}
+	return &ECDSARecipient{
+		sshKey: pk,
+		k:      k,
+	}, nil
+}
+
+func (r *ECDSARecipient) Wrap(fileKey []byte) ([]*age.Stanza, error) {
+	ephemeral, err := ecdh.P521().GenerateKey(rand.Reader)
+
+	ourPublicKey := ephemeral.PublicKey()
+	if err != nil {
+		return nil, err
+	}
+
+	sharedSecret, err := ephemeral.ECDH(r.k)
+	if err != nil {
+		return nil, err
+	}
+
+	l := &age.Stanza{
+		Type: "ecdsa-sha2-nistp521",
+		Args: []string{sshFingerprint(r.sshKey),
+			format.EncodeToString(ourPublicKey.Bytes()[:])},
+	}
+
+	salt := make([]byte, 0, len(ourPublicKey.Bytes())+len(r.k.Bytes()))
+	salt = append(salt, ourPublicKey.Bytes()...)
+	salt = append(salt, r.k.Bytes()...)
+	h := hkdf.New(sha256.New, sharedSecret, salt, []byte(ed25519Label))
+	wrappingKey := make([]byte, chacha20poly1305.KeySize)
+	if _, err := io.ReadFull(h, wrappingKey); err != nil {
+		return nil, err
+	}
+
+	wrappedKey, err := aeadEncrypt(wrappingKey, fileKey)
+	if err != nil {
+		return nil, err
+	}
+	l.Body = wrappedKey
+
+	return []*age.Stanza{l}, nil
 }
 
 func ParseRecipient(s string) (age.Recipient, error) {
@@ -187,49 +269,30 @@ func ParseRecipient(s string) (age.Recipient, error) {
 	return r, nil
 }
 
-func ed25519PublicKeyToCurve25519(pk ed25519.PublicKey) ([]byte, error) {
-	// See https://blog.filippo.io/using-ed25519-keys-for-encryption and
-	// https://pkg.go.dev/filippo.io/edwards25519#Point.BytesMontgomery.
-	p, err := new(edwards25519.Point).SetBytes(pk)
-	if err != nil {
-		return nil, err
-	}
-	return p.BytesMontgomery(), nil
-}
-
 const ed25519Label = "age-encryption.org/v1/ssh-ed25519"
 
 func (r *Ed25519Recipient) Wrap(fileKey []byte) ([]*age.Stanza, error) {
-	ephemeral := make([]byte, curve25519.ScalarSize)
-	if _, err := rand.Read(ephemeral); err != nil {
-		return nil, err
-	}
-	ourPublicKey, err := curve25519.X25519(ephemeral, curve25519.Basepoint)
+	ephemeral, err := ecdh.X25519().GenerateKey(rand.Reader)
+
+	ourPublicKey := ephemeral.PublicKey()
 	if err != nil {
 		return nil, err
 	}
 
-	sharedSecret, err := curve25519.X25519(ephemeral, r.theirPublicKey)
+	sharedSecret, err := ephemeral.ECDH(r.k)
 	if err != nil {
 		return nil, err
 	}
-
-	tweak := make([]byte, curve25519.ScalarSize)
-	tH := hkdf.New(sha256.New, nil, r.sshKey.Marshal(), []byte(ed25519Label))
-	if _, err := io.ReadFull(tH, tweak); err != nil {
-		return nil, err
-	}
-	sharedSecret, _ = curve25519.X25519(tweak, sharedSecret)
 
 	l := &age.Stanza{
 		Type: "ssh-ed25519",
 		Args: []string{sshFingerprint(r.sshKey),
-			format.EncodeToString(ourPublicKey[:])},
+			format.EncodeToString(ourPublicKey.Bytes()[:])},
 	}
 
-	salt := make([]byte, 0, len(ourPublicKey)+len(r.theirPublicKey))
-	salt = append(salt, ourPublicKey...)
-	salt = append(salt, r.theirPublicKey...)
+	salt := make([]byte, 0, len(ourPublicKey.Bytes())+len(r.k.Bytes()))
+	salt = append(salt, ourPublicKey.Bytes()...)
+	salt = append(salt, r.k.Bytes()...)
 	h := hkdf.New(sha256.New, sharedSecret, salt, []byte(ed25519Label))
 	wrappingKey := make([]byte, chacha20poly1305.KeySize)
 	if _, err := io.ReadFull(h, wrappingKey); err != nil {
@@ -246,8 +309,8 @@ func (r *Ed25519Recipient) Wrap(fileKey []byte) ([]*age.Stanza, error) {
 }
 
 type Ed25519Identity struct {
-	secretKey, ourPublicKey []byte
-	sshKey                  ssh.PublicKey
+	secretKey *ecdh.PrivateKey
+	sshKey    ssh.PublicKey
 }
 
 var _ age.Identity = &Ed25519Identity{}
@@ -257,12 +320,90 @@ func NewEd25519Identity(key ed25519.PrivateKey) (*Ed25519Identity, error) {
 	if err != nil {
 		return nil, err
 	}
+	pk, err := ecdh.X25519().NewPrivateKey(ed25519PrivateKeyToCurve25519(key))
+	if err != nil {
+		return nil, err
+	}
 	i := &Ed25519Identity{
 		sshKey:    s.PublicKey(),
-		secretKey: ed25519PrivateKeyToCurve25519(key),
+		secretKey: pk,
 	}
-	i.ourPublicKey, _ = curve25519.X25519(i.secretKey, curve25519.Basepoint)
 	return i, nil
+}
+
+type ECDSAIdentity struct {
+	secretKey *ecdh.PrivateKey
+	sshKey    ssh.PublicKey
+}
+
+var _ age.Identity = &ECDSAIdentity{}
+
+func NewECDSAIdentity(key *ecdsa.PrivateKey) (*ECDSAIdentity, error) {
+	s, err := ssh.NewSignerFromKey(key)
+	if err != nil {
+		return nil, err
+	}
+	pk, err := key.ECDH()
+	if err != nil {
+		return nil, err
+	}
+	i := &ECDSAIdentity{
+		sshKey:    s.PublicKey(),
+		secretKey: pk,
+	}
+	return i, nil
+}
+
+func (i *ECDSAIdentity) Unwrap(stanzas []*age.Stanza) ([]byte, error) {
+	return multiUnwrap(i.unwrap, stanzas)
+}
+
+func (i *ECDSAIdentity) unwrap(block *age.Stanza) ([]byte, error) {
+	if block.Type != "ecdsa-sha2-nistp521" {
+		return nil, age.ErrIncorrectIdentity
+	}
+	if len(block.Args) != 2 {
+		return nil, errors.New("invalid ecdsa recipient block")
+	}
+	publicKeyBytes, err := format.DecodeString(block.Args[1])
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse ecdsa recipient: %v", err)
+	}
+
+	publicKey, err := ecdh.P521().NewPublicKey(publicKeyBytes)
+	if err != nil {
+		return nil, errors.New("invalid ecdsa recipient block")
+	}
+
+	if block.Args[0] != sshFingerprint(i.sshKey) {
+		return nil, age.ErrIncorrectIdentity
+	}
+	sharedSecret, err := i.secretKey.ECDH(publicKey)
+	if err != nil {
+		return nil, fmt.Errorf("invalid ecdsa recipient: %v", err)
+	}
+
+	salt := make([]byte, 0, len(publicKey.Bytes())+len(i.secretKey.PublicKey().Bytes()))
+	salt = append(salt, publicKey.Bytes()...)
+	salt = append(salt, i.secretKey.PublicKey().Bytes()...)
+	h := hkdf.New(sha256.New, sharedSecret, salt, []byte(ed25519Label))
+	wrappingKey := make([]byte, chacha20poly1305.KeySize)
+	if _, err := io.ReadFull(h, wrappingKey); err != nil {
+		return nil, err
+	}
+
+	fileKey, err := aeadDecrypt(wrappingKey, block.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to decrypt file key: %v", err)
+	}
+	return fileKey, nil
+}
+
+func (i *ECDSAIdentity) Recipient() *ECDSARecipient {
+	return &ECDSARecipient{
+		sshKey: i.sshKey,
+		k:      i.secretKey.PublicKey(),
+	}
 }
 
 func ParseIdentity(pemBytes []byte) (age.Identity, error) {
@@ -293,8 +434,8 @@ func ed25519PrivateKeyToCurve25519(pk ed25519.PrivateKey) []byte {
 
 func (i *Ed25519Identity) Recipient() *Ed25519Recipient {
 	return &Ed25519Recipient{
-		sshKey:         i.sshKey,
-		theirPublicKey: i.ourPublicKey,
+		sshKey: i.sshKey,
+		k:      i.secretKey.PublicKey(),
 	}
 }
 
@@ -309,33 +450,27 @@ func (i *Ed25519Identity) unwrap(block *age.Stanza) ([]byte, error) {
 	if len(block.Args) != 2 {
 		return nil, errors.New("invalid ssh-ed25519 recipient block")
 	}
-	publicKey, err := format.DecodeString(block.Args[1])
+	publicKeyBytes, err := format.DecodeString(block.Args[1])
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse ssh-ed25519 recipient: %v", err)
 	}
-	if len(publicKey) != curve25519.PointSize {
+
+	publicKey, err := ecdh.X25519().NewPublicKey(publicKeyBytes)
+	if err != nil {
 		return nil, errors.New("invalid ssh-ed25519 recipient block")
 	}
 
 	if block.Args[0] != sshFingerprint(i.sshKey) {
 		return nil, age.ErrIncorrectIdentity
 	}
-
-	sharedSecret, err := curve25519.X25519(i.secretKey, publicKey)
+	sharedSecret, err := i.secretKey.ECDH(publicKey)
 	if err != nil {
 		return nil, fmt.Errorf("invalid X25519 recipient: %v", err)
 	}
 
-	tweak := make([]byte, curve25519.ScalarSize)
-	tH := hkdf.New(sha256.New, nil, i.sshKey.Marshal(), []byte(ed25519Label))
-	if _, err := io.ReadFull(tH, tweak); err != nil {
-		return nil, err
-	}
-	sharedSecret, _ = curve25519.X25519(tweak, sharedSecret)
-
-	salt := make([]byte, 0, len(publicKey)+len(i.ourPublicKey))
-	salt = append(salt, publicKey...)
-	salt = append(salt, i.ourPublicKey...)
+	salt := make([]byte, 0, len(publicKey.Bytes())+len(i.secretKey.PublicKey().Bytes()))
+	salt = append(salt, publicKey.Bytes()...)
+	salt = append(salt, i.secretKey.PublicKey().Bytes()...)
 	h := hkdf.New(sha256.New, sharedSecret, salt, []byte(ed25519Label))
 	wrappingKey := make([]byte, chacha20poly1305.KeySize)
 	if _, err := io.ReadFull(h, wrappingKey); err != nil {
