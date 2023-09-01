@@ -36,6 +36,8 @@ func parseRecipient(arg string) (age.Recipient, error) {
 		return age.ParseX25519Recipient(arg)
 	case strings.HasPrefix(arg, "ssh-"):
 		return agessh.ParseRecipient(arg)
+	case strings.HasPrefix(arg, "ecdsa"):
+		return agessh.ParseRecipient(arg)
 	case strings.HasPrefix(arg, "github:"):
 		name := strings.TrimPrefix(arg, "github:")
 		return nil, gitHubRecipientError{name}

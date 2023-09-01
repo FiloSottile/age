@@ -1,0 +1,37 @@
+# encrypt and decrytp a file with -R
+age -R key.pem.pub -o test.age input
+age -d -i key.pem test.age
+cmp stdout input
+! stderr .
+
+# encrypt and decrypt a file with -i
+age -e -i key.pem -o test.age input
+age -d -i key.pem test.age
+cmp stdout input
+! stderr .
+
+# encrypt and decrypt a file with the wrong key
+age -R otherkey.pem.pub -o test.age input
+! age -d -i key.pem test.age
+stderr 'no identity matched any of the recipients'
+! stdout .
+
+-- input --
+test
+-- key.pem --
+-----BEGIN OPENSSH PRIVATE KEY-----
+b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAAArAAAABNlY2RzYS
+1zaGEyLW5pc3RwNTIxAAAACG5pc3RwNTIxAAAAhQQB2x1gOsjC+RorbCQDmEQEMnnZE77O
+rzdzU3pvl9mzUxRkV8jzr1YMarOhsM6+D6vJFNQnpihNa+z1UhcHVFluAisBc24mJ28MxB
+lOs1n6aMFHCwq6sN/ki7F8fPi+CJjiQnlLWLtcb3BxSlMw5Q/BoB4gOfqp6a8kwPlnmH7X
+UIBgK9sAAAEY0fN6S9HzeksAAAATZWNkc2Etc2hhMi1uaXN0cDUyMQAAAAhuaXN0cDUyMQ
+AAAIUEAdsdYDrIwvkaK2wkA5hEBDJ52RO+zq83c1N6b5fZs1MUZFfI869WDGqzobDOvg+r
+yRTUJ6YoTWvs9VIXB1RZbgIrAXNuJidvDMQZTrNZ+mjBRwsKurDf5IuxfHz4vgiY4kJ5S1
+i7XG9wcUpTMOUPwaAeIDn6qemvJMD5Z5h+11CAYCvbAAAAQgH6NQI9qfwVOp2xx+zu9NIm
+XKu4Gf5Vppj9V6lb/NdGn7VgDoKaeLipXQvsOybgLBe4nRT4jp17xmjqCJp4EhH/4wAAAB
+lkYW5pZWxAZGFuaWVsLVhQUy0xNS05NTEwAQ==
+-----END OPENSSH PRIVATE KEY-----
+-- key.pem.pub --
+ecdsa-sha2-nistp521 AAAAE2VjZHNhLXNoYTItbmlzdHA1MjEAAAAIbmlzdHA1MjEAAACFBAHbHWA6yML5GitsJAOYRAQyedkTvs6vN3NTem+X2bNTFGRXyPOvVgxqs6Gwzr4Pq8kU1CemKE1r7PVSFwdUWW4CKwFzbiYnbwzEGU6zWfpowUcLCrqw3+SLsXx8+L4ImOJCeUtYu1xvcHFKUzDlD8GgHiA5+qnpryTA+WeYftdQgGAr2w==
+-- otherkey.pem.pub --
+ecdsa-sha2-nistp521 AAAAE2VjZHNhLXNoYTItbmlzdHA1MjEAAAAIbmlzdHA1MjEAAACFBAH7rYEtqUJrpqYanPfKJYpeX962uGBB7bnaPe3MaE5BPr2hbmj8C5yYMYy0KxwLqZqnHAuwRIbw2LYTbCv8PPEL7QFgp6YXoU04f01UhiSpUy8QYYpRbvdZYyt5gb8cliG8lujJgMYKEah+ybnFh0qNfx7zyMc+nwIaBv1jgwAHLhnglw==

@@ -490,6 +490,8 @@ func identitiesToRecipients(ids []age.Identity) ([]age.Recipient, error) {
 			recipients = append(recipients, id.Recipient())
 		case *agessh.Ed25519Identity:
 			recipients = append(recipients, id.Recipient())
+		case *agessh.ECDSAIdentity:
+			recipients = append(recipients, id.Recipient())
 		case *agessh.EncryptedSSHIdentity:
 			recipients = append(recipients, id.Recipient())
 		case *EncryptedIdentity:

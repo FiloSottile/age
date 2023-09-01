@@ -6,6 +6,7 @@ package agessh
 
 import (
 	"crypto"
+	"crypto/ecdsa"
 	"crypto/ed25519"
 	"crypto/rsa"
 	"fmt"
@@ -49,6 +50,12 @@ func NewEncryptedSSHIdentity(pubKey ssh.PublicKey, pemBytes []byte, passphrase f
 	switch t := pubKey.Type(); t {
 	case "ssh-ed25519":
 		r, err := NewEd25519Recipient(pubKey)
+		if err != nil {
+			return nil, err
+		}
+		i.recipient = r
+	case "ecdsa-sha2-nistp256", "ecdsa-sha2-nistp384", "ecdsa-sha2-nistp521":
+		r, err := NewECDSARecipient(pubKey)
 		if err != nil {
 			return nil, err
 		}
@@ -117,6 +124,9 @@ func (i *EncryptedSSHIdentity) Unwrap(stanzas []*age.Stanza) (fileKey []byte, er
 	case ed25519.PrivateKey:
 		i.decrypted, err = NewEd25519Identity(k)
 		pubKey = k.Public().(ed25519.PublicKey)
+	case *ecdsa.PrivateKey:
+		i.decrypted, err = NewECDSAIdentity(k)
+		pubKey = k.Public().(*ecdsa.PublicKey)
 	case *rsa.PrivateKey:
 		i.decrypted, err = NewRSAIdentity(k)
 		pubKey = &k.PublicKey

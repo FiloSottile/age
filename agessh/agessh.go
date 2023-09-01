@@ -188,8 +188,8 @@ type ECDSARecipient struct {
 var _ age.Recipient = &ECDSARecipient{}
 
 func NewECDSARecipient(pk ssh.PublicKey) (*ECDSARecipient, error) {
-	if pk.Type() != "ecdsa-sha2-nistp521" {
-		return nil, errors.New("SSH publick key is not an ECDSA key")
+	if pk.Type() != "ecdsa-sha2-nistp521" && pk.Type() != "ecdsa-sha2-nistp384" && pk.Type() != "ecdsa-sha2-nistp256" {
+		return nil, errors.New("SSH public key is not an ECDSA key")
 	}
 
 	cpk, ok := pk.(ssh.CryptoPublicKey)
@@ -210,8 +210,23 @@ func NewECDSARecipient(pk ssh.PublicKey) (*ECDSARecipient, error) {
 	}, nil
 }
 
+const ecdsanistp256Label = "age-encryption.org/v1/ecdsa-sha2-nistp256"
+const ecdsanistp384Label = "age-encryption.org/v1/ecdsa-sha2-nistp384"
+const ecdsanistp521Label = "age-encryption.org/v1/ecdsa-sha2-nistp521"
+
+func labelForEcdsaCurve(c ecdh.Curve) string {
+	switch c {
+	case ecdh.P256():
+		return ecdsanistp256Label
+	case ecdh.P384():
+		return ecdsanistp384Label
+	case ecdh.P521():
+		return ecdsanistp521Label
+	}
+	return ""
+}
 func (r *ECDSARecipient) Wrap(fileKey []byte) ([]*age.Stanza, error) {
-	ephemeral, err := ecdh.P521().GenerateKey(rand.Reader)
+	ephemeral, err := r.k.Curve().GenerateKey(rand.Reader)
 
 	ourPublicKey := ephemeral.PublicKey()
 	if err != nil {
@@ -224,7 +239,7 @@ func (r *ECDSARecipient) Wrap(fileKey []byte) ([]*age.Stanza, error) {
 	}
 
 	l := &age.Stanza{
-		Type: "ecdsa-sha2-nistp521",
+		Type: r.sshKey.Type(),
 		Args: []string{sshFingerprint(r.sshKey),
 			format.EncodeToString(ourPublicKey.Bytes()[:])},
 	}
@@ -232,7 +247,7 @@ func (r *ECDSARecipient) Wrap(fileKey []byte) ([]*age.Stanza, error) {
 	salt := make([]byte, 0, len(ourPublicKey.Bytes())+len(r.k.Bytes()))
 	salt = append(salt, ourPublicKey.Bytes()...)
 	salt = append(salt, r.k.Bytes()...)
-	h := hkdf.New(sha256.New, sharedSecret, salt, []byte(ed25519Label))
+	h := hkdf.New(sha256.New, sharedSecret, salt, []byte(labelForEcdsaCurve(r.k.Curve())))
 	wrappingKey := make([]byte, chacha20poly1305.KeySize)
 	if _, err := io.ReadFull(h, wrappingKey); err != nil {
 		return nil, err
@@ -259,6 +274,8 @@ func ParseRecipient(s string) (age.Recipient, error) {
 		r, err = NewRSARecipient(pubKey)
 	case "ssh-ed25519":
 		r, err = NewEd25519Recipient(pubKey)
+	case "ecdsa-sha2-nistp521", "ecdsa-sha2-nistp384", "ecdsa-sha2-nistp256":
+		r, err = NewECDSARecipient(pubKey)
 	default:
 		return nil, fmt.Errorf("unknown SSH recipient type: %q", t)
 	}
@@ -359,7 +376,7 @@ func (i *ECDSAIdentity) Unwrap(stanzas []*age.Stanza) ([]byte, error) {
 }
 
 func (i *ECDSAIdentity) unwrap(block *age.Stanza) ([]byte, error) {
-	if block.Type != "ecdsa-sha2-nistp521" {
+	if block.Type != "ecdsa-sha2-nistp256" && block.Type != "ecdsa-sha2-nistp384" && block.Type != "ecdsa-sha2-nistp521" {
 		return nil, age.ErrIncorrectIdentity
 	}
 	if len(block.Args) != 2 {
@@ -370,7 +387,7 @@ func (i *ECDSAIdentity) unwrap(block *age.Stanza) ([]byte, error) {
 		return nil, fmt.Errorf("failed to parse ecdsa recipient: %v", err)
 	}
 
-	publicKey, err := ecdh.P521().NewPublicKey(publicKeyBytes)
+	publicKey, err := i.secretKey.Curve().NewPublicKey(publicKeyBytes)
 	if err != nil {
 		return nil, errors.New("invalid ecdsa recipient block")
 	}
@@ -386,7 +403,7 @@ func (i *ECDSAIdentity) unwrap(block *age.Stanza) ([]byte, error) {
 	salt := make([]byte, 0, len(publicKey.Bytes())+len(i.secretKey.PublicKey().Bytes()))
 	salt = append(salt, publicKey.Bytes()...)
 	salt = append(salt, i.secretKey.PublicKey().Bytes()...)
-	h := hkdf.New(sha256.New, sharedSecret, salt, []byte(ed25519Label))
+	h := hkdf.New(sha256.New, sharedSecret, salt, []byte(labelForEcdsaCurve(i.secretKey.Curve())))
 	wrappingKey := make([]byte, chacha20poly1305.KeySize)
 	if _, err := io.ReadFull(h, wrappingKey); err != nil {
 		return nil, err
@@ -420,12 +437,15 @@ func ParseIdentity(pemBytes []byte) (age.Identity, error) {
 		return NewEd25519Identity(k)
 	case *rsa.PrivateKey:
 		return NewRSAIdentity(k)
+	case *ecdsa.PrivateKey:
+		return NewECDSAIdentity(k)
 	}
 
 	return nil, fmt.Errorf("unsupported SSH identity type: %T", k)
 }
 
 func ed25519PrivateKeyToCurve25519(pk ed25519.PrivateKey) []byte {
+	ecdh.X25519().NewPr
 	h := sha512.New()
 	h.Write(pk.Seed())
 	out := h.Sum(nil)
