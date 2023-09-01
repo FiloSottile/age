@@ -243,7 +243,8 @@ func (r *ECDSARecipient) Wrap(fileKey []byte) ([]*age.Stanza, error) {
 		Args: []string{sshFingerprint(r.sshKey),
 			format.EncodeToString(ourPublicKey.Bytes()[:])},
 	}
-
+	// here we are not doing the key distancing (tweak) that was done
+	// for ssh-ed25519 keys, as it does not improve security
 	salt := make([]byte, 0, len(ourPublicKey.Bytes())+len(r.k.Bytes()))
 	salt = append(salt, ourPublicKey.Bytes()...)
 	salt = append(salt, r.k.Bytes()...)
@@ -296,6 +297,7 @@ func (r *Ed25519Recipient) Wrap(fileKey []byte) ([]*age.Stanza, error) {
 		return nil, err
 	}
 
+	// .ECDH does the same as curve25519.X25519(ephemeral, theirPublicKey)
 	sharedSecret, err := ephemeral.ECDH(r.k)
 	if err != nil {
 		return nil, err
@@ -306,6 +308,15 @@ func (r *Ed25519Recipient) Wrap(fileKey []byte) ([]*age.Stanza, error) {
 		Args: []string{sshFingerprint(r.sshKey),
 			format.EncodeToString(ourPublicKey.Bytes()[:])},
 	}
+	// this tweak does key distancing using the ssh public key
+	// it does not add any extra security, but kept it here
+	// for backwards compatibility
+	tweak := make([]byte, curve25519.ScalarSize)
+	tH := hkdf.New(sha512.New, nil, r.sshKey.Marshal(), []byte(ed25519Label))
+	if _, err := io.ReadFull(tH, tweak); err != nil {
+		return nil, err
+	}
+	sharedSecret, _ = curve25519.X25519(tweak, sharedSecret)
 
 	salt := make([]byte, 0, len(ourPublicKey.Bytes())+len(r.k.Bytes()))
 	salt = append(salt, ourPublicKey.Bytes()...)
@@ -445,7 +456,6 @@ func ParseIdentity(pemBytes []byte) (age.Identity, error) {
 }
 
 func ed25519PrivateKeyToCurve25519(pk ed25519.PrivateKey) []byte {
-	ecdh.X25519().NewPr
 	h := sha512.New()
 	h.Write(pk.Seed())
 	out := h.Sum(nil)
@@ -483,10 +493,22 @@ func (i *Ed25519Identity) unwrap(block *age.Stanza) ([]byte, error) {
 	if block.Args[0] != sshFingerprint(i.sshKey) {
 		return nil, age.ErrIncorrectIdentity
 	}
+
+	// .ECDH does the same as curve25519.X25519(ephemeral, theirPublicKey)
 	sharedSecret, err := i.secretKey.ECDH(publicKey)
 	if err != nil {
 		return nil, fmt.Errorf("invalid X25519 recipient: %v", err)
 	}
+
+	// this tweak does key distancing using the ssh public key
+	// it does not add any extra security, but kept it here
+	// for backwards compatibility
+	tweak := make([]byte, curve25519.ScalarSize)
+	tH := hkdf.New(sha512.New, nil, i.sshKey.Marshal(), []byte(ed25519Label))
+	if _, err := io.ReadFull(tH, tweak); err != nil {
+		return nil, err
+	}
+	sharedSecret, _ = curve25519.X25519(tweak, sharedSecret)
 
 	salt := make([]byte, 0, len(publicKey.Bytes())+len(i.secretKey.PublicKey().Bytes()))
 	salt = append(salt, publicKey.Bytes()...)
