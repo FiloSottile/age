@@ -1,10 +1,9 @@
 module filippo.io/age
 
-go 1.21.0
+go 1.21
 
 require (
 	filippo.io/edwards25519 v1.0.0
-	github.com/google/go-cmp v0.5.9
 	golang.org/x/crypto v0.4.0
 	golang.org/x/sys v0.11.0
 	golang.org/x/term v0.3.0
