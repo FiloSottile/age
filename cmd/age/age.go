@@ -246,13 +246,28 @@ func main() {
 		}
 	}
 	if name := outFlag; name != "" && name != "-" {
-		f := newLazyOpener(name)
-		defer func() {
-			if err := f.Close(); err != nil {
-				errorf("failed to close output file %q: %v", name, err)
-			}
-		}()
-		out = f
+		if name != flag.Arg(0) {
+			f := newLazyOpener(name)
+			defer func() {
+				if err := f.Close(); err != nil {
+					errorf("failed to close output file %q: %v", name, err)
+				}
+			}()
+			out = f
+		} else {
+			buf := &bytes.Buffer{}
+			defer func() {
+				f, err := os.Create(name)
+				if err != nil {
+					errorf("failed to create output file %q: %w", name, err)
+				}
+				io.Copy(f, buf)
+				if err := f.Close(); err != nil {
+					errorf("failed to close output file %q: %v", name, err)
+				}
+			}()
+			out = buf
+		}
 	} else if term.IsTerminal(int(os.Stdout.Fd())) {
 		if name != "-" {
 			if decryptFlag {
