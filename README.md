@@ -61,7 +61,13 @@ $ age --decrypt -i key.txt data.tar.gz.age > data.tar.gz
         </td>
     </tr>
     <tr>
-        <td>Debian 11+ (Bullseye)</td>
+        <td>Debian 12+ (Bookworm)</td>
+        <td>
+            <code>apt install age</code>
+        </td>
+    </tr>
+    <tr>
+        <td>Debian 11 (Bullseye)</td>
         <td>
             <code>apt install age/bullseye-backports</code>
             (<a href="https://backports.debian.org/Instructions/#index2h2">enable backports</a> for age v1.0.0+)
