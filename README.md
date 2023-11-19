@@ -43,6 +43,12 @@ $ age --decrypt -i key.txt data.tar.gz.age > data.tar.gz
         </td>
     </tr>
     <tr>
+        <td>pkgx (macOS or Linux)</td>
+        <td>
+            <code>pkgx install age</code>
+        </td>
+    </tr>
+    <tr>
         <td>MacPorts</td>
         <td>
             <code>port install age</code>
