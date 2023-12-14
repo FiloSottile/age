@@ -36,9 +36,13 @@ func TestMain(m *testing.M) {
 				scanner := bufio.NewScanner(os.Stdin)
 				scanner.Scan() // add-recipient
 				scanner.Scan() // body
+				scanner.Scan() // grease
+				scanner.Scan() // body
 				scanner.Scan() // wrap-file-key
 				scanner.Scan() // body
 				fileKey := scanner.Text()
+				scanner.Scan() // extension-labels
+				scanner.Scan() // body
 				scanner.Scan() // done
 				scanner.Scan() // body
 				os.Stdout.WriteString("-> recipient-stanza 0 test\n")
@@ -50,6 +54,8 @@ func TestMain(m *testing.M) {
 			case "--age-plugin=identity-v1":
 				scanner := bufio.NewScanner(os.Stdin)
 				scanner.Scan() // add-identity
+				scanner.Scan() // body
+				scanner.Scan() // grease
 				scanner.Scan() // body
 				scanner.Scan() // recipient-stanza
 				scanner.Scan() // body

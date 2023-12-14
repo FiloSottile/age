@@ -12,15 +12,15 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"math/rand"
 	"os"
+	"path/filepath"
 	"strconv"
-	"strings"
 	"time"
 
 	exec "golang.org/x/sys/execabs"
 
 	"filippo.io/age"
-	"filippo.io/age/internal/bech32"
 	"filippo.io/age/internal/format"
 )
 
@@ -34,16 +34,13 @@ type Recipient struct {
 }
 
 var _ age.Recipient = &Recipient{}
+var _ age.RecipientWithLabels = &Recipient{}
 
 func NewRecipient(s string, ui *ClientUI) (*Recipient, error) {
-	hrp, _, err := bech32.Decode(s)
+	name, _, err := ParseRecipient(s)
 	if err != nil {
-		return nil, fmt.Errorf("invalid recipient encoding %q: %v", s, err)
+		return nil, err
 	}
-	if !strings.HasPrefix(hrp, "age1") {
-		return nil, fmt.Errorf("not a plugin recipient %q: %v", s, err)
-	}
-	name := strings.TrimPrefix(hrp, "age1")
 	return &Recipient{
 		name: name, encoding: s, ui: ui,
 	}, nil
@@ -57,6 +54,11 @@ func (r *Recipient) Name() string {
 }
 
 func (r *Recipient) Wrap(fileKey []byte) (stanzas []*age.Stanza, err error) {
+	stanzas, _, err = r.WrapWithLabels(fileKey)
+	return
+}
+
+func (r *Recipient) WrapWithLabels(fileKey []byte) (stanzas []*age.Stanza, labels []string, err error) {
 	defer func() {
 		if err != nil {
 			err = fmt.Errorf("%s plugin: %w", r.name, err)
@@ -65,7 +67,7 @@ func (r *Recipient) Wrap(fileKey []byte) (stanzas []*age.Stanza, err error) {
 
 	conn, err := openClientConnection(r.name, "recipient-v1")
 	if err != nil {
-		return nil, fmt.Errorf("couldn't start plugin: %v", err)
+		return nil, nil, fmt.Errorf("couldn't start plugin: %v", err)
 	}
 	defer conn.Close()
 
@@ -75,13 +77,19 @@ func (r *Recipient) Wrap(fileKey []byte) (stanzas []*age.Stanza, err error) {
 		addType = "add-identity"
 	}
 	if err := writeStanza(conn, addType, r.encoding); err != nil {
-		return nil, err
+		return nil, nil, err
+	}
+	if err := writeStanza(conn, fmt.Sprintf("grease-%x", rand.Int())); err != nil {
+		return nil, nil, err
 	}
 	if err := writeStanzaWithBody(conn, "wrap-file-key", fileKey); err != nil {
-		return nil, err
+		return nil, nil, err
+	}
+	if err := writeStanza(conn, "extension-labels"); err != nil {
+		return nil, nil, err
 	}
 	if err := writeStanza(conn, "done"); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	// Phase 2: plugin responds with stanzas
@@ -90,21 +98,21 @@ ReadLoop:
 	for {
 		s, err := r.ui.readStanza(r.name, sr)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 
 		switch s.Type {
 		case "recipient-stanza":
 			if len(s.Args) < 2 {
-				return nil, fmt.Errorf("malformed recipient stanza: unexpected argument count")
+				return nil, nil, fmt.Errorf("malformed recipient stanza: unexpected argument count")
 			}
 			n, err := strconv.Atoi(s.Args[0])
 			if err != nil {
-				return nil, fmt.Errorf("malformed recipient stanza: invalid index")
+				return nil, nil, fmt.Errorf("malformed recipient stanza: invalid index")
 			}
 			// We only send a single file key, so the index must be 0.
 			if n != 0 {
-				return nil, fmt.Errorf("malformed recipient stanza: unexpected index")
+				return nil, nil, fmt.Errorf("malformed recipient stanza: unexpected index")
 			}
 
 			stanzas = append(stanzas, &age.Stanza{
@@ -114,32 +122,41 @@ ReadLoop:
 			})
 
 			if err := writeStanza(conn, "ok"); err != nil {
-				return nil, err
+				return nil, nil, err
+			}
+		case "labels":
+			if labels != nil {
+				return nil, nil, fmt.Errorf("repeated labels stanza")
+			}
+			labels = s.Args
+
+			if err := writeStanza(conn, "ok"); err != nil {
+				return nil, nil, err
 			}
 		case "error":
 			if err := writeStanza(conn, "ok"); err != nil {
-				return nil, err
+				return nil, nil, err
 			}
 
-			return nil, fmt.Errorf("%s", s.Body)
+			return nil, nil, fmt.Errorf("%s", s.Body)
 		case "done":
 			break ReadLoop
 		default:
 			if ok, err := r.ui.handle(r.name, conn, s); err != nil {
-				return nil, err
+				return nil, nil, err
 			} else if !ok {
 				if err := writeStanza(conn, "unsupported"); err != nil {
-					return nil, err
+					return nil, nil, err
 				}
 			}
 		}
 	}
 
 	if len(stanzas) == 0 {
-		return nil, fmt.Errorf("received zero recipient stanzas")
+		return nil, nil, fmt.Errorf("received zero recipient stanzas")
 	}
 
-	return stanzas, nil
+	return stanzas, labels, nil
 }
 
 type Identity struct {
@@ -151,25 +168,17 @@ type Identity struct {
 var _ age.Identity = &Identity{}
 
 func NewIdentity(s string, ui *ClientUI) (*Identity, error) {
-	hrp, _, err := bech32.Decode(s)
+	name, _, err := ParseIdentity(s)
 	if err != nil {
-		return nil, fmt.Errorf("invalid identity encoding: %v", err)
+		return nil, err
 	}
-	if !strings.HasPrefix(hrp, "AGE-PLUGIN-") || !strings.HasSuffix(hrp, "-") {
-		return nil, fmt.Errorf("not a plugin identity: %v", err)
-	}
-	name := strings.TrimSuffix(strings.TrimPrefix(hrp, "AGE-PLUGIN-"), "-")
-	name = strings.ToLower(name)
 	return &Identity{
 		name: name, encoding: s, ui: ui,
 	}, nil
 }
 
 func NewIdentityWithoutData(name string, ui *ClientUI) (*Identity, error) {
-	s, err := bech32.Encode("AGE-PLUGIN-"+strings.ToUpper(name)+"-", nil)
-	if err != nil {
-		return nil, err
-	}
+	s := EncodeIdentity(name, nil)
 	return &Identity{
 		name: name, encoding: s, ui: ui,
 	}, nil
@@ -209,6 +218,9 @@ func (i *Identity) Unwrap(stanzas []*age.Stanza) (fileKey []byte, err error) {
 
 	// Phase 1: client sends the plugin the identity string and the stanzas
 	if err := writeStanza(conn, "add-identity", i.encoding); err != nil {
+		return nil, err
+	}
+	if err := writeStanza(conn, fmt.Sprintf("grease-%x", rand.Int())); err != nil {
 		return nil, err
 	}
 	for _, rs := range stanzas {
@@ -374,8 +386,14 @@ type clientConnection struct {
 	close     func()
 }
 
+var testOnlyPluginPath string
+
 func openClientConnection(name, protocol string) (*clientConnection, error) {
-	cmd := exec.Command("age-plugin-"+name, "--age-plugin="+protocol)
+	path := "age-plugin-" + name
+	if testOnlyPluginPath != "" {
+		path = filepath.Join(testOnlyPluginPath, path)
+	}
+	cmd := exec.Command(path, "--age-plugin="+protocol)
 
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
