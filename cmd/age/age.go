@@ -286,7 +286,12 @@ func main() {
 	}
 }
 
-func passphrasePromptForEncryption() (string, error) {
+func passphraseForEncryption() (string, error) {
+	passFromEnv := os.Getenv("AGE_PASSPHRASE")
+	if passFromEnv != "" {
+		return passFromEnv, nil
+	}
+
 	pass, err := readSecret("Enter passphrase (leave empty to autogenerate a secure one):")
 	if err != nil {
 		return "", fmt.Errorf("could not read passphrase: %v", err)
@@ -359,7 +364,7 @@ func encryptNotPass(recs, files []string, identities identityFlags, in io.Reader
 }
 
 func encryptPass(in io.Reader, out io.Writer, armor bool) {
-	pass, err := passphrasePromptForEncryption()
+	pass, err := passphraseForEncryption()
 	if err != nil {
 		errorf("%v", err)
 	}
@@ -440,7 +445,7 @@ func decryptPass(in io.Reader, out io.Writer) {
 	identities := []age.Identity{
 		// If there is an scrypt recipient (it will have to be the only one and)
 		// this identity will be invoked.
-		&LazyScryptIdentity{passphrasePromptForDecryption},
+		&LazyScryptIdentity{passphraseForDecryption},
 	}
 
 	decrypt(identities, in, out)
@@ -470,7 +475,11 @@ func decrypt(identities []age.Identity, in io.Reader, out io.Writer) {
 	}
 }
 
-func passphrasePromptForDecryption() (string, error) {
+func passphraseForDecryption() (string, error) {
+	passFromEnv := os.Getenv("AGE_PASSPHRASE")
+	if passFromEnv != "" {
+		return passFromEnv, nil
+	}
 	pass, err := readSecret("Enter passphrase:")
 	if err != nil {
 		return "", fmt.Errorf("could not read passphrase: %v", err)
