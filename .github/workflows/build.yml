@@ -79,6 +79,9 @@ jobs:
         uses: actions/download-artifact@v2
         with:
           name: age-binaries
+      - name: Checksum binaries
+        run: |
+          sha256sum age-* > age-SHA256SUMS
       - name: Upload release artifacts
         run: gh release upload "$GITHUB_REF_NAME" age-*
         env:
