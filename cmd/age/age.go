@@ -7,6 +7,7 @@ package main
 import (
 	"bufio"
 	"bytes"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"io"
@@ -107,12 +108,12 @@ func main() {
 	}
 
 	var (
-		outFlag                          string
-		decryptFlag, encryptFlag         bool
-		passFlag, versionFlag, armorFlag bool
-		recipientFlags                   multiFlag
-		recipientsFileFlags              multiFlag
-		identityFlags                    identityFlags
+		outFlag                               string
+		decryptFlag, encryptFlag, inspectFlag bool
+		passFlag, versionFlag, armorFlag      bool
+		recipientFlags                        multiFlag
+		recipientsFileFlags                   multiFlag
+		identityFlags                         identityFlags
 	)
 
 	flag.BoolVar(&versionFlag, "version", false, "print the version")
@@ -120,6 +121,7 @@ func main() {
 	flag.BoolVar(&decryptFlag, "decrypt", false, "decrypt the input")
 	flag.BoolVar(&encryptFlag, "e", false, "encrypt the input")
 	flag.BoolVar(&encryptFlag, "encrypt", false, "encrypt the input")
+	flag.BoolVar(&inspectFlag, "inspect", false, "inspect the input")
 	flag.BoolVar(&passFlag, "p", false, "use a passphrase")
 	flag.BoolVar(&passFlag, "passphrase", false, "use a passphrase")
 	flag.StringVar(&outFlag, "o", "", "output to `FILE` (default stdout)")
@@ -187,6 +189,9 @@ func main() {
 		if encryptFlag {
 			errorf("-e/--encrypt can't be used with -d/--decrypt")
 		}
+		if inspectFlag {
+			errorf("--inspect can't be used with -d/--decrypt")
+		}
 		if armorFlag {
 			errorWithHint("-a/--armor can't be used with -d/--decrypt",
 				"note that armored files are detected automatically")
@@ -202,6 +207,28 @@ func main() {
 		if len(recipientsFileFlags) > 0 {
 			errorWithHint("-R/--recipients-file can't be used with -d/--decrypt",
 				"did you mean to use -i/--identity to specify a private key?")
+		}
+	case inspectFlag:
+		if encryptFlag {
+			errorf("--encrypt can't be used with --inspect")
+		}
+		if armorFlag {
+			errorWithHint("-a/--armor can't be used with --inspect",
+				"--inspect handles armored files automatically")
+		}
+		if passFlag {
+			errorWithHint("-p/--passphrase can't be used with --inspect",
+				"--inspect operates on encrypted files")
+		}
+		if len(identityFlags) > 0 {
+			errorWithHint("-i/--identity can't be used with --inspect",
+				"--inspect operates on encrypted files")
+		}
+		if len(recipientFlags) > 0 {
+			errorf("-r/--recipient can't be used with --inspect")
+		}
+		if len(recipientsFileFlags) > 0 {
+			errorf("-R/--recipients-file can't be used with --inspect")
 		}
 	default: // encrypt
 		if len(identityFlags) > 0 && !encryptFlag {
@@ -255,7 +282,7 @@ func main() {
 		out = f
 	} else if term.IsTerminal(int(os.Stdout.Fd())) {
 		if name != "-" {
-			if decryptFlag {
+			if decryptFlag || inspectFlag {
 				// TODO: buffer the output and check it's printable.
 			} else if !armorFlag {
 				// If the output wouldn't be armored, refuse to send binary to
@@ -279,6 +306,8 @@ func main() {
 		decryptPass(in, out)
 	case decryptFlag:
 		decryptNotPass(identityFlags, in, out)
+	case inspectFlag:
+		inspect(in, out)
 	case passFlag:
 		encryptPass(in, out, armorFlag)
 	default:
@@ -447,19 +476,7 @@ func decryptPass(in io.Reader, out io.Writer) {
 }
 
 func decrypt(identities []age.Identity, in io.Reader, out io.Writer) {
-	rr := bufio.NewReader(in)
-	if intro, _ := rr.Peek(len(crlfMangledIntro)); string(intro) == crlfMangledIntro ||
-		string(intro) == utf16MangledIntro {
-		errorWithHint("invalid header intro",
-			"it looks like this file was corrupted by PowerShell redirection",
-			"consider using -o or -a to encrypt files in PowerShell")
-	}
-
-	if start, _ := rr.Peek(len(armor.Header)); string(start) == armor.Header {
-		in = armor.NewReader(rr)
-	} else {
-		in = rr
-	}
+	in = unwrapArmor(in)
 
 	r, err := age.Decrypt(in, identities...)
 	if err != nil {
@@ -476,6 +493,35 @@ func passphrasePromptForDecryption() (string, error) {
 		return "", fmt.Errorf("could not read passphrase: %v", err)
 	}
 	return string(pass), nil
+}
+
+func inspect(in io.Reader, out io.Writer) {
+	in = unwrapArmor(in)
+
+	info, err := age.Inspect(in)
+	if err != nil {
+		errorf("%v", err)
+	}
+
+	if err := json.NewEncoder(out).Encode(info); err != nil {
+		errorf("failed to json encode inspect output: %v", err)
+	}
+}
+
+func unwrapArmor(in io.Reader) io.Reader {
+	rr := bufio.NewReader(in)
+	if intro, _ := rr.Peek(len(crlfMangledIntro)); string(intro) == crlfMangledIntro ||
+		string(intro) == utf16MangledIntro {
+		errorWithHint("invalid header intro",
+			"it looks like this file was corrupted by PowerShell redirection",
+			"consider using -o or -a to encrypt files in PowerShell")
+	}
+
+	if start, _ := rr.Peek(len(armor.Header)); string(start) == armor.Header {
+		return armor.NewReader(rr)
+	}
+
+	return rr
 }
 
 func identitiesToRecipients(ids []age.Identity) ([]age.Recipient, error) {
