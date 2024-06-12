@@ -139,7 +139,7 @@ On Windows, Linux, macOS, and FreeBSD you can use the pre-built binaries.
 
 ```
 https://dl.filippo.io/age/latest?for=linux/amd64
-https://dl.filippo.io/age/v1.1.1?for=darwin/arm64
+https://dl.filippo.io/age/latest?for=darwin/arm64
 ...
 ```
 

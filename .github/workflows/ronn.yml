@@ -14,7 +14,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
       - name: Install ronn
         run: sudo apt-get update && sudo apt-get install -y ronn
       - name: Run ronn
@@ -29,7 +29,7 @@ jobs:
             mv "$f.tmp" "$f"
           done
       - name: Upload generated files
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: man-pages
           path: |
@@ -43,9 +43,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
       - name: Download generated files
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v4
         with:
           name: man-pages
           path: doc/
