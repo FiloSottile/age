@@ -13,11 +13,11 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - name: Install Go ${{ matrix.go }}
-        uses: actions/setup-go@v2
+        uses: actions/setup-go@v5
         with:
           go-version: ${{ matrix.go }}
       - name: Checkout repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
       - name: Run tests
@@ -31,7 +31,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - name: Install bootstrap Go
-        uses: actions/setup-go@v2
+        uses: actions/setup-go@v5
       - name: Install Go tip (UNIX)
         if: runner.os != 'Windows'
         run: |
@@ -45,7 +45,7 @@ jobs:
           cd $HOME/gotip/src && ./make.bat
           echo "$HOME/gotip/bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
       - name: Checkout repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
       - run: go version
