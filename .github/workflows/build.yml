@@ -10,7 +10,6 @@ jobs:
   build:
     name: Build binaries
     runs-on: ubuntu-latest
-    environment: "Build, sign, release binaries"
     strategy:
       matrix:
         include:
