@@ -33,7 +33,7 @@ jobs:
       - name: Install bootstrap Go
         uses: actions/setup-go@v5
         with:
-          go-version: latest
+          go-version: stable
       - name: Install Go tip (UNIX)
         if: runner.os != 'Windows'
         run: |
