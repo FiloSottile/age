@@ -12,6 +12,8 @@ age is a little unusual in how it is maintained. I like to keep the code style c
 
 Therefore, **be prepared for your change to get reimplemented rather than merged**, and please don't be offended if that happens. PRs are still appreciated as a way to clarify the intended behavior, but are not at all required: prefer focusing on providing detailed context in an issue report instead.
 
+To learn more, please see my [maintenance policy](https://github.com/FiloSottile/FiloSottile/blob/main/maintenance.md).
+
 <!-- ## Feature requests
 
 age is small, simple, and config-free by design. A lot of effort is put into resisting scope creep and enabling use cases by integrating and interoperating well with other projects rather than by adding features.
