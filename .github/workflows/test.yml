@@ -30,6 +30,8 @@ jobs:
         os: [ubuntu-latest, macos-latest, windows-latest]
     runs-on: ${{ matrix.os }}
     steps:
+      - name: Install bootstrap Go
+        uses: actions/setup-go@v2
       - name: Install Go tip (UNIX)
         if: runner.os != 'Windows'
         run: |
