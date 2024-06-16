@@ -133,6 +133,12 @@ $ age --decrypt -i key.txt data.tar.gz.age > data.tar.gz
             <code>scoop bucket add extras && scoop install age</code>
         </td>
     </tr>
+    <tr>
+        <td>pkgx</td>
+        <td>
+            <code>pkgx install age</code>
+        </td>
+    </tr>
 </table>
 
 On Windows, Linux, macOS, and FreeBSD you can use the pre-built binaries.
