@@ -130,7 +130,7 @@ $ age --decrypt -i key.txt data.tar.gz.age > data.tar.gz
     <tr>
         <td>Scoop (Windows)</td>
         <td>
-            <code>scoop bucket add extras; scoop install age</code>
+            <code>scoop bucket add extras && scoop install age</code>
         </td>
     </tr>
 </table>
