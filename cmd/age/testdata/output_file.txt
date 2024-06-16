@@ -25,8 +25,31 @@ age -d -i key.txt -o new empty.age
 ! stderr .
 cmp new empty
 
+# https://github.com/FiloSottile/age/issues/491
+cp input inputcopy
+! age -r age1xmwwc06ly3ee5rytxm9mflaz2u56jjj36s0mypdrwsvlul66mv4q47ryef -o inputcopy inputcopy
+stderr 'input and output file are the same'
+cmp inputcopy input
+! age -r age1xmwwc06ly3ee5rytxm9mflaz2u56jjj36s0mypdrwsvlul66mv4q47ryef -o ./inputcopy inputcopy
+stderr 'input and output file are the same'
+cmp inputcopy input
+mkdir foo
+! age -r age1xmwwc06ly3ee5rytxm9mflaz2u56jjj36s0mypdrwsvlul66mv4q47ryef -o inputcopy foo/../inputcopy
+stderr 'input and output file are the same'
+cmp inputcopy input
+cp key.txt keycopy
+age -e -i keycopy -o test.age input
+! age -d -i keycopy -o keycopy test.age
+stderr 'input and output file are the same'
+cmp key.txt keycopy
+
 [!linux] [!darwin] skip # no pty support
 [darwin] [go1.20] skip # https://go.dev/issue/61779
+
+ttyin terminal
+! age -p -o inputcopy inputcopy
+stderr 'input and output file are the same'
+cmp inputcopy input
 
 # https://github.com/FiloSottile/age/issues/159
 ttyin terminal
