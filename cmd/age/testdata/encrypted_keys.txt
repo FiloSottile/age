@@ -2,7 +2,6 @@
 # age file password prompt during encryption
 
 [!linux] [!darwin] skip # no pty support
-[darwin] [go1.20] skip # https://go.dev/issue/61779
 
 # use an encrypted OpenSSH private key without .pub file
 age -R key_ed25519.pub -o ed25519.age input

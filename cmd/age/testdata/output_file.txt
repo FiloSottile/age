@@ -26,7 +26,6 @@ age -d -i key.txt -o new empty.age
 cmp new empty
 
 [!linux] [!darwin] skip # no pty support
-[darwin] [go1.20] skip # https://go.dev/issue/61779
 
 # https://github.com/FiloSottile/age/issues/159
 ttyin terminal
