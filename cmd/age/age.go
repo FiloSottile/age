@@ -465,6 +465,7 @@ func decrypt(identities []age.Identity, in io.Reader, out io.Writer) {
 	if err != nil {
 		errorf("%v", err)
 	}
+	out.Write(nil) // trigger the lazyOpener even if r is empty
 	if _, err := io.Copy(out, r); err != nil {
 		errorf("%v", err)
 	}

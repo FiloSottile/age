@@ -1,0 +1,55 @@
+# https://github.com/FiloSottile/age/issues/57
+age -r age1xmwwc06ly3ee5rytxm9mflaz2u56jjj36s0mypdrwsvlul66mv4q47ryef -o test.age input
+! age -o test.out -d -i wrong.txt test.age
+! exists test.out
+! age -o test.out -d test.age
+! exists test.out
+! age -o test.out -d -i notexist test.age
+! exists test.out
+! age -o test.out -d -i wrong.txt notexist
+! exists test.out
+! age -o test.out -r BAD
+! exists test.out
+! age -o test.out -r age1xmwwc06ly3ee5rytxm9mflaz2u56jjj36s0mypdrwsvlul66mv4q47ryef notexist
+! exists test.out
+! age -o test.out -p notexist
+! exists test.out
+
+# https://github.com/FiloSottile/age/issues/555
+age -r age1xmwwc06ly3ee5rytxm9mflaz2u56jjj36s0mypdrwsvlul66mv4q47ryef -o empty.age empty
+exists empty.age
+age -d -i key.txt empty.age
+! stdout .
+! stderr .
+age -d -i key.txt -o new empty.age
+! stderr .
+cmp new empty
+
+[!linux] [!darwin] skip # no pty support
+[darwin] [go1.20] skip # https://go.dev/issue/61779
+
+# https://github.com/FiloSottile/age/issues/159
+ttyin terminal
+age -p -a -o test.age input
+ttyin terminalwrong
+! age -o test.out -d test.age
+ttyout 'Enter passphrase'
+stderr 'incorrect passphrase'
+! exists test.out
+
+-- terminal --
+password
+password
+-- terminalwrong --
+wrong
+-- input --
+age
+-- empty --
+-- key.txt --
+# created: 2021-02-02T13:09:43+01:00
+# public key: age1xmwwc06ly3ee5rytxm9mflaz2u56jjj36s0mypdrwsvlul66mv4q47ryef
+AGE-SECRET-KEY-1EGTZVFFV20835NWYV6270LXYVK2VKNX2MMDKWYKLMGR48UAWX40Q2P2LM0
+-- wrong.txt --
+# created: 2024-06-16T12:14:00+02:00
+# public key: age10k7vsqmeg3sp8elfyq5ts55feg4huarpcaf9dmljn9umydg3gymsvx4dp9
+AGE-SECRET-KEY-1NPX08S4LELW9K68FKU0U05XXEKG6X7GT004TPNYLF86H3M00D3FQ3VQQNN
