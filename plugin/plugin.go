@@ -147,24 +147,44 @@ ReadLoop:
 		identities = append(identities, r)
 	}
 
+	// Technically labels should be per-file key, but the client-side protocol
+	// extension shipped like this, and it doesn't feel worth making a v2.
+	var labels []string
+
 	stanzas := make([][]*age.Stanza, len(fileKeys))
 	for i, fk := range fileKeys {
 		for j, r := range recipients {
-			ss, err := r.Wrap(fk)
+			ss, ll, err := wrapWithLabels(r, fk)
 			if err != nil {
 				recipientError(sr, j, err)
+			}
+			if i == 0 && j == 0 {
+				labels = ll
+			} else if !slicesEqual(labels, ll) {
+				recipientError(sr, j, fmt.Errorf("labels %q do not match previous recipients %q", ll, labels))
 			}
 			stanzas[i] = append(stanzas[i], ss...)
 		}
 		for j, r := range identities {
-			ss, err := r.Wrap(fk)
+			ss, ll, err := wrapWithLabels(r, fk)
 			if err != nil {
 				identityError(sr, j, err)
+			}
+			if i == 0 && j == 0 && len(recipients) == 0 {
+				labels = ll
+			} else if !slicesEqual(labels, ll) {
+				identityError(sr, j, fmt.Errorf("labels %q do not match previous recipients %q", ll, labels))
 			}
 			stanzas[i] = append(stanzas[i], ss...)
 		}
 	}
-	_ = supportsLabels // TODO
+
+	if supportsLabels {
+		if err := writeStanza(os.Stdout, "labels", labels...); err != nil {
+			fatalf("failed to write labels stanza: %v", err)
+		}
+		expectOk(sr)
+	}
 
 	for i, ss := range stanzas {
 		for _, s := range ss {
@@ -180,6 +200,14 @@ ReadLoop:
 	if err := writeStanza(os.Stdout, "done"); err != nil {
 		fatalf("failed to write done stanza: %v", err)
 	}
+}
+
+func wrapWithLabels(r age.Recipient, fileKey []byte) ([]*age.Stanza, []string, error) {
+	if r, ok := r.(age.RecipientWithLabels); ok {
+		return r.WrapWithLabels(fileKey)
+	}
+	s, err := r.Wrap(fileKey)
+	return s, nil, err
 }
 
 func (p *Plugin) IdentityV1() {
@@ -243,4 +271,16 @@ func expectOk(sr *format.StanzaReader) {
 func fatalf(format string, args ...interface{}) {
 	fmt.Fprintf(os.Stderr, format, args...)
 	os.Exit(1)
+}
+
+func slicesEqual(s1, s2 []string) bool {
+	if len(s1) != len(s2) {
+		return false
+	}
+	for i := range s1 {
+		if s1[i] != s2[i] {
+			return false
+		}
+	}
+	return true
 }
