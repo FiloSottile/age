@@ -251,6 +251,14 @@ ReadLoop:
 		}
 	}
 
+	if sent, err := writeGrease(os.Stdout); err != nil {
+		return fatalf("failed to write grease: %v", err)
+	} else if sent {
+		if err := expectUnsupported(sr); err != nil {
+			return fatalf("%v", err)
+		}
+	}
+
 	if supportsLabels {
 		if err := writeStanza(os.Stdout, "labels", labels...); err != nil {
 			return fatalf("failed to write labels stanza: %v", err)
@@ -268,6 +276,13 @@ ReadLoop:
 				return fatalf("failed to write recipient-stanza: %v", err)
 			}
 			if err := expectOk(sr); err != nil {
+				return fatalf("%v", err)
+			}
+		}
+		if sent, err := writeGrease(os.Stdout); err != nil {
+			return fatalf("failed to write grease: %v", err)
+		} else if sent {
+			if err := expectUnsupported(sr); err != nil {
 				return fatalf("%v", err)
 			}
 		}
@@ -374,6 +389,14 @@ ReadLoop:
 	}
 
 	for i, ss := range files {
+		if sent, err := writeGrease(os.Stdout); err != nil {
+			return fatalf("failed to write grease: %v", err)
+		} else if sent {
+			if err := expectUnsupported(sr); err != nil {
+				return fatalf("%v", err)
+			}
+		}
+
 		// TODO: there should be a mechanism to let the plugin decide the order
 		// in which identities are tried.
 		for _, id := range identities {
@@ -449,6 +472,17 @@ func expectOk(sr *format.StanzaReader) error {
 		return fmt.Errorf("expected OK stanza, got %q", ok.Type)
 	}
 	return expectStanzaWithNoBody(ok, 0)
+}
+
+func expectUnsupported(sr *format.StanzaReader) error {
+	unsupported, err := sr.ReadStanza()
+	if err != nil {
+		return fmt.Errorf("failed to read unsupported stanza: %v", err)
+	}
+	if unsupported.Type != "unsupported" {
+		return fmt.Errorf("expected unsupported stanza, got %q", unsupported.Type)
+	}
+	return expectStanzaWithNoBody(unsupported, 0)
 }
 
 func writeError(sr *format.StanzaReader, args []string, err error) error {
