@@ -19,19 +19,18 @@ import (
 
 func TestMain(m *testing.M) {
 	switch filepath.Base(os.Args[0]) {
-	// TODO: deduplicate from cmd/age TestMain.
 	case "age-plugin-test":
 		p, _ := New("test")
 		p.HandleRecipient(func(data []byte) (age.Recipient, error) {
 			return testRecipient{}, nil
 		})
-		p.Main()
+		os.Exit(p.Main())
 	case "age-plugin-testpqc":
 		p, _ := New("testpqc")
 		p.HandleRecipient(func(data []byte) (age.Recipient, error) {
 			return testPQCRecipient{}, nil
 		})
-		p.Main()
+		os.Exit(p.Main())
 	default:
 		os.Exit(m.Run())
 	}
