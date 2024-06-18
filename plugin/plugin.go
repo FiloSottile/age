@@ -12,6 +12,18 @@ import (
 	"filippo.io/age/internal/format"
 )
 
+// TODO: implement interaction methods.
+//
+// // Can only be used during a Wrap or Unwrap invoked by Plugin.
+// func (*Plugin) DisplayMessage(message string) error
+// func (*Plugin) RequestValue(prompt string, secret bool) (string, error)
+// func (*Plugin) Confirm(prompt, yes, no string) (choseYes bool, err error)
+
+// TODO: add examples.
+
+// Plugin is a framework for writing age plugins. It allows exposing regular
+// [age.Recipient] and [age.Identity] implementations as plugins, and handles
+// all the protocol details.
 type Plugin struct {
 	name string
 	fs   *flag.FlagSet
@@ -22,14 +34,24 @@ type Plugin struct {
 	identity      func([]byte) (age.Identity, error)
 }
 
+// New creates a new Plugin with the given name.
+//
+// For example, a plugin named "frood" would be invoked as "age-plugin-frood".
 func New(name string) (*Plugin, error) {
 	return &Plugin{name: name}, nil
 }
 
+// Name returns the name of the plugin.
 func (p *Plugin) Name() string {
 	return p.name
 }
 
+// RegisterFlags registers the plugin's flags with the given [flag.FlagSet], or
+// with the default [flag.CommandLine] if fs is nil. It must be called before
+// [flag.Parse] and [Plugin.Main].
+//
+// This allows the plugin to expose additional flags when invoked manually, for
+// example to implement a keygen mode.
 func (p *Plugin) RegisterFlags(fs *flag.FlagSet) {
 	if fs == nil {
 		fs = flag.CommandLine
@@ -38,6 +60,14 @@ func (p *Plugin) RegisterFlags(fs *flag.FlagSet) {
 	p.sm = fs.String("age-plugin", "", "age-plugin state machine")
 }
 
+// HandleRecipient registers a function to parse recipients of the form
+// age1name1... into [age.Recipient] values. data is the decoded Bech32 payload.
+//
+// If the returned Recipient implements [age.RecipientWithLabels], Plugin will
+// use it and enforce consistency across every returned stanza in an execution.
+// If the client supports labels, they will be passed through the protocol.
+//
+// It must be called before [Plugin.Main], and can be called at most once.
 func (p *Plugin) HandleRecipient(f func(data []byte) (age.Recipient, error)) {
 	if p.recipient != nil {
 		panic("HandleRecipient called twice")
@@ -45,6 +75,15 @@ func (p *Plugin) HandleRecipient(f func(data []byte) (age.Recipient, error)) {
 	p.recipient = f
 }
 
+// HandleIdentityAsRecipient registers a function to parse identities of the
+// form AGE-PLUGIN-NAME-1... into [age.Recipient] values, for when identities
+// are used as recipients. data is the decoded Bech32 payload.
+//
+// If the returned Recipient implements [age.RecipientWithLabels], Plugin will
+// use it and enforce consistency across every returned stanza in an execution.
+// If the client supports labels, they will be passed through the protocol.
+//
+// It must be called before [Plugin.Main], and can be called at most once.
 func (p *Plugin) HandleIdentityAsRecipient(f func(data []byte) (age.Recipient, error)) {
 	if p.idAsRecipient != nil {
 		panic("HandleIdentityAsRecipient called twice")
@@ -52,6 +91,11 @@ func (p *Plugin) HandleIdentityAsRecipient(f func(data []byte) (age.Recipient, e
 	p.idAsRecipient = f
 }
 
+// HandleIdentity registers a function to parse identities of the form
+// AGE-PLUGIN-NAME-1... into [age.Identity] values. data is the decoded Bech32
+// payload.
+//
+// It must be called before [Plugin.Main], and can be called at most once.
 func (p *Plugin) HandleIdentity(f func(data []byte) (age.Identity, error)) {
 	if p.identity != nil {
 		panic("HandleIdentity called twice")
@@ -59,6 +103,11 @@ func (p *Plugin) HandleIdentity(f func(data []byte) (age.Identity, error)) {
 	p.identity = f
 }
 
+// Main runs the plugin protocol over stdin/stdout, and writes errors to stderr.
+// It returns an exit code to pass to os.Exit.
+//
+// It automatically calls [Plugin.RegisterFlags] and [flag.Parse] if they were
+// not called before.
 func (p *Plugin) Main() int {
 	if p.fs == nil {
 		p.RegisterFlags(nil)
@@ -75,6 +124,10 @@ func (p *Plugin) Main() int {
 	return fatalf("unknown state machine %q", *p.sm)
 }
 
+// RecipientV1 implements the recipient-v1 state machine over stdin/stdout, and
+// writes errors to stderr. It returns an exit code to pass to os.Exit.
+//
+// Most plugins should call [Plugin.Main] instead of this method.
 func (p *Plugin) RecipientV1() int {
 	if p.recipient == nil && p.idAsRecipient == nil {
 		return fatalf("recipient-v1 not supported")
@@ -241,6 +294,10 @@ func checkLabels(ll, labels []string) error {
 	return nil
 }
 
+// IdentityV1 implements the identity-v1 state machine over stdin/stdout, and
+// writes errors to stderr. It returns an exit code to pass to os.Exit.
+//
+// Most plugins should call [Plugin.Main] instead of this method.
 func (p *Plugin) IdentityV1() int {
 	if p.identity == nil {
 		return fatalf("identity-v1 not supported")
