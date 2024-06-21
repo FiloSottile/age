@@ -451,6 +451,9 @@ func (p *Plugin) DisplayMessage(message string) error {
 	if s.Type == "fail" {
 		return fmt.Errorf("client failed to display message")
 	}
+	if err := expectStanzaWithNoBody(s, 0); err != nil {
+		return p.fatalInteractf("%v", err)
+	}
 	return nil
 }
 
@@ -473,6 +476,9 @@ func (p *Plugin) RequestValue(prompt string, secret bool) (string, error) {
 	}
 	if s.Type == "fail" {
 		return "", fmt.Errorf("client failed to request value")
+	}
+	if err := expectStanzaWithBody(s, 0); err != nil {
+		return "", p.fatalInteractf("%v", err)
 	}
 	return string(s.Body), nil
 }
@@ -571,9 +577,6 @@ func readOkOrFail(sr *format.StanzaReader) (*format.Stanza, error) {
 		}
 		return s, nil
 	case "ok":
-		if s.Body != nil {
-			return nil, fmt.Errorf("ok stanza has %d bytes of body, want 0", len(s.Body))
-		}
 		return s, nil
 	default:
 		return nil, fmt.Errorf("expected ok or fail stanza, got %q", s.Type)
