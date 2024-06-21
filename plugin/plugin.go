@@ -12,7 +12,6 @@ import (
 	"filippo.io/age/internal/format"
 )
 
-// TODO: add examples.
 // TODO: add plugin test framework.
 
 // Plugin is a framework for writing age plugins. It allows exposing regular
