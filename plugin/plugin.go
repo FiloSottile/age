@@ -2,7 +2,6 @@ package plugin
 
 import (
 	"bufio"
-	"encoding/base64"
 	"errors"
 	"flag"
 	"fmt"
@@ -14,6 +13,7 @@ import (
 )
 
 // TODO: add examples.
+// TODO: add plugin test framework.
 
 // Plugin is a framework for writing age plugins. It allows exposing regular
 // [age.Recipient] and [age.Identity] implementations as plugins, and handles
@@ -485,9 +485,9 @@ func (p *Plugin) RequestValue(prompt string, secret bool) (string, error) {
 //
 // It must only be called by a Wrap or Unwrap method invoked by [Plugin.Main].
 func (p *Plugin) Confirm(prompt, yes, no string) (choseYes bool, err error) {
-	args := []string{base64.StdEncoding.EncodeToString([]byte(yes))}
+	args := []string{format.EncodeToString([]byte(yes))}
 	if no != "" {
-		args = append(args, base64.StdEncoding.EncodeToString([]byte(no)))
+		args = append(args, format.EncodeToString([]byte(no)))
 	}
 	s := &format.Stanza{Type: "confirm", Args: args, Body: []byte(prompt)}
 	if err := s.Marshal(os.Stdout); err != nil {
