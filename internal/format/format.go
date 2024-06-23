@@ -16,6 +16,7 @@ import (
 )
 
 type Header struct {
+	Version    string
 	Recipients []*Stanza
 	MAC        []byte
 }
@@ -105,7 +106,8 @@ func (w *WrappedBase64Encoder) LastLineIsEmpty() bool {
 	return w.written%ColumnsPerLine == 0
 }
 
-const intro = "age-encryption.org/v1\n"
+const version = "age-encryption.org/v1"
+const intro = version + "\n"
 
 var stanzaPrefix = []byte("->")
 var footerPrefix = []byte("---")
@@ -235,7 +237,7 @@ func errorf(format string, a ...interface{}) error {
 // Parse returns the header and a Reader that begins at the start of the
 // payload.
 func Parse(input io.Reader) (*Header, io.Reader, error) {
-	h := &Header{}
+	h := &Header{Version: version}
 	rr := bufio.NewReader(input)
 
 	line, err := rr.ReadString('\n')
