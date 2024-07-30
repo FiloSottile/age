@@ -139,6 +139,12 @@ $ age --decrypt -i key.txt data.tar.gz.age > data.tar.gz
             <code>pkgx install age</code>
         </td>
     </tr>
+    <tr>
+    	<td>Flox</td>
+    	<td>
+    	    <code>flox install age</code>
+    	</td>
+    </tr>
 </table>
 
 On Windows, Linux, macOS, and FreeBSD you can use the pre-built binaries.
