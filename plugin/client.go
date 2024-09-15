@@ -9,7 +9,6 @@ package plugin
 
 import (
 	"bufio"
-	"bytes"
 	"fmt"
 	"io"
 	"math/rand"
@@ -382,7 +381,6 @@ type clientConnection struct {
 	cmd       *exec.Cmd
 	io.Reader // stdout
 	io.Writer // stdin
-	stderr    bytes.Buffer
 	close     func()
 }
 
