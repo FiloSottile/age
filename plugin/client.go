@@ -79,7 +79,7 @@ func (r *Recipient) WrapWithLabels(fileKey []byte) (stanzas []*age.Stanza, label
 	if err := writeStanza(conn, addType, r.encoding); err != nil {
 		return nil, nil, err
 	}
-	if err := writeStanza(conn, fmt.Sprintf("grease-%x", rand.Int())); err != nil {
+	if _, err := writeGrease(conn); err != nil {
 		return nil, nil, err
 	}
 	if err := writeStanzaWithBody(conn, "wrap-file-key", fileKey); err != nil {
@@ -220,7 +220,7 @@ func (i *Identity) Unwrap(stanzas []*age.Stanza) (fileKey []byte, err error) {
 	if err := writeStanza(conn, "add-identity", i.encoding); err != nil {
 		return nil, err
 	}
-	if err := writeStanza(conn, fmt.Sprintf("grease-%x", rand.Int())); err != nil {
+	if _, err := writeGrease(conn); err != nil {
 		return nil, err
 	}
 	for _, rs := range stanzas {
@@ -448,4 +448,19 @@ func writeStanza(conn io.Writer, t string, args ...string) error {
 func writeStanzaWithBody(conn io.Writer, t string, body []byte) error {
 	s := &format.Stanza{Type: t, Body: body}
 	return s.Marshal(conn)
+}
+
+func writeGrease(conn io.Writer) (sent bool, err error) {
+	if rand.Intn(3) == 0 {
+		return false, nil
+	}
+	s := &format.Stanza{Type: fmt.Sprintf("grease-%x", rand.Int())}
+	for i := 0; i < rand.Intn(3); i++ {
+		s.Args = append(s.Args, fmt.Sprintf("%d", rand.Intn(100)))
+	}
+	if rand.Intn(2) == 0 {
+		s.Body = make([]byte, rand.Intn(100))
+		rand.Read(s.Body)
+	}
+	return true, s.Marshal(conn)
 }
