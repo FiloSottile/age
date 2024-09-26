@@ -5,6 +5,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"io"
 	"os"
 	"strconv"
 
@@ -25,6 +26,9 @@ type Plugin struct {
 	recipient     func([]byte) (age.Recipient, error)
 	idAsRecipient func([]byte) (age.Recipient, error)
 	identity      func([]byte) (age.Identity, error)
+
+	stdin          io.Reader
+	stdout, stderr io.Writer
 
 	sr *format.StanzaReader
 	// broken is set if the protocol broke down during an interaction function
@@ -107,6 +111,15 @@ func (p *Plugin) HandleIdentity(f func(data []byte) (age.Identity, error)) {
 // It automatically calls [Plugin.RegisterFlags] and [flag.Parse] if they were
 // not called before.
 func (p *Plugin) Main() int {
+	return p.MainWithIO(os.Stdin, os.Stdout, os.Stderr)
+}
+
+// MainWithIO works like [Plugin.Main] but runs the plugin protocol over the
+// given io.Reader and io.Writers.
+func (p *Plugin) MainWithIO(stdin io.Reader, stdout, stderr io.Writer) int {
+	p.stdin = stdin
+	p.stdout = stdout
+	p.stderr = stderr
 	if p.fs == nil {
 		p.RegisterFlags(nil)
 	}
@@ -119,7 +132,8 @@ func (p *Plugin) Main() int {
 	if *p.sm == "identity-v1" {
 		return p.IdentityV1()
 	}
-	return fatalf("unknown state machine %q", *p.sm)
+	fmt.Fprintf(p.stderr, "unknown state machine %q", *p.sm)
+	return 4
 }
 
 // RecipientV1 implements the recipient-v1 state machine over stdin/stdout, and
@@ -128,45 +142,45 @@ func (p *Plugin) Main() int {
 // Most plugins should call [Plugin.Main] instead of this method.
 func (p *Plugin) RecipientV1() int {
 	if p.recipient == nil && p.idAsRecipient == nil {
-		return fatalf("recipient-v1 not supported")
+		return p.fatalf("recipient-v1 not supported")
 	}
 
 	var recipientStrings, identityStrings []string
 	var fileKeys [][]byte
 	var supportsLabels bool
 
-	p.sr = format.NewStanzaReader(bufio.NewReader(os.Stdin))
+	p.sr = format.NewStanzaReader(bufio.NewReader(p.stdin))
 ReadLoop:
 	for {
 		s, err := p.sr.ReadStanza()
 		if err != nil {
-			return fatalf("failed to read stanza: %v", err)
+			return p.fatalf("failed to read stanza: %v", err)
 		}
 
 		switch s.Type {
 		case "add-recipient":
 			if err := expectStanzaWithNoBody(s, 1); err != nil {
-				return fatalf("%v", err)
+				return p.fatalf("%v", err)
 			}
 			recipientStrings = append(recipientStrings, s.Args[0])
 		case "add-identity":
 			if err := expectStanzaWithNoBody(s, 1); err != nil {
-				return fatalf("%v", err)
+				return p.fatalf("%v", err)
 			}
 			identityStrings = append(identityStrings, s.Args[0])
 		case "extension-labels":
 			if err := expectStanzaWithNoBody(s, 0); err != nil {
-				return fatalf("%v", err)
+				return p.fatalf("%v", err)
 			}
 			supportsLabels = true
 		case "wrap-file-key":
 			if err := expectStanzaWithBody(s, 0); err != nil {
-				return fatalf("%v", err)
+				return p.fatalf("%v", err)
 			}
 			fileKeys = append(fileKeys, s.Body)
 		case "done":
 			if err := expectStanzaWithNoBody(s, 0); err != nil {
-				return fatalf("%v", err)
+				return p.fatalf("%v", err)
 			}
 			break ReadLoop
 		default:
@@ -175,44 +189,44 @@ ReadLoop:
 	}
 
 	if len(recipientStrings)+len(identityStrings) == 0 {
-		return fatalf("no recipients or identities provided")
+		return p.fatalf("no recipients or identities provided")
 	}
 	if len(fileKeys) == 0 {
-		return fatalf("no file keys provided")
+		return p.fatalf("no file keys provided")
 	}
 
 	var recipients, identities []age.Recipient
 	for i, s := range recipientStrings {
 		name, data, err := ParseRecipient(s)
 		if err != nil {
-			return recipientError(p.sr, i, err)
+			return p.recipientError(i, err)
 		}
 		if name != p.name {
-			return recipientError(p.sr, i, fmt.Errorf("unsupported plugin name: %q", name))
+			return p.recipientError(i, fmt.Errorf("unsupported plugin name: %q", name))
 		}
 		if p.recipient == nil {
-			return recipientError(p.sr, i, fmt.Errorf("recipient encodings not supported"))
+			return p.recipientError(i, fmt.Errorf("recipient encodings not supported"))
 		}
 		r, err := p.recipient(data)
 		if err != nil {
-			return recipientError(p.sr, i, err)
+			return p.recipientError(i, err)
 		}
 		recipients = append(recipients, r)
 	}
 	for i, s := range identityStrings {
 		name, data, err := ParseIdentity(s)
 		if err != nil {
-			return identityError(p.sr, i, err)
+			return p.identityError(i, err)
 		}
 		if name != p.name {
-			return identityError(p.sr, i, fmt.Errorf("unsupported plugin name: %q", name))
+			return p.identityError(i, fmt.Errorf("unsupported plugin name: %q", name))
 		}
 		if p.idAsRecipient == nil {
-			return identityError(p.sr, i, fmt.Errorf("identity encodings not supported"))
+			return p.identityError(i, fmt.Errorf("identity encodings not supported"))
 		}
 		r, err := p.idAsRecipient(data)
 		if err != nil {
-			return identityError(p.sr, i, err)
+			return p.identityError(i, err)
 		}
 		identities = append(identities, r)
 	}
@@ -228,12 +242,12 @@ ReadLoop:
 			if p.broken {
 				return 2
 			} else if err != nil {
-				return recipientError(p.sr, j, err)
+				return p.recipientError(j, err)
 			}
 			if i == 0 && j == 0 {
 				labels = ll
 			} else if err := checkLabels(ll, labels); err != nil {
-				return recipientError(p.sr, j, err)
+				return p.recipientError(j, err)
 			}
 			stanzas[i] = append(stanzas[i], ss...)
 		}
@@ -242,31 +256,31 @@ ReadLoop:
 			if p.broken {
 				return 2
 			} else if err != nil {
-				return identityError(p.sr, j, err)
+				return p.identityError(j, err)
 			}
 			if i == 0 && j == 0 && len(recipients) == 0 {
 				labels = ll
 			} else if err := checkLabels(ll, labels); err != nil {
-				return identityError(p.sr, j, err)
+				return p.identityError(j, err)
 			}
 			stanzas[i] = append(stanzas[i], ss...)
 		}
 	}
 
-	if sent, err := writeGrease(os.Stdout); err != nil {
-		return fatalf("failed to write grease: %v", err)
+	if sent, err := writeGrease(p.stdout); err != nil {
+		return p.fatalf("failed to write grease: %v", err)
 	} else if sent {
 		if err := expectUnsupported(p.sr); err != nil {
-			return fatalf("%v", err)
+			return p.fatalf("%v", err)
 		}
 	}
 
 	if supportsLabels {
-		if err := writeStanza(os.Stdout, "labels", labels...); err != nil {
-			return fatalf("failed to write labels stanza: %v", err)
+		if err := writeStanza(p.stdout, "labels", labels...); err != nil {
+			return p.fatalf("failed to write labels stanza: %v", err)
 		}
 		if err := expectOk(p.sr); err != nil {
-			return fatalf("%v", err)
+			return p.fatalf("%v", err)
 		}
 	}
 
@@ -274,24 +288,24 @@ ReadLoop:
 		for _, s := range ss {
 			if err := (&format.Stanza{Type: "recipient-stanza",
 				Args: append([]string{fmt.Sprint(i), s.Type}, s.Args...),
-				Body: s.Body}).Marshal(os.Stdout); err != nil {
-				return fatalf("failed to write recipient-stanza: %v", err)
+				Body: s.Body}).Marshal(p.stdout); err != nil {
+				return p.fatalf("failed to write recipient-stanza: %v", err)
 			}
 			if err := expectOk(p.sr); err != nil {
-				return fatalf("%v", err)
+				return p.fatalf("%v", err)
 			}
 		}
-		if sent, err := writeGrease(os.Stdout); err != nil {
-			return fatalf("failed to write grease: %v", err)
+		if sent, err := writeGrease(p.stdout); err != nil {
+			return p.fatalf("failed to write grease: %v", err)
 		} else if sent {
 			if err := expectUnsupported(p.sr); err != nil {
-				return fatalf("%v", err)
+				return p.fatalf("%v", err)
 			}
 		}
 	}
 
-	if err := writeStanza(os.Stdout, "done"); err != nil {
-		return fatalf("failed to write done stanza: %v", err)
+	if err := writeStanza(p.stdout, "done"); err != nil {
+		return p.fatalf("failed to write done stanza: %v", err)
 	}
 	return 0
 }
@@ -317,33 +331,33 @@ func checkLabels(ll, labels []string) error {
 // Most plugins should call [Plugin.Main] instead of this method.
 func (p *Plugin) IdentityV1() int {
 	if p.identity == nil {
-		return fatalf("identity-v1 not supported")
+		return p.fatalf("identity-v1 not supported")
 	}
 
 	var files [][]*age.Stanza
 	var identityStrings []string
 
-	p.sr = format.NewStanzaReader(bufio.NewReader(os.Stdin))
+	p.sr = format.NewStanzaReader(bufio.NewReader(p.stdin))
 ReadLoop:
 	for {
 		s, err := p.sr.ReadStanza()
 		if err != nil {
-			return fatalf("failed to read stanza: %v", err)
+			return p.fatalf("failed to read stanza: %v", err)
 		}
 
 		switch s.Type {
 		case "add-identity":
 			if err := expectStanzaWithNoBody(s, 1); err != nil {
-				return fatalf("%v", err)
+				return p.fatalf("%v", err)
 			}
 			identityStrings = append(identityStrings, s.Args[0])
 		case "recipient-stanza":
 			if len(s.Args) < 2 {
-				return fatalf("recipient-stanza stanza has %d arguments, want >=2", len(s.Args))
+				return p.fatalf("recipient-stanza stanza has %d arguments, want >=2", len(s.Args))
 			}
 			i, err := strconv.Atoi(s.Args[0])
 			if err != nil {
-				return fatalf("failed to parse recipient-stanza stanza argument: %v", err)
+				return p.fatalf("failed to parse recipient-stanza stanza argument: %v", err)
 			}
 			ss := &age.Stanza{Type: s.Args[1], Args: s.Args[2:], Body: s.Body}
 			switch i {
@@ -352,11 +366,11 @@ ReadLoop:
 			case len(files) - 1:
 				files[len(files)-1] = append(files[len(files)-1], ss)
 			default:
-				return fatalf("unexpected file index %d, previous was %d", i, len(files)-1)
+				return p.fatalf("unexpected file index %d, previous was %d", i, len(files)-1)
 			}
 		case "done":
 			if err := expectStanzaWithNoBody(s, 0); err != nil {
-				return fatalf("%v", err)
+				return p.fatalf("%v", err)
 			}
 			break ReadLoop
 		default:
@@ -365,37 +379,37 @@ ReadLoop:
 	}
 
 	if len(identityStrings) == 0 {
-		return fatalf("no identities provided")
+		return p.fatalf("no identities provided")
 	}
 	if len(files) == 0 {
-		return fatalf("no stanzas provided")
+		return p.fatalf("no stanzas provided")
 	}
 
 	var identities []age.Identity
 	for i, s := range identityStrings {
 		name, data, err := ParseIdentity(s)
 		if err != nil {
-			return identityError(p.sr, i, err)
+			return p.identityError(i, err)
 		}
 		if name != p.name {
-			return identityError(p.sr, i, fmt.Errorf("unsupported plugin name: %q", name))
+			return p.identityError(i, fmt.Errorf("unsupported plugin name: %q", name))
 		}
 		if p.identity == nil {
-			return identityError(p.sr, i, fmt.Errorf("identity encodings not supported"))
+			return p.identityError(i, fmt.Errorf("identity encodings not supported"))
 		}
 		r, err := p.identity(data)
 		if err != nil {
-			return identityError(p.sr, i, err)
+			return p.identityError(i, err)
 		}
 		identities = append(identities, r)
 	}
 
 	for i, ss := range files {
-		if sent, err := writeGrease(os.Stdout); err != nil {
-			return fatalf("failed to write grease: %v", err)
+		if sent, err := writeGrease(p.stdout); err != nil {
+			return p.fatalf("failed to write grease: %v", err)
 		} else if sent {
 			if err := expectUnsupported(p.sr); err != nil {
-				return fatalf("%v", err)
+				return p.fatalf("%v", err)
 			}
 		}
 
@@ -408,8 +422,8 @@ ReadLoop:
 			} else if errors.Is(err, age.ErrIncorrectIdentity) {
 				continue
 			} else if err != nil {
-				if err := writeError(p.sr, []string{"stanza", fmt.Sprint(i), "0"}, err); err != nil {
-					return fatalf("%v", err)
+				if err := p.writeError([]string{"stanza", fmt.Sprint(i), "0"}, err); err != nil {
+					return p.fatalf("%v", err)
 				}
 				// Note that we don't exit here, as the protocol allows
 				// continuing with other files.
@@ -417,18 +431,18 @@ ReadLoop:
 			}
 
 			s := &format.Stanza{Type: "file-key", Args: []string{fmt.Sprint(i)}, Body: fk}
-			if err := s.Marshal(os.Stdout); err != nil {
-				return fatalf("failed to write file-key: %v", err)
+			if err := s.Marshal(p.stdout); err != nil {
+				return p.fatalf("failed to write file-key: %v", err)
 			}
 			if err := expectOk(p.sr); err != nil {
-				return fatalf("%v", err)
+				return p.fatalf("%v", err)
 			}
 			break
 		}
 	}
 
-	if err := writeStanza(os.Stdout, "done"); err != nil {
-		return fatalf("failed to write done stanza: %v", err)
+	if err := writeStanza(p.stdout, "done"); err != nil {
+		return p.fatalf("failed to write done stanza: %v", err)
 	}
 	return 0
 }
@@ -440,7 +454,7 @@ ReadLoop:
 //
 // It must only be called by a Wrap or Unwrap method invoked by [Plugin.Main].
 func (p *Plugin) DisplayMessage(message string) error {
-	if err := writeStanzaWithBody(os.Stdout, "msg", []byte(message)); err != nil {
+	if err := writeStanzaWithBody(p.stdout, "msg", []byte(message)); err != nil {
 		return p.fatalInteractf("failed to write msg stanza: %v", err)
 	}
 	s, err := readOkOrFail(p.sr)
@@ -466,7 +480,7 @@ func (p *Plugin) RequestValue(prompt string, secret bool) (string, error) {
 	if secret {
 		t = "request-secret"
 	}
-	if err := writeStanzaWithBody(os.Stdout, t, []byte(prompt)); err != nil {
+	if err := writeStanzaWithBody(p.stdout, t, []byte(prompt)); err != nil {
 		return "", p.fatalInteractf("failed to write stanza: %v", err)
 	}
 	s, err := readOkOrFail(p.sr)
@@ -495,7 +509,7 @@ func (p *Plugin) Confirm(prompt, yes, no string) (choseYes bool, err error) {
 		args = append(args, format.EncodeToString([]byte(no)))
 	}
 	s := &format.Stanza{Type: "confirm", Args: args, Body: []byte(prompt)}
-	if err := s.Marshal(os.Stdout); err != nil {
+	if err := s.Marshal(p.stdout); err != nil {
 		return false, p.fatalInteractf("failed to write confirm stanza: %v", err)
 	}
 	s, err = readOkOrFail(p.sr)
@@ -515,8 +529,13 @@ func (p *Plugin) Confirm(prompt, yes, no string) (choseYes bool, err error) {
 // Wrap/Unwrap caller can exit with an error.
 func (p *Plugin) fatalInteractf(format string, args ...interface{}) error {
 	p.broken = true
-	fmt.Fprintf(os.Stderr, format, args...)
+	fmt.Fprintf(p.stderr, format, args...)
 	return fmt.Errorf(format, args...)
+}
+
+func (p *Plugin) fatalf(format string, args ...interface{}) int {
+	fmt.Fprintf(p.stderr, format, args...)
+	return 1
 }
 
 func expectStanzaWithNoBody(s *format.Stanza, wantArgs int) error {
@@ -539,16 +558,16 @@ func expectStanzaWithBody(s *format.Stanza, wantArgs int) error {
 	return nil
 }
 
-func recipientError(sr *format.StanzaReader, idx int, err error) int {
-	if err := writeError(sr, []string{"recipient", fmt.Sprint(idx)}, err); err != nil {
-		return fatalf("%v", err)
+func (p *Plugin) recipientError(idx int, err error) int {
+	if err := p.writeError([]string{"recipient", fmt.Sprint(idx)}, err); err != nil {
+		return p.fatalf("%v", err)
 	}
 	return 3
 }
 
-func identityError(sr *format.StanzaReader, idx int, err error) int {
-	if err := writeError(sr, []string{"identity", fmt.Sprint(idx)}, err); err != nil {
-		return fatalf("%v", err)
+func (p *Plugin) identityError(idx int, err error) int {
+	if err := p.writeError([]string{"identity", fmt.Sprint(idx)}, err); err != nil {
+		return p.fatalf("%v", err)
 	}
 	return 3
 }
@@ -593,21 +612,16 @@ func expectUnsupported(sr *format.StanzaReader) error {
 	return expectStanzaWithNoBody(unsupported, 0)
 }
 
-func writeError(sr *format.StanzaReader, args []string, err error) error {
+func (p *Plugin) writeError(args []string, err error) error {
 	s := &format.Stanza{Type: "error", Args: args}
 	s.Body = []byte(err.Error())
-	if err := s.Marshal(os.Stdout); err != nil {
+	if err := s.Marshal(p.stderr); err != nil {
 		return fmt.Errorf("failed to write error stanza: %v", err)
 	}
-	if err := expectOk(sr); err != nil {
+	if err := expectOk(p.sr); err != nil {
 		return fmt.Errorf("%v", err)
 	}
 	return nil
-}
-
-func fatalf(format string, args ...interface{}) int {
-	fmt.Fprintf(os.Stderr, format, args...)
-	return 1
 }
 
 func slicesEqual(s1, s2 []string) bool {
