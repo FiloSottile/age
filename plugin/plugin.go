@@ -40,7 +40,8 @@ type Plugin struct {
 //
 // For example, a plugin named "frood" would be invoked as "age-plugin-frood".
 func New(name string) (*Plugin, error) {
-	return &Plugin{name: name}, nil
+	return &Plugin{name: name, stdin: os.Stdin,
+		stdout: os.Stdout, stderr: os.Stderr}, nil
 }
 
 // Name returns the name of the plugin.
@@ -105,21 +106,11 @@ func (p *Plugin) HandleIdentity(f func(data []byte) (age.Identity, error)) {
 	p.identity = f
 }
 
-// Main runs the plugin protocol over stdin/stdout, and writes errors to stderr.
-// It returns an exit code to pass to os.Exit.
+// Main runs the plugin protocol. It returns an exit code to pass to os.Exit.
 //
 // It automatically calls [Plugin.RegisterFlags] and [flag.Parse] if they were
 // not called before.
 func (p *Plugin) Main() int {
-	return p.MainWithIO(os.Stdin, os.Stdout, os.Stderr)
-}
-
-// MainWithIO works like [Plugin.Main] but runs the plugin protocol over the
-// given io.Reader and io.Writers.
-func (p *Plugin) MainWithIO(stdin io.Reader, stdout, stderr io.Writer) int {
-	p.stdin = stdin
-	p.stdout = stdout
-	p.stderr = stderr
 	if p.fs == nil {
 		p.RegisterFlags(nil)
 	}
@@ -136,8 +127,18 @@ func (p *Plugin) MainWithIO(stdin io.Reader, stdout, stderr io.Writer) int {
 	return 4
 }
 
-// RecipientV1 implements the recipient-v1 state machine over stdin/stdout, and
-// writes errors to stderr. It returns an exit code to pass to os.Exit.
+// SetIO sets the plugin's input and output streams, which default to
+// stdin/stdout/stderr.
+//
+// It must be called before [Plugin.Main].
+func (p *Plugin) SetIO(stdin io.Reader, stdout, stderr io.Writer) {
+	p.stdin = stdin
+	p.stdout = stdout
+	p.stderr = stderr
+}
+
+// RecipientV1 implements the recipient-v1 state machine. It returns an exit
+// code to pass to os.Exit.
 //
 // Most plugins should call [Plugin.Main] instead of this method.
 func (p *Plugin) RecipientV1() int {
@@ -325,8 +326,8 @@ func checkLabels(ll, labels []string) error {
 	return nil
 }
 
-// IdentityV1 implements the identity-v1 state machine over stdin/stdout, and
-// writes errors to stderr. It returns an exit code to pass to os.Exit.
+// IdentityV1 implements the identity-v1 state machine. It returns an exit code
+// to pass to os.Exit.
 //
 // Most plugins should call [Plugin.Main] instead of this method.
 func (p *Plugin) IdentityV1() int {
