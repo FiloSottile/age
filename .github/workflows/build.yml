@@ -77,7 +77,7 @@ jobs:
       - name: Download workflow artifacts
         uses: actions/download-artifact@v4
         with:
-          pattern: age-binaries-*
+          pattern: '**'
           merge-multiple: true
       - name: Upload release artifacts
         run: gh release upload "$GITHUB_REF_NAME" age-*
