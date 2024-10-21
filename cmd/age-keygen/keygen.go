@@ -158,5 +158,5 @@ func errorf(format string, v ...interface{}) {
 }
 
 func warning(msg string) {
-	log.Printf("age-keygen: warning: " + msg)
+	log.Print("age-keygen: warning: " + msg)
 }
