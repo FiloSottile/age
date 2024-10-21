@@ -153,10 +153,10 @@ func convert(in io.Reader, out io.Writer) {
 }
 
 func errorf(format string, v ...interface{}) {
-	log.Printf("age-keygen: error: "+format, v...)
+	log.Printf("age-keygen: error: %s", fmt.Sprintf(format, v...))
 	log.Fatalf("age-keygen: report unexpected or unhelpful errors at https://filippo.io/age/report")
 }
 
 func warning(msg string) {
-	log.Printf("age-keygen: warning: " + msg)
+	log.Printf("age-keygen: warning: %s", msg)
 }
