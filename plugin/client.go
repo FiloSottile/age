@@ -15,6 +15,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 
 	exec "golang.org/x/sys/execabs"
@@ -178,6 +179,9 @@ func NewIdentity(s string, ui *ClientUI) (*Identity, error) {
 
 func NewIdentityWithoutData(name string, ui *ClientUI) (*Identity, error) {
 	s := EncodeIdentity(name, nil)
+	if s == "" {
+		return nil, fmt.Errorf("invalid plugin name: %q", name)
+	}
 	return &Identity{
 		name: name, encoding: s, ui: ui,
 	}, nil
@@ -390,6 +394,8 @@ func openClientConnection(name, protocol string) (*clientConnection, error) {
 	path := "age-plugin-" + name
 	if testOnlyPluginPath != "" {
 		path = filepath.Join(testOnlyPluginPath, path)
+	} else if strings.ContainsRune(name, os.PathSeparator) {
+		return nil, fmt.Errorf("invalid plugin name: %q", name)
 	}
 	cmd := exec.Command(path, "--age-plugin="+protocol)
 

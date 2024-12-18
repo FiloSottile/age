@@ -14,6 +14,9 @@ import (
 // EncodeIdentity encodes a plugin identity string for a plugin with the given
 // name. If the name is invalid, it returns an empty string.
 func EncodeIdentity(name string, data []byte) string {
+	if !validPluginName(name) {
+		return ""
+	}
 	s, _ := bech32.Encode("AGE-PLUGIN-"+strings.ToUpper(name)+"-", data)
 	return s
 }
@@ -30,12 +33,18 @@ func ParseIdentity(s string) (name string, data []byte, err error) {
 	}
 	name = strings.TrimSuffix(strings.TrimPrefix(hrp, "AGE-PLUGIN-"), "-")
 	name = strings.ToLower(name)
+	if !validPluginName(name) {
+		return "", nil, fmt.Errorf("invalid plugin name: %q", name)
+	}
 	return name, data, nil
 }
 
 // EncodeRecipient encodes a plugin recipient string for a plugin with the given
 // name. If the name is invalid, it returns an empty string.
 func EncodeRecipient(name string, data []byte) string {
+	if !validPluginName(name) {
+		return ""
+	}
 	s, _ := bech32.Encode("age1"+strings.ToLower(name), data)
 	return s
 }
@@ -51,5 +60,21 @@ func ParseRecipient(s string) (name string, data []byte, err error) {
 		return "", nil, fmt.Errorf("not a plugin recipient: %v", err)
 	}
 	name = strings.TrimPrefix(hrp, "age1")
+	if !validPluginName(name) {
+		return "", nil, fmt.Errorf("invalid plugin name: %q", name)
+	}
 	return name, data, nil
+}
+
+func validPluginName(name string) bool {
+	if name == "" {
+		return false
+	}
+	allowed := "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789+-._"
+	for _, r := range name {
+		if !strings.ContainsRune(allowed, r) {
+			return false
+		}
+	}
+	return true
 }
