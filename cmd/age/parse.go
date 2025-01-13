@@ -15,6 +15,7 @@ import (
 	"filippo.io/age"
 	"filippo.io/age/agessh"
 	"filippo.io/age/armor"
+	"filippo.io/age/internal/logger"
 	"filippo.io/age/plugin"
 	"golang.org/x/crypto/cryptobyte"
 	"golang.org/x/crypto/ssh"
@@ -79,7 +80,7 @@ func parseRecipientsFile(name string) ([]age.Recipient, error) {
 		if err != nil {
 			if t, ok := sshKeyType(line); ok {
 				// Skip unsupported but valid SSH public keys with a warning.
-				warningf("recipients file %q: ignoring unsupported SSH key of type %q at line %d", name, t, n)
+				logger.Global.Warningf("recipients file %q: ignoring unsupported SSH key of type %q at line %d", name, t, n)
 				continue
 			}
 			// Hide the error since it might unintentionally leak the contents
@@ -169,7 +170,7 @@ func parseIdentitiesFile(name string) ([]age.Identity, error) {
 				return string(pass), nil
 			},
 			NoMatchWarning: func() {
-				warningf("encrypted identity file %q didn't match file's recipients", name)
+				logger.Global.Warningf("encrypted identity file %q didn't match file's recipients", name)
 			},
 		}}, nil
 
