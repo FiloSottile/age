@@ -16,6 +16,7 @@ import (
 	"filippo.io/age/agessh"
 	"filippo.io/age/armor"
 	"filippo.io/age/internal/logger"
+	"filippo.io/age/internal/term"
 	"filippo.io/age/plugin"
 	"golang.org/x/crypto/cryptobyte"
 	"golang.org/x/crypto/ssh"
@@ -163,7 +164,7 @@ func parseIdentitiesFile(name string) ([]age.Identity, error) {
 		return []age.Identity{&EncryptedIdentity{
 			Contents: contents,
 			Passphrase: func() (string, error) {
-				pass, err := readSecret(fmt.Sprintf("Enter passphrase for identity file %q:", name))
+				pass, err := term.ReadSecret(fmt.Sprintf("Enter passphrase for identity file %q:", name))
 				if err != nil {
 					return "", fmt.Errorf("could not read passphrase: %v", err)
 				}
@@ -247,7 +248,7 @@ func parseSSHIdentity(name string, pemBytes []byte) ([]age.Identity, error) {
 			}
 		}
 		passphrasePrompt := func() ([]byte, error) {
-			pass, err := readSecret(fmt.Sprintf("Enter passphrase for %q:", name))
+			pass, err := term.ReadSecret(fmt.Sprintf("Enter passphrase for %q:", name))
 			if err != nil {
 				return nil, fmt.Errorf("could not read passphrase for %q: %v", name, err)
 			}
