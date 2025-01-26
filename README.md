@@ -86,6 +86,12 @@ $ age --decrypt -i key.txt data.tar.gz.age > data.tar.gz
         </td>
     </tr>
     <tr>
+        <td>Guix System</td>
+        <td>
+            <code>guix package -i age</code>
+        </td>
+    </tr>
+    <tr>
         <td>NixOS / Nix</td>
         <td>
             <code>nix-env -i age</code>
