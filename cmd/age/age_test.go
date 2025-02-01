@@ -6,6 +6,7 @@ package main
 
 import (
 	"bufio"
+	"filippo.io/age/tui"
 	"os"
 	"testing"
 
@@ -16,9 +17,9 @@ import (
 func TestMain(m *testing.M) {
 	os.Exit(testscript.RunMain(m, map[string]func() int{
 		"age": func() (exitCode int) {
-			testOnlyPanicInsteadOfExit = true
+			tui.TestOnlyPanicInsteadOfExit = true
 			defer func() {
-				if testOnlyDidExit {
+				if tui.TestOnlyDidExit {
 					exitCode = recover().(int)
 				}
 			}()
