@@ -23,9 +23,9 @@ $ age --decrypt -i key.txt data.tar.gz.age > data.tar.gz
 
 📜 The format specification is at [age-encryption.org/v1](https://age-encryption.org/v1). age was designed by [@Benjojo12](https://twitter.com/Benjojo12) and [@FiloSottile](https://twitter.com/FiloSottile).
 
-📬 Follow the maintenance of this project by subscribing to [Maintainer Dispatches](https://filippo.io/newsletter)!
-
 🦀 An alternative interoperable Rust implementation is available at [github.com/str4d/rage](https://github.com/str4d/rage).
+
+🌍 [Typage](https://github.com/FiloSottile/typage) is a TypeScript implementation. It works in the browser, in Node.js, and in Bun.
 
 🔑 Hardware PIV tokens such as YubiKeys are supported through the [age-plugin-yubikey](https://github.com/str4d/age-plugin-yubikey) plugin.
 
