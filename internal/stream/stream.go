@@ -6,6 +6,7 @@
 package stream
 
 import (
+	"bytes"
 	"crypto/cipher"
 	"errors"
 	"fmt"
@@ -149,7 +150,7 @@ func nonceIsZero(nonce *[chacha20poly1305.NonceSize]byte) bool {
 type Writer struct {
 	a         cipher.AEAD
 	dst       io.Writer
-	unwritten []byte // backed by buf
+	unwritten bytes.Buffer // backed by buf
 	buf       [encChunkSize]byte
 	nonce     [chacha20poly1305.NonceSize]byte
 	err       error
@@ -164,33 +165,31 @@ func NewWriter(key []byte, dst io.Writer) (*Writer, error) {
 		a:   aead,
 		dst: dst,
 	}
-	w.unwritten = w.buf[:0]
+	w.unwritten.Grow(ChunkSize)
 	return w, nil
 }
 
 func (w *Writer) Write(p []byte) (n int, err error) {
-	// TODO: consider refactoring with a bytes.Buffer.
 	if w.err != nil {
 		return 0, w.err
 	}
 	if len(p) == 0 {
 		return 0, nil
 	}
-
 	total := len(p)
-	for len(p) > 0 {
-		freeBuf := w.buf[len(w.unwritten):ChunkSize]
-		n := copy(freeBuf, p)
-		p = p[n:]
-		w.unwritten = w.unwritten[:len(w.unwritten)+n]
+	_, err = w.unwritten.Write(p)
+	if err != nil {
+		w.err = err
+		return 0, err
+	}
 
-		if len(w.unwritten) == ChunkSize && len(p) > 0 {
-			if err := w.flushChunk(notLastChunk); err != nil {
-				w.err = err
-				return 0, err
-			}
+	for w.unwritten.Len() > ChunkSize {
+		if err := w.flushChunk(notLastChunk); err != nil {
+			w.err = err
+			return 0, err
 		}
 	}
+
 	return total, nil
 }
 
@@ -215,16 +214,19 @@ const (
 )
 
 func (w *Writer) flushChunk(last bool) error {
-	if !last && len(w.unwritten) != ChunkSize {
+	if !last && w.unwritten.Len() < ChunkSize {
 		panic("stream: internal error: flush called with partial chunk")
 	}
 
 	if last {
 		setLastChunkFlag(&w.nonce)
 	}
-	buf := w.a.Seal(w.buf[:0], w.nonce[:], w.unwritten, nil)
-	_, err := w.dst.Write(buf)
-	w.unwritten = w.buf[:0]
+
+	chunk := w.unwritten.Next(ChunkSize)
+	sealed := w.a.Seal(w.buf[:0], w.nonce[:], chunk, nil)
+	if _, err := w.dst.Write(sealed); err != nil {
+		return err
+	}
 	incNonce(&w.nonce)
-	return err
+	return nil
 }
