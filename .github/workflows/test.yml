@@ -38,13 +38,13 @@ jobs:
         if: runner.os != 'Windows'
         run: |
           git clone --filter=tree:0 https://go.googlesource.com/go $HOME/gotip
-          $env:GOROOT_BOOTSTRAP = (go env GOROOT)
           cd $HOME/gotip/src && ./make.bash
           echo "$HOME/gotip/bin" >> $GITHUB_PATH
       - name: Install Go tip (Windows)
         if: runner.os == 'Windows'
         run: |
           git clone --filter=tree:0 https://go.googlesource.com/go $HOME/gotip
+          $env:GOROOT_BOOTSTRAP = (go env GOROOT)
           cd $HOME/gotip/src && ./make.bat
           echo "$HOME/gotip/bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
       - name: Checkout repository
