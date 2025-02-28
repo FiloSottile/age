@@ -65,6 +65,7 @@ jobs:
           GOARM: ${{ matrix.GOARM }}
       - name: Generate artifact attestation
         uses: actions/attest-build-provenance@v2
+        if: github.event_name == 'release'
         with:
           subject-path: age-*
       - name: Upload workflow artifacts
