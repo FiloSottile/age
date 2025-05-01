@@ -6,6 +6,7 @@ package age
 
 import (
 	"crypto/rand"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"regexp"
@@ -85,6 +86,29 @@ func (r *ScryptRecipient) Wrap(fileKey []byte) ([]*Stanza, error) {
 	l.Body = wrappedKey
 
 	return []*Stanza{l}, nil
+}
+
+// WrapWithLabels implements [age.RecipientWithLabels], returning a random
+// label. This ensures a ScryptRecipient can't be mixed with other recipients
+// (including other ScryptRecipients).
+//
+// Users reasonably expect files encrypted to a passphrase to be [authenticated]
+// by that passphrase, i.e. for it to be impossible to produce a file that
+// decrypts successfully with a passphrase without knowing it. If a file is
+// encrypted to other recipients, those parties can produce different files that
+// would break that expectation.
+//
+// [authenticated]: https://words.filippo.io/dispatches/age-authentication/
+func (r *ScryptRecipient) WrapWithLabels(fileKey []byte) (stanzas []*Stanza, labels []string, err error) {
+	stanzas, err = r.Wrap(fileKey)
+
+	random := make([]byte, 16)
+	if _, err := rand.Read(random); err != nil {
+		return nil, nil, err
+	}
+	labels = []string{hex.EncodeToString(random)}
+
+	return
 }
 
 // ScryptIdentity is a password-based identity.

@@ -201,7 +201,7 @@ func (r *StanzaReader) ReadStanza() (s *Stanza, err error) {
 		b, err := DecodeString(strings.TrimSuffix(string(line), "\n"))
 		if err != nil {
 			if bytes.HasPrefix(line, footerPrefix) || bytes.HasPrefix(line, stanzaPrefix) {
-				return nil, fmt.Errorf("malformed body line %q: stanza ended without a short line\nNote: this might be a file encrypted with an old beta version of age or rage. Use age v1.0.0-beta6 or rage to decrypt it.", line)
+				return nil, fmt.Errorf("malformed body line %q: stanza ended without a short line\nnote: this might be a file encrypted with an old beta version of age or rage; use age v1.0.0-beta6 or rage to decrypt it", line)
 			}
 			return nil, errorf("malformed body line %q: %v", line, err)
 		}

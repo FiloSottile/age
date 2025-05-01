@@ -1,4 +1,10 @@
-<p align="center"><img alt="The age logo, an wireframe of St. Peters dome in Rome, with the text: age, file encryption" width="600" src="https://user-images.githubusercontent.com/1225294/132245842-fda4da6a-1cea-4738-a3da-2dc860861c98.png"></p>
+<p align="center">
+    <picture>
+        <source media="(prefers-color-scheme: dark)" srcset="https://github.com/FiloSottile/age/blob/main/logo/logo_white.svg">
+        <source media="(prefers-color-scheme: light)" srcset="https://github.com/FiloSottile/age/blob/main/logo/logo.svg">
+        <img alt="The age logo, a wireframe of St. Peters dome in Rome, with the text: age, file encryption" width="600" src="https://github.com/FiloSottile/age/blob/main/logo/logo.svg">
+    </picture>
+</p>
 
 [![Go Reference](https://pkg.go.dev/badge/filippo.io/age.svg)](https://pkg.go.dev/filippo.io/age)
 [![man page](<https://img.shields.io/badge/age(1)-man%20page-lightgrey>)](https://filippo.io/age/age.1)
@@ -17,13 +23,15 @@ $ age --decrypt -i key.txt data.tar.gz.age > data.tar.gz
 
 📜 The format specification is at [age-encryption.org/v1](https://age-encryption.org/v1). age was designed by [@Benjojo12](https://twitter.com/Benjojo12) and [@FiloSottile](https://twitter.com/FiloSottile).
 
-📬 Follow the maintenance of this project by subscribing to [Maintainer Dispatches](https://filippo.io/newsletter)!
-
 🦀 An alternative interoperable Rust implementation is available at [github.com/str4d/rage](https://github.com/str4d/rage).
+
+🌍 [Typage](https://github.com/FiloSottile/typage) is a TypeScript implementation. It works in the browser, in Node.js, and in Bun.
 
 🔑 Hardware PIV tokens such as YubiKeys are supported through the [age-plugin-yubikey](https://github.com/str4d/age-plugin-yubikey) plugin.
 
-💬 The author pronounces it `[aɡe̞]`, like the Italian [“aghe”](https://translate.google.com/?sl=it&text=aghe).
+✨ For more plugins, implementations, tools, and integrations, check out the [awesome age](https://github.com/FiloSottile/awesome-age) list.
+
+💬 The author pronounces it `[aɡe̞]` [with a hard *g*](https://translate.google.com/?sl=it&text=aghe), like GIF, and is always spelled lowercase.
 
 ## Installation
 
@@ -53,7 +61,13 @@ $ age --decrypt -i key.txt data.tar.gz.age > data.tar.gz
         </td>
     </tr>
     <tr>
-        <td>Debian 11+ (Bullseye)</td>
+        <td>Debian 12+ (Bookworm)</td>
+        <td>
+            <code>apt install age</code>
+        </td>
+    </tr>
+    <tr>
+        <td>Debian 11 (Bullseye)</td>
         <td>
             <code>apt install age/bullseye-backports</code>
             (<a href="https://backports.debian.org/Instructions/#index2h2">enable backports</a> for age v1.0.0+)
@@ -116,7 +130,13 @@ $ age --decrypt -i key.txt data.tar.gz.age > data.tar.gz
     <tr>
         <td>Scoop (Windows)</td>
         <td>
-            <code>scoop bucket add extras; scoop install age</code>
+            <code>scoop bucket add extras && scoop install age</code>
+        </td>
+    </tr>
+    <tr>
+        <td>pkgx</td>
+        <td>
+            <code>pkgx install age</code>
         </td>
     </tr>
 </table>
@@ -125,7 +145,7 @@ On Windows, Linux, macOS, and FreeBSD you can use the pre-built binaries.
 
 ```
 https://dl.filippo.io/age/latest?for=linux/amd64
-https://dl.filippo.io/age/v1.0.0-rc.1?for=darwin/arm64
+https://dl.filippo.io/age/v1.1.1?for=darwin/arm64
 ...
 ```
 
@@ -136,6 +156,39 @@ go install filippo.io/age/cmd/...@latest
 ```
 
 Help from new packagers is very welcome.
+
+### Verifying the release signatures
+
+If you download the pre-built binaries, you can check their
+[Sigsum](https://www.sigsum.org) proofs, which are like signatures with extra
+transparency: you can cryptographically verify that every proof is logged in a
+public append-only log, so you can hold the age project accountable for every
+binary release we ever produced. This is similar to what the [Go Checksum
+Database](https://go.dev/blog/module-mirror-launch) provides.
+
+```
+cat << EOF > age-sigsum-key.pub
+ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIM1WpnEswJLPzvXJDiswowy48U+G+G1kmgwUE2eaRHZG
+ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAz2WM5CyPLqiNjk7CLl4roDXwKhQ0QExXLebukZEZFS
+EOF
+cat << EOF > sigsum-trust-policy.txt
+log 154f49976b59ff09a123675f58cb3e346e0455753c3c3b15d465dcb4f6512b0b https://poc.sigsum.org/jellyfish
+witness poc.sigsum.org/nisse 1c25f8a44c635457e2e391d1efbca7d4c2951a0aef06225a881e46b98962ac6c
+witness rgdd.se/poc-witness  28c92a5a3a054d317c86fc2eeb6a7ab2054d6217100d0be67ded5b74323c5806
+group  demo-quorum-rule all poc.sigsum.org/nisse rgdd.se/poc-witness
+quorum demo-quorum-rule
+EOF
+
+curl -JLO "https://dl.filippo.io/age/v1.2.0?for=darwin/arm64"
+curl -JLO "https://dl.filippo.io/age/v1.2.0?for=darwin/arm64&proof"
+
+go install sigsum.org/sigsum-go/cmd/sigsum-verify@v0.8.0
+sigsum-verify -k age-sigsum-key.pub -p sigsum-trust-policy.txt \
+    age-v1.2.0-darwin-arm64.tar.gz.proof < age-v1.2.0-darwin-arm64.tar.gz
+```
+
+You can learn more about what's happening above in the [Sigsum
+docs](https://www.sigsum.org/getting-started/).
 
 ## Usage
 

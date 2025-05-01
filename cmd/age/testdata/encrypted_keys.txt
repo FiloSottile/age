@@ -1,19 +1,20 @@
 # TODO: age-encrypted private keys, multiple identities, -i ordering, -e -i,
 # age file password prompt during encryption
 
-[windows] skip # no pty support
+[!linux] [!darwin] skip # no pty support
+[darwin] [go1.20] skip # https://go.dev/issue/61779
 
 # use an encrypted OpenSSH private key without .pub file
 age -R key_ed25519.pub -o ed25519.age input
 rm key_ed25519.pub
-pty terminal
+ttyin terminal
 age -d -i key_ed25519 ed25519.age
 cmp stdout input
 ! stderr .
 
 # -e -i with an encrypted OpenSSH private key
 age -e -i key_ed25519 -o ed25519.age input
-pty terminal
+ttyin terminal
 age -d -i key_ed25519 ed25519.age
 cmp stdout input
 
@@ -24,7 +25,7 @@ stderr 'no identity matched any of the recipients'
 
 # use an encrypted legacy PEM private key with a .pub file
 age -R key_rsa_legacy.pub -o rsa_legacy.age input
-pty terminal
+ttyin terminal
 age -d -i key_rsa_legacy rsa_legacy.age
 cmp stdout input
 ! stderr .
@@ -34,7 +35,7 @@ stderr 'no identity matched any of the recipients'
 
 # -e -i with an encrypted legacy PEM private key
 age -e -i key_rsa_legacy -o rsa_legacy.age input
-pty terminal
+ttyin terminal
 age -d -i key_rsa_legacy rsa_legacy.age
 cmp stdout input
 
@@ -45,17 +46,17 @@ stderr 'key_rsa_legacy.pub'
 
 # mismatched .pub file causes an error
 cp key_rsa_legacy key_rsa_other
-pty terminal
+ttyin terminal
 ! age -d -i key_rsa_other rsa_other.age
 stderr 'mismatched private and public SSH key'
 
 # buffer armored ciphertext before prompting if stdin is the terminal
-pty terminal
+ttyin terminal
 age -e -i key_ed25519 -a -o test.age input
 exec cat test.age terminal # concatenated ciphertext + password
-pty -stdin stdout
+ttyin -stdin stdout
 age -d -i key_ed25519
-ptyout 'Enter passphrase'
+ttyout 'Enter passphrase'
 ! stderr .
 cmp stdout input
 

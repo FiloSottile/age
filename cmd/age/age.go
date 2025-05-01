@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"regexp"
 	"runtime/debug"
 	"strings"
@@ -18,7 +19,7 @@ import (
 	"filippo.io/age"
 	"filippo.io/age/agessh"
 	"filippo.io/age/armor"
-	"filippo.io/age/internal/plugin"
+	"filippo.io/age/plugin"
 	"golang.org/x/term"
 )
 
@@ -223,9 +224,21 @@ func main() {
 		}
 	}
 
+	var inUseFiles []string
+	for _, i := range identityFlags {
+		if i.Type != "i" {
+			continue
+		}
+		inUseFiles = append(inUseFiles, absPath(i.Value))
+	}
+	for _, f := range recipientsFileFlags {
+		inUseFiles = append(inUseFiles, absPath(f))
+	}
+
 	var in io.Reader = os.Stdin
 	var out io.Writer = os.Stdout
 	if name := flag.Arg(0); name != "" && name != "-" {
+		inUseFiles = append(inUseFiles, absPath(name))
 		f, err := os.Open(name)
 		if err != nil {
 			errorf("failed to open input file %q: %v", name, err)
@@ -246,6 +259,11 @@ func main() {
 		}
 	}
 	if name := outFlag; name != "" && name != "-" {
+		for _, f := range inUseFiles {
+			if f == absPath(name) {
+				errorf("input and output file are the same: %q", name)
+			}
+		}
 		f := newLazyOpener(name)
 		defer func() {
 			if err := f.Close(); err != nil {
@@ -465,6 +483,7 @@ func decrypt(identities []age.Identity, in io.Reader, out io.Writer) {
 	if err != nil {
 		errorf("%v", err)
 	}
+	out.Write(nil) // trigger the lazyOpener even if r is empty
 	if _, err := io.Copy(out, r); err != nil {
 		errorf("%v", err)
 	}
@@ -530,4 +549,11 @@ func (l *lazyOpener) Close() error {
 		return l.f.Close()
 	}
 	return nil
+}
+
+func absPath(name string) string {
+	if abs, err := filepath.Abs(name); err == nil {
+		return abs
+	}
+	return name
 }

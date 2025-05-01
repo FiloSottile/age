@@ -1,4 +1,0 @@
-name: Ronn
-runs:
-  using: docker
-  image: Dockerfile
