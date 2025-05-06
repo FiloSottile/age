@@ -5,11 +5,14 @@
 package plugin
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 
 	"filippo.io/age/internal/bech32"
 )
+
+var ErrNonPluginIdentity = errors.New("not a plugin identity")
 
 // EncodeIdentity encodes a plugin identity string for a plugin with the given
 // name. If the name is invalid, it returns an empty string.
@@ -29,7 +32,7 @@ func ParseIdentity(s string) (name string, data []byte, err error) {
 		return "", nil, fmt.Errorf("invalid identity encoding: %v", err)
 	}
 	if !strings.HasPrefix(hrp, "AGE-PLUGIN-") || !strings.HasSuffix(hrp, "-") {
-		return "", nil, fmt.Errorf("not a plugin identity: %v", err)
+		return "", nil, ErrNonPluginIdentity
 	}
 	name = strings.TrimSuffix(strings.TrimPrefix(hrp, "AGE-PLUGIN-"), "-")
 	name = strings.ToLower(name)
