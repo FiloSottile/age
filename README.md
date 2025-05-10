@@ -49,6 +49,12 @@ $ age --decrypt -i key.txt data.tar.gz.age > data.tar.gz
         </td>
     </tr>
     <tr>
+        <td>Windows</td>
+        <td>
+            <code>winget install --id FiloSottile.age</code>
+        </td>
+    </tr>
+    <tr>
         <td>Alpine Linux v3.15+</td>
         <td>
             <code>apk add age</code>
