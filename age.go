@@ -46,6 +46,7 @@
 package age
 
 import (
+	"bytes"
 	"crypto/hmac"
 	"crypto/rand"
 	"errors"
@@ -207,13 +208,27 @@ func (*NoIdentityMatchError) Error() string {
 // If no identity matches the encrypted file, the returned error will be of type
 // [NoIdentityMatchError].
 func Decrypt(src io.Reader, identities ...Identity) (io.Reader, error) {
-	if len(identities) == 0 {
-		return nil, errors.New("no identities specified")
-	}
-
 	hdr, payload, err := format.Parse(src)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read header: %w", err)
+	}
+
+	fileKey, err := decryptHdr(hdr, identities...)
+	if err != nil {
+		return nil, err
+	}
+
+	nonce := make([]byte, streamNonceSize)
+	if _, err := io.ReadFull(payload, nonce); err != nil {
+		return nil, fmt.Errorf("failed to read nonce: %w", err)
+	}
+
+	return stream.NewReader(streamKey(fileKey, nonce), payload)
+}
+
+func decryptHdr(hdr *format.Header, identities ...Identity) ([]byte, error) {
+	if len(identities) == 0 {
+		return nil, errors.New("no identities specified")
 	}
 
 	stanzas := make([]*Stanza, 0, len(hdr.Recipients))
@@ -223,6 +238,7 @@ func Decrypt(src io.Reader, identities ...Identity) (io.Reader, error) {
 	errNoMatch := &NoIdentityMatchError{}
 	var fileKey []byte
 	for _, id := range identities {
+		var err error
 		fileKey, err = id.Unwrap(stanzas)
 		if errors.Is(err, ErrIncorrectIdentity) {
 			errNoMatch.Errors = append(errNoMatch.Errors, err)
@@ -244,12 +260,7 @@ func Decrypt(src io.Reader, identities ...Identity) (io.Reader, error) {
 		return nil, errors.New("bad header MAC")
 	}
 
-	nonce := make([]byte, streamNonceSize)
-	if _, err := io.ReadFull(payload, nonce); err != nil {
-		return nil, fmt.Errorf("failed to read nonce: %w", err)
-	}
-
-	return stream.NewReader(streamKey(fileKey, nonce), payload)
+	return fileKey, nil
 }
 
 // multiUnwrap is a helper that implements Identity.Unwrap in terms of a
@@ -269,4 +280,57 @@ func multiUnwrap(unwrap func(*Stanza) ([]byte, error), stanzas []*Stanza) ([]byt
 		return fileKey, nil
 	}
 	return nil, ErrIncorrectIdentity
+}
+
+// ExtractHeader returns a detached header from the src file.
+//
+// The detached header can be decrypted with [DecryptHeader] (for example on a
+// different system, without sharing the ciphertext) and then the file key can
+// be used with [NewInjectedFileKeyIdentity].
+//
+// This is a low-level function that most users won't need.
+func ExtractHeader(src io.Reader) ([]byte, error) {
+	hdr, _, err := format.Parse(src)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read header: %w", err)
+	}
+	buf := &bytes.Buffer{}
+	if err := hdr.Marshal(buf); err != nil {
+		return nil, fmt.Errorf("failed to serialize header: %w", err)
+	}
+	return buf.Bytes(), nil
+}
+
+// DecryptHeader decrypts a detached header and returns a file key.
+//
+// The detached header can be produced by [ExtractHeader], and the
+// returned file key can be used with [NewInjectedFileKeyIdentity].
+//
+// This is a low-level function that most users won't need.
+// It is the caller's responsibility to keep track of what file the
+// returned file key decrypts, and to ensure the file key is not used
+// for any other purpose.
+func DecryptHeader(header []byte, identities ...Identity) ([]byte, error) {
+	hdr, _, err := format.Parse(bytes.NewReader(header))
+	if err != nil {
+		return nil, fmt.Errorf("failed to read header: %w", err)
+	}
+	return decryptHdr(hdr, identities...)
+}
+
+type injectedFileKeyIdentity struct {
+	fileKey []byte
+}
+
+// NewInjectedFileKeyIdentity returns an [Identity] that always produces
+// a fixed file key, allowing the use of a file key obtained out-of-band,
+// for example via [DecryptHeader].
+//
+// This is a low-level function that most users won't need.
+func NewInjectedFileKeyIdentity(fileKey []byte) Identity {
+	return injectedFileKeyIdentity{fileKey}
+}
+
+func (i injectedFileKeyIdentity) Unwrap(stanzas []*Stanza) (fileKey []byte, err error) {
+	return i.fileKey, nil
 }
