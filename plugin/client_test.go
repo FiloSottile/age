@@ -7,7 +7,6 @@
 package plugin
 
 import (
-	"bufio"
 	"io"
 	"os"
 	"path/filepath"
@@ -20,61 +19,39 @@ import (
 
 func TestMain(m *testing.M) {
 	switch filepath.Base(os.Args[0]) {
-	// TODO: deduplicate from cmd/age TestMain.
 	case "age-plugin-test":
-		switch os.Args[1] {
-		case "--age-plugin=recipient-v1":
-			scanner := bufio.NewScanner(os.Stdin)
-			scanner.Scan() // add-recipient
-			scanner.Scan() // body
-			scanner.Scan() // grease
-			scanner.Scan() // body
-			scanner.Scan() // wrap-file-key
-			scanner.Scan() // body
-			fileKey := scanner.Text()
-			scanner.Scan() // extension-labels
-			scanner.Scan() // body
-			scanner.Scan() // done
-			scanner.Scan() // body
-			os.Stdout.WriteString("-> recipient-stanza 0 test\n")
-			os.Stdout.WriteString(fileKey + "\n")
-			scanner.Scan() // ok
-			scanner.Scan() // body
-			os.Stdout.WriteString("-> done\n\n")
-			os.Exit(0)
-		default:
-			panic(os.Args[1])
-		}
+		p, _ := New("test")
+		p.HandleRecipient(func(data []byte) (age.Recipient, error) {
+			return testRecipient{}, nil
+		})
+		os.Exit(p.Main())
 	case "age-plugin-testpqc":
-		switch os.Args[1] {
-		case "--age-plugin=recipient-v1":
-			scanner := bufio.NewScanner(os.Stdin)
-			scanner.Scan() // add-recipient
-			scanner.Scan() // body
-			scanner.Scan() // grease
-			scanner.Scan() // body
-			scanner.Scan() // wrap-file-key
-			scanner.Scan() // body
-			fileKey := scanner.Text()
-			scanner.Scan() // extension-labels
-			scanner.Scan() // body
-			scanner.Scan() // done
-			scanner.Scan() // body
-			os.Stdout.WriteString("-> recipient-stanza 0 test\n")
-			os.Stdout.WriteString(fileKey + "\n")
-			scanner.Scan() // ok
-			scanner.Scan() // body
-			os.Stdout.WriteString("-> labels postquantum\n\n")
-			scanner.Scan() // ok
-			scanner.Scan() // body
-			os.Stdout.WriteString("-> done\n\n")
-			os.Exit(0)
-		default:
-			panic(os.Args[1])
-		}
+		p, _ := New("testpqc")
+		p.HandleRecipient(func(data []byte) (age.Recipient, error) {
+			return testPQCRecipient{}, nil
+		})
+		os.Exit(p.Main())
 	default:
 		os.Exit(m.Run())
 	}
+}
+
+type testRecipient struct{}
+
+func (testRecipient) Wrap(fileKey []byte) ([]*age.Stanza, error) {
+	return []*age.Stanza{{Type: "test", Body: fileKey}}, nil
+}
+
+type testPQCRecipient struct{}
+
+var _ age.RecipientWithLabels = testPQCRecipient{}
+
+func (testPQCRecipient) Wrap(fileKey []byte) ([]*age.Stanza, error) {
+	return []*age.Stanza{{Type: "test", Body: fileKey}}, nil
+}
+
+func (testPQCRecipient) WrapWithLabels(fileKey []byte) ([]*age.Stanza, []string, error) {
+	return []*age.Stanza{{Type: "test", Body: fileKey}}, []string{"postquantum"}, nil
 }
 
 func TestLabels(t *testing.T) {
