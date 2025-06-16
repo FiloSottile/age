@@ -5,11 +5,11 @@
 package main
 
 import (
-	"bufio"
 	"os"
 	"testing"
 
 	"filippo.io/age"
+	"filippo.io/age/plugin"
 	"github.com/rogpeppe/go-internal/testscript"
 )
 
@@ -30,49 +30,29 @@ func TestMain(m *testing.M) {
 			return 0
 		},
 		"age-plugin-test": func() (exitCode int) {
-			// TODO: use plugin server package once it's available.
-			switch os.Args[1] {
-			case "--age-plugin=recipient-v1":
-				scanner := bufio.NewScanner(os.Stdin)
-				scanner.Scan() // add-recipient
-				scanner.Scan() // body
-				scanner.Scan() // grease
-				scanner.Scan() // body
-				scanner.Scan() // wrap-file-key
-				scanner.Scan() // body
-				fileKey := scanner.Text()
-				scanner.Scan() // extension-labels
-				scanner.Scan() // body
-				scanner.Scan() // done
-				scanner.Scan() // body
-				os.Stdout.WriteString("-> recipient-stanza 0 test\n")
-				os.Stdout.WriteString(fileKey + "\n")
-				scanner.Scan() // ok
-				scanner.Scan() // body
-				os.Stdout.WriteString("-> done\n\n")
-				return 0
-			case "--age-plugin=identity-v1":
-				scanner := bufio.NewScanner(os.Stdin)
-				scanner.Scan() // add-identity
-				scanner.Scan() // body
-				scanner.Scan() // grease
-				scanner.Scan() // body
-				scanner.Scan() // recipient-stanza
-				scanner.Scan() // body
-				fileKey := scanner.Text()
-				scanner.Scan() // done
-				scanner.Scan() // body
-				os.Stdout.WriteString("-> file-key 0\n")
-				os.Stdout.WriteString(fileKey + "\n")
-				scanner.Scan() // ok
-				scanner.Scan() // body
-				os.Stdout.WriteString("-> done\n\n")
-				return 0
-			default:
-				return 1
-			}
+			p, _ := plugin.New("test")
+			p.HandleRecipient(func(data []byte) (age.Recipient, error) {
+				return testPlugin{}, nil
+			})
+			p.HandleIdentity(func(data []byte) (age.Identity, error) {
+				return testPlugin{}, nil
+			})
+			return p.Main()
 		},
 	}))
+}
+
+type testPlugin struct{}
+
+func (testPlugin) Wrap(fileKey []byte) ([]*age.Stanza, error) {
+	return []*age.Stanza{{Type: "test", Body: fileKey}}, nil
+}
+
+func (testPlugin) Unwrap(ss []*age.Stanza) ([]byte, error) {
+	if len(ss) == 1 && ss[0].Type == "test" {
+		return ss[0].Body, nil
+	}
+	return nil, age.ErrIncorrectIdentity
 }
 
 func TestScript(t *testing.T) {
