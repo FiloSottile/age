@@ -10,15 +10,16 @@ import (
 	"testing"
 
 	"filippo.io/age"
+	"filippo.io/age/internal/logger"
 	"github.com/rogpeppe/go-internal/testscript"
 )
 
 func TestMain(m *testing.M) {
 	os.Exit(testscript.RunMain(m, map[string]func() int{
 		"age": func() (exitCode int) {
-			testOnlyPanicInsteadOfExit = true
+			logger.Global.TestOnlyPanicInsteadOfExit = true
 			defer func() {
-				if testOnlyDidExit {
+				if logger.Global.TestOnlyDidExit {
 					exitCode = recover().(int)
 				}
 			}()
