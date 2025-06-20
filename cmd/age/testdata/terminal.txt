@@ -34,7 +34,12 @@ age -p -a -o test.age
 ttyout 'Enter passphrase'
 ! stderr .
 # check the file was encrypted correctly
-ttyin terminal
+ttyin -stdin terminal
+age -d test.age
+cmp stdout input
+
+# read passphrase from stdin
+stdin password
 age -d test.age
 cmp stdout input
 
@@ -52,6 +57,8 @@ cmp stdout input
 test
 -- terminal --
 password
+password
+-- password --
 password
 -- empty --
 
