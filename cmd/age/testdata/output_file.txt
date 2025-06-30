@@ -54,7 +54,7 @@ cmp inputcopy input
 # https://github.com/FiloSottile/age/issues/159
 ttyin terminal
 age -p -a -o test.age input
-ttyin terminalwrong
+ttyin -stdin terminalwrong
 ! age -o test.out -d test.age
 ttyout 'Enter passphrase'
 stderr 'incorrect passphrase'
