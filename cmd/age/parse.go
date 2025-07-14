@@ -15,6 +15,8 @@ import (
 	"filippo.io/age"
 	"filippo.io/age/agessh"
 	"filippo.io/age/armor"
+	"filippo.io/age/internal/logger"
+	"filippo.io/age/internal/term"
 	"filippo.io/age/plugin"
 	"golang.org/x/crypto/cryptobyte"
 	"golang.org/x/crypto/ssh"
@@ -79,7 +81,7 @@ func parseRecipientsFile(name string) ([]age.Recipient, error) {
 		if err != nil {
 			if t, ok := sshKeyType(line); ok {
 				// Skip unsupported but valid SSH public keys with a warning.
-				warningf("recipients file %q: ignoring unsupported SSH key of type %q at line %d", name, t, n)
+				logger.Global.Warningf("recipients file %q: ignoring unsupported SSH key of type %q at line %d", name, t, n)
 				continue
 			}
 			// Hide the error since it might unintentionally leak the contents
@@ -162,14 +164,14 @@ func parseIdentitiesFile(name string) ([]age.Identity, error) {
 		return []age.Identity{&EncryptedIdentity{
 			Contents: contents,
 			Passphrase: func() (string, error) {
-				pass, err := readSecret(fmt.Sprintf("Enter passphrase for identity file %q:", name))
+				pass, err := term.ReadSecret(fmt.Sprintf("Enter passphrase for identity file %q:", name))
 				if err != nil {
 					return "", fmt.Errorf("could not read passphrase: %v", err)
 				}
 				return string(pass), nil
 			},
 			NoMatchWarning: func() {
-				warningf("encrypted identity file %q didn't match file's recipients", name)
+				logger.Global.Warningf("encrypted identity file %q didn't match file's recipients", name)
 			},
 		}}, nil
 
@@ -246,7 +248,7 @@ func parseSSHIdentity(name string, pemBytes []byte) ([]age.Identity, error) {
 			}
 		}
 		passphrasePrompt := func() ([]byte, error) {
-			pass, err := readSecret(fmt.Sprintf("Enter passphrase for %q:", name))
+			pass, err := term.ReadSecret(fmt.Sprintf("Enter passphrase for %q:", name))
 			if err != nil {
 				return nil, fmt.Errorf("could not read passphrase for %q: %v", name, err)
 			}
