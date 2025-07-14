@@ -274,7 +274,17 @@ func main() {
 	} else if term.IsTerminal(int(os.Stdout.Fd())) {
 		if name != "-" {
 			if decryptFlag {
-				// TODO: buffer the output and check it's printable.
+				buf := &bytes.Buffer{}
+				defer func() {
+					if bytes.Contains(buf.Bytes(), []byte{0}) {
+						errorWithHint("refusing to output binary to terminal",
+							"specify an output file with -o/--output",
+							`force anyway with "-o -"`)
+					}
+					io.Copy(os.Stdout, buf)
+
+				}()
+				out = buf
 			} else if !armorFlag {
 				// If the output wouldn't be armored, refuse to send binary to
 				// the terminal unless explicitly requested with "-o -".
@@ -287,7 +297,8 @@ func main() {
 			// If the input comes from a TTY and output will go to a TTY,
 			// buffer it up so it doesn't get in the way of typing the input.
 			buf := &bytes.Buffer{}
-			defer func() { io.Copy(os.Stdout, buf) }()
+			originalOutBuffer := out
+			defer func() { io.Copy(originalOutBuffer, buf) }()
 			out = buf
 		}
 	}
