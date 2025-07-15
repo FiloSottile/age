@@ -455,10 +455,20 @@ func decryptNotPass(flags identityFlags, in io.Reader, out io.Writer) {
 }
 
 func decryptPass(in io.Reader, out io.Writer) {
+	passphrase := passphrasePromptForDecryption
+
+	if in != os.Stdin && !term.IsTerminal(int(os.Stdin.Fd())) {
+		passphrase = func() (string, error) {
+			b, err := io.ReadAll(os.Stdin)
+			b = bytes.TrimRight(b, "\n")
+			return string(b), err
+		}
+	}
+
 	identities := []age.Identity{
 		// If there is an scrypt recipient (it will have to be the only one and)
 		// this identity will be invoked.
-		&LazyScryptIdentity{passphrasePromptForDecryption},
+		&LazyScryptIdentity{passphrase},
 	}
 
 	decrypt(identities, in, out)
