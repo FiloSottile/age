@@ -284,3 +284,46 @@ func TestLabels(t *testing.T) {
 		t.Errorf("expected pqc+foo mixed with foo+pqc to work, got %v", err)
 	}
 }
+
+func TestDetachedHeader(t *testing.T) {
+	i, err := age.GenerateX25519Identity()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	buf := &bytes.Buffer{}
+	w, err := age.Encrypt(buf, i.Recipient())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := io.WriteString(w, helloWorld); err != nil {
+		t.Fatal(err)
+	}
+	if err := w.Close(); err != nil {
+		t.Fatal(err)
+	}
+	encrypted := buf.Bytes()
+
+	header, err := age.ExtractHeader(bytes.NewReader(encrypted))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	fileKey, err := age.DecryptHeader(header, i)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	identity := age.NewInjectedFileKeyIdentity(fileKey)
+	out, err := age.Decrypt(bytes.NewReader(encrypted), identity)
+	if err != nil {
+		t.Fatal(err)
+	}
+	outBytes, err := io.ReadAll(out)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(outBytes) != helloWorld {
+		t.Errorf("wrong data: %q, expected %q", outBytes, helloWorld)
+	}
+}
