@@ -402,14 +402,8 @@ func encrypt(recipients []age.Recipient, in io.Reader, out io.Writer, withArmor 
 		}()
 		out = a
 	}
-	w, err := age.Encrypt(out, recipients...)
+	err := age.EncryptReader(out, in, recipients...)
 	if err != nil {
-		errorf("%v", err)
-	}
-	if _, err := io.Copy(w, in); err != nil {
-		errorf("%v", err)
-	}
-	if err := w.Close(); err != nil {
 		errorf("%v", err)
 	}
 }

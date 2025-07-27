@@ -41,6 +41,26 @@ func ExampleEncrypt() {
 	// Encrypted file size: 219
 }
 
+func ExampleEncryptReader() {
+	publicKey := "age1cy0su9fwf3gf9mw868g5yut09p6nytfmmnktexz2ya5uqg9vl9sss4euqm"
+	recipient, err := age.ParseX25519Recipient(publicKey)
+	if err != nil {
+		log.Fatalf("Failed to parse public key %q: %v", publicKey, err)
+	}
+
+	in := strings.NewReader("Black lives matter.")
+	out := &bytes.Buffer{}
+
+	err = age.EncryptReader(out, in, recipient)
+	if err != nil {
+		log.Fatalf("Failed to create encrypted file: %v", err)
+	}
+
+	fmt.Printf("Encrypted file size: %d\n", out.Len())
+	// Output:
+	// Encrypted file size: 219
+}
+
 // DO NOT hardcode the private key. Store it in a secret storage solution,
 // on disk if the local machine is trusted, or have the user provide it.
 var privateKey string
@@ -169,6 +189,65 @@ func TestEncryptDecryptScrypt(t *testing.T) {
 		t.Fatal(err)
 	}
 	if err := w.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	i, err := age.NewScryptIdentity(password)
+	if err != nil {
+		t.Fatal(err)
+	}
+	out, err := age.Decrypt(buf, i)
+	if err != nil {
+		t.Fatal(err)
+	}
+	outBytes, err := io.ReadAll(out)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(outBytes) != helloWorld {
+		t.Errorf("wrong data: %q, excepted %q", outBytes, helloWorld)
+	}
+}
+
+func TestEncryptReaderX25519(t *testing.T) {
+	a, err := age.GenerateX25519Identity()
+	if err != nil {
+		t.Fatal(err)
+	}
+	b, err := age.GenerateX25519Identity()
+	if err != nil {
+		t.Fatal(err)
+	}
+	buf := &bytes.Buffer{}
+	err = age.EncryptReader(buf, strings.NewReader(helloWorld), a.Recipient(), b.Recipient())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	out, err := age.Decrypt(buf, b)
+	if err != nil {
+		t.Fatal(err)
+	}
+	outBytes, err := io.ReadAll(out)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(outBytes) != helloWorld {
+		t.Errorf("wrong data: %q, excepted %q", outBytes, helloWorld)
+	}
+}
+
+func TestEncryptReaderScrypt(t *testing.T) {
+	password := "twitch.tv/filosottile"
+
+	r, err := age.NewScryptRecipient(password)
+	if err != nil {
+		t.Fatal(err)
+	}
+	r.SetWorkFactor(15)
+	buf := &bytes.Buffer{}
+	err = age.EncryptReader(buf, strings.NewReader(helloWorld), r)
+	if err != nil {
 		t.Fatal(err)
 	}
 

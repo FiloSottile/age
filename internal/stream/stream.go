@@ -215,16 +215,62 @@ const (
 )
 
 func (w *Writer) flushChunk(last bool) error {
-	if !last && len(w.unwritten) != ChunkSize {
-		panic("stream: internal error: flush called with partial chunk")
+	err := writeChunk(w.dst, w.a, &w.nonce, w.unwritten, last)
+	w.unwritten = w.buf[:0]
+	return err
+}
+
+func writeChunk(dst io.Writer, aead cipher.AEAD, nonce *[chacha20poly1305.NonceSize]byte, plaintext []byte, last bool) error {
+	if !last && len(plaintext) != ChunkSize {
+		panic("stream: internal error: writeChunk called with partial chunk")
 	}
 
 	if last {
-		setLastChunkFlag(&w.nonce)
+		setLastChunkFlag(nonce)
 	}
-	buf := w.a.Seal(w.buf[:0], w.nonce[:], w.unwritten, nil)
-	_, err := w.dst.Write(buf)
-	w.unwritten = w.buf[:0]
-	incNonce(&w.nonce)
+	buf := aead.Seal(plaintext[:0], nonce[:], plaintext, nil)
+	_, err := dst.Write(buf)
+	incNonce(nonce)
 	return err
+}
+
+func Encrypt(dst io.Writer, src io.Reader, key []byte) error {
+	aead, err := chacha20poly1305.New(key)
+	if err != nil {
+		return err
+	}
+
+	var nonce [chacha20poly1305.NonceSize]byte
+	var bufs [2][encChunkSize]byte
+	var hasUnwritten bool
+
+	for unwritten, current := 0, 1; ; unwritten, current = current, unwritten {
+		n, err := io.ReadFull(src, bufs[current][:ChunkSize])
+		if err == io.EOF {
+			if hasUnwritten {
+				return writeChunk(dst, aead, &nonce, bufs[unwritten][:ChunkSize], lastChunk)
+			} else { // empty payload
+				return writeChunk(dst, aead, &nonce, bufs[current][:0], lastChunk)
+			}
+		} else if err == io.ErrUnexpectedEOF {
+			if hasUnwritten {
+				err := writeChunk(dst, aead, &nonce, bufs[unwritten][:ChunkSize], notLastChunk)
+				if err != nil {
+					return err
+				}
+			}
+			return writeChunk(dst, aead, &nonce, bufs[current][:n], lastChunk)
+		} else if err != nil {
+			return err
+		}
+
+		if hasUnwritten {
+			err := writeChunk(dst, aead, &nonce, bufs[unwritten][:ChunkSize], notLastChunk)
+			if err != nil {
+				return err
+			}
+		} else {
+			hasUnwritten = true
+		}
+	}
 }

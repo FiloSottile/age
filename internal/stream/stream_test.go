@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"crypto/rand"
 	"fmt"
+	"io"
 	"testing"
 
 	"filippo.io/age/internal/stream"
@@ -89,5 +90,44 @@ func testRoundTrip(t *testing.T, stepSize, length int) {
 		}
 
 		n += nn
+	}
+}
+
+func TestEncrypt(t *testing.T) {
+	for _, mul := range []int{0, 1, 2, 3} {
+		for _, add := range []int{0, 1, 2, 3, stream.ChunkSize - 1} {
+			length := mul*stream.ChunkSize + add
+
+			t.Run(fmt.Sprintf("length=%d", length), func(t *testing.T) {
+				src := make([]byte, length)
+				if _, err := rand.Read(src); err != nil {
+					t.Fatal(err)
+				}
+				buf := &bytes.Buffer{}
+				key := make([]byte, chacha20poly1305.KeySize)
+				if _, err := rand.Read(key); err != nil {
+					t.Fatal(err)
+				}
+
+				err := stream.Encrypt(buf, bytes.NewReader(src), key)
+				if err != nil {
+					t.Fatal(err)
+				}
+
+				r, err := stream.NewReader(key, buf)
+				if err != nil {
+					t.Fatal(err)
+				}
+
+				dec, err := io.ReadAll(r)
+				if err != nil {
+					t.Fatal(err)
+				}
+
+				if !bytes.Equal(src, dec) {
+					t.Errorf("Wrong decrypted data")
+				}
+			})
+		}
 	}
 }

@@ -113,6 +113,8 @@ type Stanza struct {
 const fileKeySize = 16
 const streamNonceSize = 16
 
+var errNoRecipients = errors.New("no recipients specified")
+
 // Encrypt encrypts a file to one or more recipients.
 //
 // Writes to the returned WriteCloser are encrypted and written to dst as an age
@@ -122,7 +124,7 @@ const streamNonceSize = 16
 // be encrypted and flushed to dst.
 func Encrypt(dst io.Writer, recipients ...Recipient) (io.WriteCloser, error) {
 	if len(recipients) == 0 {
-		return nil, errors.New("no recipients specified")
+		return nil, errNoRecipients
 	}
 
 	fileKey := make([]byte, fileKeySize)
@@ -130,29 +132,7 @@ func Encrypt(dst io.Writer, recipients ...Recipient) (io.WriteCloser, error) {
 		return nil, err
 	}
 
-	hdr := &format.Header{}
-	var labels []string
-	for i, r := range recipients {
-		stanzas, l, err := wrapWithLabels(r, fileKey)
-		if err != nil {
-			return nil, fmt.Errorf("failed to wrap key for recipient #%d: %v", i, err)
-		}
-		sort.Strings(l)
-		if i == 0 {
-			labels = l
-		} else if !slicesEqual(labels, l) {
-			return nil, fmt.Errorf("incompatible recipients")
-		}
-		for _, s := range stanzas {
-			hdr.Recipients = append(hdr.Recipients, (*format.Stanza)(s))
-		}
-	}
-	if mac, err := headerMAC(fileKey, hdr); err != nil {
-		return nil, fmt.Errorf("failed to compute header MAC: %v", err)
-	} else {
-		hdr.MAC = mac
-	}
-	if err := hdr.Marshal(dst); err != nil {
+	if err := writeHeader(dst, recipients, fileKey); err != nil {
 		return nil, fmt.Errorf("failed to write header: %v", err)
 	}
 
@@ -165,6 +145,60 @@ func Encrypt(dst io.Writer, recipients ...Recipient) (io.WriteCloser, error) {
 	}
 
 	return stream.NewWriter(streamKey(fileKey, nonce), dst)
+}
+
+// EncryptReader encrypts a reader to one or more recipients.
+//
+// It encrypts src into dst as an age file. Every recipient will be able to decrypt the file.
+func EncryptReader(dst io.Writer, src io.Reader, recipients ...Recipient) error {
+	if len(recipients) == 0 {
+		return errNoRecipients
+	}
+
+	fileKey := make([]byte, fileKeySize)
+	if _, err := rand.Read(fileKey); err != nil {
+		return err
+	}
+
+	if err := writeHeader(dst, recipients, fileKey); err != nil {
+		return fmt.Errorf("failed to write header: %v", err)
+	}
+
+	nonce := make([]byte, streamNonceSize)
+	if _, err := rand.Read(nonce); err != nil {
+		return err
+	}
+	if _, err := dst.Write(nonce); err != nil {
+		return fmt.Errorf("failed to write nonce: %v", err)
+	}
+
+	return stream.Encrypt(dst, src, streamKey(fileKey, nonce))
+}
+
+func writeHeader(dst io.Writer, recipients []Recipient, fileKey []byte) error {
+	hdr := &format.Header{}
+	var labels []string
+	for i, r := range recipients {
+		stanzas, l, err := wrapWithLabels(r, fileKey)
+		if err != nil {
+			return fmt.Errorf("failed to wrap key for recipient #%d: %v", i, err)
+		}
+		sort.Strings(l)
+		if i == 0 {
+			labels = l
+		} else if !slicesEqual(labels, l) {
+			return fmt.Errorf("incompatible recipients")
+		}
+		for _, s := range stanzas {
+			hdr.Recipients = append(hdr.Recipients, (*format.Stanza)(s))
+		}
+	}
+	if mac, err := headerMAC(fileKey, hdr); err != nil {
+		return fmt.Errorf("failed to compute header MAC: %v", err)
+	} else {
+		hdr.MAC = mac
+	}
+	return hdr.Marshal(dst)
 }
 
 func wrapWithLabels(r Recipient, fileKey []byte) (s []*Stanza, labels []string, err error) {
