@@ -5,9 +5,9 @@
 // Package age implements file encryption according to the age-encryption.org/v1
 // specification.
 //
-// For most use cases, use the Encrypt and Decrypt functions with
-// X25519Recipient and X25519Identity. If passphrase encryption is required, use
-// ScryptRecipient and ScryptIdentity. For compatibility with existing SSH keys
+// For most use cases, use the [Encrypt] and [Decrypt] functions with
+// [X25519Recipient] and [X25519Identity]. If passphrase encryption is required, use
+// [ScryptRecipient] and [ScryptIdentity]. For compatibility with existing SSH keys
 // use the filippo.io/age/agessh package.
 //
 // age encrypted files are binary and not malleable. For encoding them as text,
@@ -57,36 +57,34 @@ import (
 	"filippo.io/age/internal/stream"
 )
 
-// An Identity is passed to Decrypt to unwrap an opaque file key from a
-// recipient stanza. It can be for example a secret key like X25519Identity, a
+// An Identity is passed to [Decrypt] to unwrap an opaque file key from a
+// recipient stanza. It can be for example a secret key like [X25519Identity], a
 // plugin, or a custom implementation.
-//
-// Unwrap must return an error wrapping ErrIncorrectIdentity if none of the
-// recipient stanzas match the identity, any other error will be considered
-// fatal.
-//
-// Most age API users won't need to interact with this directly, and should
-// instead pass Recipient implementations to Encrypt and Identity
-// implementations to Decrypt.
 type Identity interface {
+	// Unwrap must return an error wrapping [ErrIncorrectIdentity] if none of
+	// the recipient stanzas match the identity, any other error will be
+	// considered fatal.
+	//
+	// Most age API users won't need to interact with this method directly, and
+	// should instead pass [Identity] implementations to [Decrypt].
 	Unwrap(stanzas []*Stanza) (fileKey []byte, err error)
 }
 
+// ErrIncorrectIdentity is returned by [Identity.Unwrap] if none of the
+// recipient stanzas match the identity.
 var ErrIncorrectIdentity = errors.New("incorrect identity for recipient block")
 
-// A Recipient is passed to Encrypt to wrap an opaque file key to one or more
-// recipient stanza(s). It can be for example a public key like X25519Recipient,
+// A Recipient is passed to [Encrypt] to wrap an opaque file key to one or more
+// recipient stanza(s). It can be for example a public key like [X25519Recipient],
 // a plugin, or a custom implementation.
-//
-// Most age API users won't need to interact with this directly, and should
-// instead pass Recipient implementations to Encrypt and Identity
-// implementations to Decrypt.
 type Recipient interface {
+	// Most age API users won't need to interact with this method directly, and
+	// should instead pass [Recipient] implementations to [Encrypt].
 	Wrap(fileKey []byte) ([]*Stanza, error)
 }
 
-// RecipientWithLabels can be optionally implemented by a Recipient, in which
-// case Encrypt will use WrapWithLabels instead of Wrap.
+// RecipientWithLabels can be optionally implemented by a [Recipient], in which
+// case [Encrypt] will use WrapWithLabels instead of [Recipient.Wrap].
 //
 // Encrypt will succeed only if the labels returned by all the recipients
 // (assuming the empty set for those that don't implement RecipientWithLabels)
@@ -103,9 +101,9 @@ type RecipientWithLabels interface {
 // A Stanza is a section of the age header that encapsulates the file key as
 // encrypted to a specific recipient.
 //
-// Most age API users won't need to interact with this directly, and should
-// instead pass Recipient implementations to Encrypt and Identity
-// implementations to Decrypt.
+// Most age API users won't need to interact with this type directly, and should
+// instead pass [Recipient] implementations to [Encrypt] and [Identity]
+// implementations to [Decrypt].
 type Stanza struct {
 	Type string
 	Args []string
@@ -189,11 +187,11 @@ func slicesEqual(s1, s2 []string) bool {
 	return true
 }
 
-// NoIdentityMatchError is returned by Decrypt when none of the supplied
+// NoIdentityMatchError is returned by [Decrypt] when none of the supplied
 // identities match the encrypted file.
 type NoIdentityMatchError struct {
 	// Errors is a slice of all the errors returned to Decrypt by the Unwrap
-	// calls it made. They all wrap ErrIncorrectIdentity.
+	// calls it made. They all wrap [ErrIncorrectIdentity].
 	Errors []error
 }
 
@@ -205,6 +203,9 @@ func (*NoIdentityMatchError) Error() string {
 //
 // It returns a Reader reading the decrypted plaintext of the age file read
 // from src. All identities will be tried until one successfully decrypts the file.
+//
+// If no identity matches the encrypted file, the returned error will be of type
+// [NoIdentityMatchError].
 func Decrypt(src io.Reader, identities ...Identity) (io.Reader, error) {
 	if len(identities) == 0 {
 		return nil, errors.New("no identities specified")
