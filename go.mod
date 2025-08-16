@@ -4,6 +4,7 @@ go 1.19
 
 require (
 	filippo.io/edwards25519 v1.1.0
+	filippo.io/nistec v0.0.3
 	golang.org/x/crypto v0.24.0
 	golang.org/x/sys v0.21.0
 	golang.org/x/term v0.21.0
