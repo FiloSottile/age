@@ -16,6 +16,7 @@ import (
 	"filippo.io/age/agessh"
 	"filippo.io/age/armor"
 	"filippo.io/age/plugin"
+	"filippo.io/age/tag"
 	"golang.org/x/crypto/cryptobyte"
 	"golang.org/x/crypto/ssh"
 )
@@ -30,6 +31,8 @@ func (gitHubRecipientError) Error() string {
 
 func parseRecipient(arg string) (age.Recipient, error) {
 	switch {
+	case strings.HasPrefix(arg, "age1tag1"):
+		return tag.ParseRecipient(arg)
 	case strings.HasPrefix(arg, "age1") && strings.Count(arg, "1") > 1:
 		return plugin.NewRecipient(arg, pluginTerminalUI)
 	case strings.HasPrefix(arg, "age1"):
