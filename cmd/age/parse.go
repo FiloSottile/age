@@ -31,7 +31,7 @@ func (gitHubRecipientError) Error() string {
 
 func parseRecipient(arg string) (age.Recipient, error) {
 	switch {
-	case strings.HasPrefix(arg, "age1tag1"):
+	case strings.HasPrefix(arg, "age1tag1") || strings.HasPrefix(arg, "age1tagpq1"):
 		return tag.ParseRecipient(arg)
 	case strings.HasPrefix(arg, "age1") && strings.Count(arg, "1") > 1:
 		return plugin.NewRecipient(arg, pluginTerminalUI)

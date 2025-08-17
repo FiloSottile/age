@@ -8,8 +8,10 @@ import (
 	"crypto/cipher"
 	"crypto/ecdh"
 	"crypto/hkdf"
+	"crypto/mlkem"
 	"crypto/rand"
 	"crypto/sha256"
+	"crypto/sha3"
 	"encoding/binary"
 	"errors"
 	"hash"
@@ -129,6 +131,135 @@ func (dh *dhkemRecipient) Decap(encPubEph []byte) ([]byte, error) {
 	}
 	kemContext := append(encPubEph, dh.priv.PublicKey().Bytes()...)
 	return dh.extractAndExpand(dhVal, kemContext)
+}
+
+type qsf struct {
+	id    uint16
+	label string
+}
+
+func (q *qsf) ID() uint16 {
+	return q.id
+}
+
+func (q *qsf) sharedSecret(ssPQ, ssT, ctT, ekT []byte) []byte {
+	h := sha3.New256()
+	h.Write(ssPQ)
+	h.Write(ssT)
+	h.Write(ctT)
+	h.Write(ekT)
+	h.Write([]byte(q.label))
+	return h.Sum(nil)
+}
+
+type qsfSender struct {
+	qsf
+	t  *ecdh.PublicKey
+	pq *mlkem.EncapsulationKey768
+}
+
+// QSFSender returns a KEMSender implementing QSF-P256-MLKEM768-SHAKE256-SHA3256
+// or QSF-X25519-MLKEM768-SHA3256-SHAKE256 (aka X-Wing) from draft-ietf-hpke-pq
+// and draft-irtf-cfrg-concrete-hybrid-kems-00.
+func QSFSender(t *ecdh.PublicKey, pq *mlkem.EncapsulationKey768) (KEMSender, error) {
+	switch t.Curve() {
+	case ecdh.P256():
+		return &qsfSender{
+			t: t, pq: pq,
+			qsf: qsf{
+				id:    0x0050,
+				label: "QSF-P256-MLKEM768-SHAKE256-SHA3256",
+			},
+		}, nil
+	case ecdh.X25519():
+		return &qsfSender{
+			t: t, pq: pq,
+			qsf: qsf{
+				id: 0x647a,
+				label: /**/ `\./` +
+					/*   */ `/^\`,
+			},
+		}, nil
+	default:
+		return nil, errors.New("unsupported curve")
+	}
+}
+
+var testingOnlyEncapsulate func() (ss, ct []byte)
+
+func (s *qsfSender) Encap() (sharedSecret []byte, encapPub []byte, err error) {
+	skE, err := s.t.Curve().GenerateKey(rand.Reader)
+	if err != nil {
+		return nil, nil, err
+	}
+	if testingOnlyGenerateKey != nil {
+		skE = testingOnlyGenerateKey()
+	}
+	ssT, err := skE.ECDH(s.t)
+	if err != nil {
+		return nil, nil, err
+	}
+	ctT := skE.PublicKey().Bytes()
+
+	ssPQ, ctPQ := s.pq.Encapsulate()
+	if testingOnlyEncapsulate != nil {
+		ssPQ, ctPQ = testingOnlyEncapsulate()
+	}
+
+	ss := s.sharedSecret(ssPQ, ssT, ctT, s.t.Bytes())
+	ct := append(ctPQ, ctT...)
+	return ss, ct, nil
+}
+
+type qsfRecipient struct {
+	qsf
+	t  *ecdh.PrivateKey
+	pq *mlkem.DecapsulationKey768
+}
+
+// QSFRecipient returns a KEMRecipient implementing QSF-P256-MLKEM768-SHAKE256-SHA3256
+// or QSF-MLKEM768-X25519-SHA3256-SHAKE256 (aka X-Wing) from draft-ietf-hpke-pq
+// and draft-irtf-cfrg-concrete-hybrid-kems-00.
+func QSFRecipient(t *ecdh.PrivateKey, pq *mlkem.DecapsulationKey768) (KEMRecipient, error) {
+	switch t.Curve() {
+	case ecdh.P256():
+		return &qsfRecipient{
+			t: t, pq: pq,
+			qsf: qsf{
+				id:    0x0050,
+				label: "QSF-P256-MLKEM768-SHAKE256-SHA3256",
+			},
+		}, nil
+	case ecdh.X25519():
+		return &qsfRecipient{
+			t: t, pq: pq,
+			qsf: qsf{
+				id: 0x647a,
+				label: /**/ `\./` +
+					/*   */ `/^\`,
+			},
+		}, nil
+	default:
+		return nil, errors.New("unsupported curve")
+	}
+}
+
+func (r *qsfRecipient) Decap(enc []byte) ([]byte, error) {
+	ctPQ, ctT := enc[:mlkem.CiphertextSize768], enc[mlkem.CiphertextSize768:]
+	ssPQ, err := r.pq.Decapsulate(ctPQ)
+	if err != nil {
+		return nil, err
+	}
+	pub, err := r.t.Curve().NewPublicKey(ctT)
+	if err != nil {
+		return nil, err
+	}
+	ssT, err := r.t.ECDH(pub)
+	if err != nil {
+		return nil, err
+	}
+	ss := r.sharedSecret(ssPQ, ssT, ctT, r.t.PublicKey().Bytes())
+	return ss, nil
 }
 
 type KDF interface {
