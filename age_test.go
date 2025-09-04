@@ -43,19 +43,19 @@ func ExampleEncrypt() {
 
 // DO NOT hardcode the private key. Store it in a secret storage solution,
 // on disk if the local machine is trusted, or have the user provide it.
-var privateKey string
+var privateKeyX25519 string
 
 func init() {
-	privateKey = "AGE-SECRET-KEY-184JMZMVQH3E6U0PSL869004Y3U2NYV7R30EU99CSEDNPH02YUVFSZW44VU"
+	privateKeyX25519 = "AGE-SECRET-KEY-184JMZMVQH3E6U0PSL869004Y3U2NYV7R30EU99CSEDNPH02YUVFSZW44VU"
 }
 
 func ExampleDecrypt() {
-	identity, err := age.ParseX25519Identity(privateKey)
+	identity, err := age.ParseX25519Identity(privateKeyX25519)
 	if err != nil {
 		log.Fatalf("Failed to parse private key: %v", err)
 	}
 
-	f, err := os.Open("testdata/example.age")
+	f, err := os.Open("testdata/example.X25519.age")
 	if err != nil {
 		log.Fatalf("Failed to open file: %v", err)
 	}
@@ -75,7 +75,7 @@ func ExampleDecrypt() {
 }
 
 func ExampleParseIdentities() {
-	keyFile, err := os.Open("testdata/example_keys.txt")
+	keyFile, err := os.Open("testdata/example_keys.X25519.txt")
 	if err != nil {
 		log.Fatalf("Failed to open private keys file: %v", err)
 	}
@@ -84,7 +84,7 @@ func ExampleParseIdentities() {
 		log.Fatalf("Failed to parse private key: %v", err)
 	}
 
-	f, err := os.Open("testdata/example.age")
+	f, err := os.Open("testdata/example.X25519.age")
 	if err != nil {
 		log.Fatalf("Failed to open file: %v", err)
 	}
@@ -116,7 +116,55 @@ func ExampleGenerateX25519Identity() {
 	// Private key: AGE-SECRET-KEY-1...
 }
 
+func ExampleGenerateMLKEMIdentity() {
+	identity, err := age.GenerateMLKEMIdentity()
+	if err != nil {
+		log.Fatalf("Failed to generate key pair: %v", err)
+	}
+
+	fmt.Printf("Public key: %s...\n", identity.Recipient().String()[:4])
+	fmt.Printf("Private key: %s...\n", identity.String()[:16])
+	// Output:
+	// Public key: age1...
+	// Private key: AGE-SECRET-KEY-1...
+}
+
 const helloWorld = "Hello, Twitch!"
+
+
+func TestEncryptDecryptMLKEM(t *testing.T) {
+	a, err := age.GenerateMLKEMIdentity()
+	if err != nil {
+		t.Fatal(err)
+	}
+	b, err := age.GenerateMLKEMIdentity()
+	if err != nil {
+		t.Fatal(err)
+	}
+	buf := &bytes.Buffer{}
+	w, err := age.Encrypt(buf, a.Recipient(), b.Recipient())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := io.WriteString(w, helloWorld); err != nil {
+		t.Fatal(err)
+	}
+	if err := w.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	out, err := age.Decrypt(buf, b)
+	if err != nil {
+		t.Fatal(err)
+	}
+	outBytes, err := io.ReadAll(out)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(outBytes) != helloWorld {
+		t.Errorf("wrong data: %q, excepted %q", outBytes, helloWorld)
+	}
+}
 
 func TestEncryptDecryptX25519(t *testing.T) {
 	a, err := age.GenerateX25519Identity()

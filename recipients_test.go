@@ -12,6 +12,43 @@ import (
 	"filippo.io/age"
 )
 
+func TestMLKEMRoundTrip(t *testing.T) {
+	i, err := age.GenerateMLKEMIdentity()
+	if err != nil {
+		t.Fatal(err)
+	}
+	r := i.Recipient()
+
+	if r1, err := age.ParseMLKEMRecipient(r.String()); err != nil {
+		t.Fatal(err)
+	} else if r1.String() != r.String() {
+		t.Errorf("recipient did not round-trip through parsing: got %q, want %q", r1, r)
+	}
+	if i1, err := age.ParseMLKEMIdentity(i.String()); err != nil {
+		t.Fatal(err)
+	} else if i1.String() != i.String() {
+		t.Errorf("identity did not round-trip through parsing: got %q, want %q", i1, i)
+	}
+
+	fileKey := make([]byte, 16)
+	if _, err := rand.Read(fileKey); err != nil {
+		t.Fatal(err)
+	}
+	stanzas, err := r.Wrap(fileKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	out, err := i.Unwrap(stanzas)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !bytes.Equal(fileKey, out) {
+		t.Errorf("invalid output: %x, expected %x", out, fileKey)
+	}
+}
+
 func TestX25519RoundTrip(t *testing.T) {
 	i, err := age.GenerateX25519Identity()
 	if err != nil {
