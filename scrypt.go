@@ -27,7 +27,7 @@ const scryptLabel = "age-encryption.org/v1/scrypt"
 // for the same file.
 //
 // Its use is not recommended for automated systems, which should prefer
-// X25519Recipient.
+// [HybridRecipient] or [X25519Recipient].
 type ScryptRecipient struct {
 	password   []byte
 	workFactor int

@@ -1,0 +1,25 @@
+exec age-keygen
+stdout '# created: 20'
+stdout '# public key: age1'
+stdout 'AGE-SECRET-KEY-1'
+stderr 'Public key: age1'
+
+exec age-keygen -pq
+stdout '# created: 20'
+stdout '# public key: age1pq1'
+stdout 'AGE-SECRET-KEY-PQ-1'
+stderr 'Public key: age1pq1'
+
+exec age-keygen -pq -o key.txt
+! stdout .
+stderr 'Public key: age1pq1'
+grep '# created: 20' key.txt
+grep '# public key: age1pq1' key.txt
+grep 'AGE-SECRET-KEY-PQ-1' key.txt
+
+stdin key.txt
+exec age-keygen -y
+stdout age1pq1
+
+exec age-keygen -y key.txt
+stdout age1pq1

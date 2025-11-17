@@ -12,7 +12,7 @@
 
 age is a simple, modern and secure file encryption tool, format, and Go library.
 
-It features small explicit keys, no config options, and UNIX-style composability.
+It features small explicit keys, post-quantum support, no config options, and UNIX-style composability.
 
 ```
 $ age-keygen -o key.txt
@@ -25,13 +25,13 @@ $ age --decrypt -i key.txt data.tar.gz.age > data.tar.gz
 
 🦀 An alternative interoperable Rust implementation is available at [github.com/str4d/rage](https://github.com/str4d/rage).
 
-🌍 [Typage](https://github.com/FiloSottile/typage) is a TypeScript implementation. It works in the browser, in Node.js, and in Bun.
+🌍 [Typage](https://github.com/FiloSottile/typage) is a TypeScript implementation. It works in the browser, Node.js, Deno, and Bun.
 
 🔑 Hardware PIV tokens such as YubiKeys are supported through the [age-plugin-yubikey](https://github.com/str4d/age-plugin-yubikey) plugin.
 
 ✨ For more plugins, implementations, tools, and integrations, check out the [awesome age](https://github.com/FiloSottile/awesome-age) list.
 
-💬 The author pronounces it `[aɡe̞]` [with a hard *g*](https://translate.google.com/?sl=it&text=aghe), like GIF, and is always spelled lowercase.
+💬 The author pronounces it `[aɡe̞]` [with a hard *g*](https://translate.google.com/?sl=it&text=aghe), like GIF, and it's always spelled lowercase.
 
 ## Installation
 
@@ -228,6 +228,28 @@ $ age -R recipients.txt example.jpg > example.jpg.age
 ```
 
 If the argument to `-R` (or `-i`) is `-`, the file is read from standard input.
+
+### Post-quantum keys
+
+To generate hybrid post-quantum keys, which are secure against future quantum
+computer attacks, use the `-pq` flag with `age-keygen`. This may become the
+default in the future.
+
+Post-quantum identities start with `AGE-SECRET-KEY-PQ-1...` and recipients with
+`age1pq1...`. The recipients are unfortunately ~2000 characters long.
+
+```
+$ age-keygen -pq -o key.txt
+$ age-keygen -y key.txt > recipient.txt
+$ age -R recipient.txt example.jpg > example.jpg.age
+$ age -d -i key.txt example.jpg.age > example.jpg
+```
+
+Support for post-quantum keys is built into age v1.3.0 and later. Alternatively,
+the `age-plugin-pq` binary can be installed and placed in `$PATH` to add support
+to any version and implementation of age that supports plugins. Recipients will
+work out of the box, while identities will have to be converted to plugin
+identities with `age-plugin-pq -identity`.
 
 ### Passphrases
 

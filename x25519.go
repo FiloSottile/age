@@ -21,8 +21,9 @@ import (
 
 const x25519Label = "age-encryption.org/v1/X25519"
 
-// X25519Recipient is the standard age public key. Messages encrypted to this
-// recipient can be decrypted with the corresponding X25519Identity.
+// X25519Recipient is the standard age pre-quantum public key. Messages
+// encrypted to this recipient can be decrypted with the corresponding
+// [X25519Identity]. For post-quantum resistance, use [HybridRecipient].
 //
 // This recipient is anonymous, in the sense that an attacker can't tell from
 // the message alone if it is encrypted to a certain recipient.
@@ -105,8 +106,9 @@ func (r *X25519Recipient) String() string {
 	return s
 }
 
-// X25519Identity is the standard age private key, which can decrypt messages
-// encrypted to the corresponding X25519Recipient.
+// X25519Identity is the standard pre-quantum age private key, which can decrypt
+// messages encrypted to the corresponding [X25519Recipient]. For post-quantum
+// resistance, use [HybridIdentity].
 type X25519Identity struct {
 	secretKey, ourPublicKey []byte
 }

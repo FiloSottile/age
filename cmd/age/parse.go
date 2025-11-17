@@ -33,6 +33,8 @@ func parseRecipient(arg string) (age.Recipient, error) {
 	switch {
 	case strings.HasPrefix(arg, "age1tag1") || strings.HasPrefix(arg, "age1tagpq1"):
 		return tag.ParseRecipient(arg)
+	case strings.HasPrefix(arg, "age1pq1"):
+		return age.ParseHybridRecipient(arg)
 	case strings.HasPrefix(arg, "age1") && strings.Count(arg, "1") > 1:
 		return plugin.NewRecipient(arg, pluginTerminalUI)
 	case strings.HasPrefix(arg, "age1"):
@@ -124,8 +126,9 @@ func sshKeyType(s string) (string, bool) {
 }
 
 // parseIdentitiesFile parses a file that contains age or SSH keys. It returns
-// one or more of *age.X25519Identity, *agessh.RSAIdentity, *agessh.Ed25519Identity,
-// *agessh.EncryptedSSHIdentity, or *EncryptedIdentity.
+// one or more of *[age.X25519Identity], *[age.HybridIdentity],
+// *[agessh.RSAIdentity], *[agessh.Ed25519Identity],
+// *[agessh.EncryptedSSHIdentity], or *[EncryptedIdentity].
 func parseIdentitiesFile(name string) ([]age.Identity, error) {
 	var f *os.File
 	if name == "-" {
@@ -204,12 +207,14 @@ func parseIdentity(s string) (age.Identity, error) {
 		return plugin.NewIdentity(s, pluginTerminalUI)
 	case strings.HasPrefix(s, "AGE-SECRET-KEY-1"):
 		return age.ParseX25519Identity(s)
+	case strings.HasPrefix(s, "AGE-SECRET-KEY-PQ-1"):
+		return age.ParseHybridIdentity(s)
 	default:
 		return nil, fmt.Errorf("unknown identity type")
 	}
 }
 
-// parseIdentities is like age.ParseIdentities, but supports plugin identities.
+// parseIdentities is like [age.ParseIdentities], but supports plugin identities.
 func parseIdentities(f io.Reader) ([]age.Identity, error) {
 	const privateKeySizeLimit = 1 << 24 // 16 MiB
 	var ids []age.Identity
