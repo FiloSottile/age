@@ -148,20 +148,34 @@ overhead per recipient, plus 16 bytes every 64KiB of plaintext.
 to. `IDENTITIES` are private values, like a private key, that allow decrypting
 a file encrypted to the corresponding `RECIPIENT`.
 
-### Native X25519 keys
+### Native keys
 
 Native `age` key pairs are generated with age-keygen(1), and provide small
-encodings and strong encryption based on X25519. They are the recommended
-recipient type for most applications.
+encodings and strong encryption based on X25519 for classic keys, and X25519 +
+ML-KEM-768 for post-quantum hybrid keys. The post-quantum hybrid keys are secure
+against future quantum computers and are the recommended recipient type for most
+applications.
 
-A `RECIPIENT` encoding begins with `age1` and looks like the following:
+A hybrid `RECIPIENT` encoding begins with `age1pq1` and looks like the following:
+
+    age1pq167[... 1950 more characters ...]
+
+A hybrid `IDENTITY` encoding begins with `AGE-SECRET-KEY-PQ-1` and looks like
+the following:
+
+    AGE-SECRET-KEY-PQ-1K30MYPZAHAXHR22YHH27EGDVLU0QNSUH3DSV7J7NR3X6D9LHXNWSDLTV4T
+
+A classic `RECIPIENT` encoding begins with `age1` and looks like the following:
 
     age1gde3ncmahlqd9gg50tanl99r960llztrhfapnmx853s4tjum03uqfssgdh
 
-An `IDENTITY` encoding begins with `AGE-SECRET-KEY-1` and looks like the
+A classic `IDENTITY` encoding begins with `AGE-SECRET-KEY-1` and looks like the
 following:
 
     AGE-SECRET-KEY-1KTYK6RVLN5TAPE7VF6FQQSKZ9HWWCDSKUGXXNUQDWZ7XXT5YK5LSF3UTKQ
+
+A file can't be encrypted to both post-quantum and classic keys, as that would
+defeat the post-quantum security of the encryption.
 
 An encrypted file can't be linked to the native recipient it's encrypted to
 without access to the corresponding identity.
@@ -243,27 +257,26 @@ by default. In this case, a flag will be provided to force the operation.
 
 ## EXAMPLES
 
-Generate a new identity, encrypt data, and decrypt:
+Generate a new post-quantum identity, encrypt data, and decrypt:
 
-    $ age-keygen -o key.txt
-    Public key: age1ql3z7hjy54pw3hyww5ayyfg7zqgvc7w3j2elw8zmrj2kg5sfn9aqmcac8p
+    $ age-keygen -pq -o key.txt
+    Public key: age1pq167[... 1950 more characters ...]
 
-    $ tar cvz ~/data | age -r age1ql3z7hjy54pw3hyww5ayyfg7zqgvc7w3j2elw8zmrj2kg5sfn9aqmcac8p > data.tar.gz.age
+    $ tar cvz ~/data | age -r age1pq167[...] > data.tar.gz.age
 
     $ age -d -o data.tar.gz -i key.txt data.tar.gz.age
 
 Encrypt `example.jpg` to multiple recipients and output to `example.jpg.age`:
 
-    $ age -o example.jpg.age -r age1ql3z7hjy54pw3hyww5ayyfg7zqgvc7w3j2elw8zmrj2kg5sfn9aqmcac8p \
-        -r age1lggyhqrw2nlhcxprm67z43rta597azn8gknawjehu9d9dl0jq3yqqvfafg example.jpg
+    $ age -o example.jpg.age -r age1pq167[...] -r age1pq1e3[...] example.jpg
 
 Encrypt to a list of recipients:
 
     $ cat > recipients.txt
     # Alice
-    age1ql3z7hjy54pw3hyww5ayyfg7zqgvc7w3j2elw8zmrj2kg5sfn9aqmcac8p
+    age1pq167[... 1950 more characters ...]
     # Bob
-    age1lggyhqrw2nlhcxprm67z43rta597azn8gknawjehu9d9dl0jq3yqqvfafg
+    age1pq1e3[... 1950 more characters ...]
 
     $ age -R recipients.txt example.jpg > example.jpg.age
 

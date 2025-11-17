@@ -6,9 +6,9 @@
 // specification.
 //
 // For most use cases, use the [Encrypt] and [Decrypt] functions with
-// [X25519Recipient] and [X25519Identity]. If passphrase encryption is required, use
-// [ScryptRecipient] and [ScryptIdentity]. For compatibility with existing SSH keys
-// use the filippo.io/age/agessh package.
+// [HybridRecipient] and [HybridIdentity]. If passphrase encryption is
+// required, use [ScryptRecipient] and [ScryptIdentity]. For compatibility with
+// existing SSH keys use the filippo.io/age/agessh package.
 //
 // age encrypted files are binary and not malleable. For encoding them as text,
 // use the filippo.io/age/armor package.
@@ -26,13 +26,13 @@
 // There is no default path for age keys. Instead, they should be stored at
 // application-specific paths. The CLI supports files where private keys are
 // listed one per line, ignoring empty lines and lines starting with "#". These
-// files can be parsed with ParseIdentities.
+// files can be parsed with [ParseIdentities].
 //
 // When integrating age into a new system, it's recommended that you only
-// support X25519 keys, and not SSH keys. The latter are supported for manual
-// encryption operations. If you need to tie into existing key management
-// infrastructure, you might want to consider implementing your own Recipient
-// and Identity.
+// support native (X25519 and hybrid) keys, and not SSH keys. The latter are
+// supported for manual encryption operations. If you need to tie into existing
+// key management infrastructure, you might want to consider implementing your
+// own [Recipient] and [Identity].
 //
 // # Backwards compatibility
 //
@@ -52,6 +52,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"slices"
 	"sort"
 
 	"filippo.io/age/internal/format"
@@ -59,7 +60,7 @@ import (
 )
 
 // An Identity is passed to [Decrypt] to unwrap an opaque file key from a
-// recipient stanza. It can be for example a secret key like [X25519Identity], a
+// recipient stanza. It can be for example a secret key like [HybridIdentity], a
 // plugin, or a custom implementation.
 type Identity interface {
 	// Unwrap must return an error wrapping [ErrIncorrectIdentity] if none of
@@ -76,7 +77,7 @@ type Identity interface {
 var ErrIncorrectIdentity = errors.New("incorrect identity for recipient block")
 
 // A Recipient is passed to [Encrypt] to wrap an opaque file key to one or more
-// recipient stanza(s). It can be for example a public key like [X25519Recipient],
+// recipient stanza(s). It can be for example a public key like [HybridRecipient],
 // a plugin, or a custom implementation.
 type Recipient interface {
 	// Most age API users won't need to interact with this method directly, and
@@ -142,7 +143,7 @@ func Encrypt(dst io.Writer, recipients ...Recipient) (io.WriteCloser, error) {
 		if i == 0 {
 			labels = l
 		} else if !slicesEqual(labels, l) {
-			return nil, fmt.Errorf("incompatible recipients")
+			return nil, incompatibleLabelsError(labels, l)
 		}
 		for _, s := range stanzas {
 			hdr.Recipients = append(hdr.Recipients, (*format.Stanza)(s))
@@ -186,6 +187,15 @@ func slicesEqual(s1, s2 []string) bool {
 		}
 	}
 	return true
+}
+
+func incompatibleLabelsError(l1, l2 []string) error {
+	hasPQ1 := slices.Contains(l1, "postquantum")
+	hasPQ2 := slices.Contains(l2, "postquantum")
+	if hasPQ1 != hasPQ2 {
+		return fmt.Errorf("incompatible recipients: can't mix post-quantum and classic recipients, or the file would be vulnerable to quantum computers")
+	}
+	return fmt.Errorf("incompatible recipients: %q and %q can't be mixed", l1, l2)
 }
 
 // NoIdentityMatchError is returned by [Decrypt] when none of the supplied

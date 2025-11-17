@@ -107,3 +107,34 @@ func TestHybridRoundTrip(t *testing.T) {
 		t.Errorf("invalid output: %q, expected %q", out, plaintext)
 	}
 }
+
+func TestTagHybridMixingRestrictions(t *testing.T) {
+	x25519, err := age.GenerateX25519Identity()
+	if err != nil {
+		t.Fatal(err)
+	}
+	tagHybrid := tagtest.NewHybridIdentity(t).Recipient()
+
+	// Hybrid tag recipients can be used together with hybrid recipients.
+	hybrid, err := age.GenerateHybridIdentity()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := age.Encrypt(io.Discard, tagHybrid, hybrid.Recipient()); err != nil {
+		t.Errorf("expected hybrid tag + hybrid to work, got %v", err)
+	}
+
+	// Hybrid tag and X25519 recipients cannot be mixed.
+	if _, err := age.Encrypt(io.Discard, tagHybrid, x25519.Recipient()); err == nil {
+		t.Error("expected hybrid tag mixed with X25519 to fail")
+	}
+	if _, err := age.Encrypt(io.Discard, x25519.Recipient(), tagHybrid); err == nil {
+		t.Error("expected X25519 mixed with hybrid tag to fail")
+	}
+
+	// Classic tag and X25519 recipients can be mixed (both are non-PQ).
+	tagClassic := tagtest.NewClassicIdentity(t).Recipient()
+	if _, err := age.Encrypt(io.Discard, tagClassic, x25519.Recipient()); err != nil {
+		t.Errorf("expected classic tag + X25519 to work, got %v", err)
+	}
+}

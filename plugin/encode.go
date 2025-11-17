@@ -5,10 +5,13 @@
 package plugin
 
 import (
+	"crypto/ecdh"
+	"crypto/mlkem"
 	"fmt"
 	"strings"
 
 	"filippo.io/age/internal/bech32"
+	"filippo.io/hpke"
 )
 
 // EncodeIdentity encodes a plugin identity string for a plugin with the given
@@ -77,4 +80,29 @@ func validPluginName(name string) bool {
 		}
 	}
 	return true
+}
+
+// EncodeX25519Recipient encodes a native X25519 recipient from a
+// [crypto/ecdh.X25519] public key. It's meant for plugins that implement
+// identities that are compatible with native recipients.
+func EncodeX25519Recipient(pk *ecdh.PublicKey) (string, error) {
+	if pk.Curve() != ecdh.X25519() {
+		return "", fmt.Errorf("wrong ecdh Curve")
+	}
+	return bech32.Encode("age", pk.Bytes())
+}
+
+// EncodeHybridRecipient encodes a native MLKEM768-X25519 recipient from a
+// [crypto/mlkem.EncapsulationKey768] and a [crypto/ecdh.X25519] public key.
+// It's meant for plugins that implement identities that are compatible with
+// native recipients.
+func EncodeHybridRecipient(pq *mlkem.EncapsulationKey768, t *ecdh.PublicKey) (string, error) {
+	if t.Curve() != ecdh.X25519() {
+		return "", fmt.Errorf("wrong ecdh Curve")
+	}
+	pk, err := hpke.NewHybridPublicKey(pq, t)
+	if err != nil {
+		return "", fmt.Errorf("failed to create hybrid public key: %v", err)
+	}
+	return bech32.Encode("age1pq", pk.Bytes())
 }
