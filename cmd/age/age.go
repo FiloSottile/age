@@ -63,11 +63,6 @@ Example:
     $ tar cvz ~/data | age -r age1ql3z7hjy54pw3hyww5ayyfg7zqgvc7w3j2elw8zmrj2kg5sfn9aqmcac8p > data.tar.gz.age
     $ age --decrypt -i key.txt -o data.tar.gz data.tar.gz.age`
 
-// Version can be set at link time to override debug.BuildInfo.Main.Version,
-// which is "(devel)" when building from within the module. See
-// golang.org/issue/29814 and golang.org/issue/29228.
-var Version string
-
 // stdinInUse is used to ensure only one of input, recipients, or identities
 // file is read from stdin. It's a singleton like os.Stdin.
 var stdinInUse bool
@@ -137,10 +132,6 @@ func main() {
 	flag.Parse()
 
 	if versionFlag {
-		if Version != "" {
-			fmt.Println(Version)
-			return
-		}
 		if buildInfo, ok := debug.ReadBuildInfo(); ok {
 			// TODO: use buildInfo.Settings to prepare a pseudoversion such as
 			// v0.0.0-20210817164053-32db794688a5+dirty on Go 1.18+.

@@ -48,11 +48,6 @@ Examples:
     $ age-keygen -y key.txt
     age1ql3z7hjy54pw3hyww5ayyfg7zqgvc7w3j2elw8zmrj2kg5sfn9aqmcac8p`
 
-// Version can be set at link time to override debug.BuildInfo.Main.Version,
-// which is "(devel)" when building from within the module. See
-// golang.org/issue/29814 and golang.org/issue/29228.
-var Version string
-
 func main() {
 	log.SetFlags(0)
 	flag.Usage = func() { fmt.Fprintf(os.Stderr, "%s\n", usage) }
@@ -74,10 +69,6 @@ func main() {
 		errorf("too many arguments")
 	}
 	if versionFlag {
-		if Version != "" {
-			fmt.Println(Version)
-			return
-		}
 		if buildInfo, ok := debug.ReadBuildInfo(); ok {
 			fmt.Println(buildInfo.Main.Version)
 			return

@@ -38,7 +38,7 @@ jobs:
           DIR="$(mktemp -d)"
           mkdir "$DIR/age"
           cp "$RUNNER_TEMP/LICENSE" "$DIR/age"
-          go build -o "$DIR/age" -ldflags "-X main.Version=$VERSION" -trimpath ./cmd/...
+          go build -o "$DIR/age" -trimpath ./cmd/...
           if [ "$GOOS" == "windows" ]; then
             sudo apt-get update && sudo apt-get install -y osslsigncode
             if [ -n "${{ secrets.SIGN_PASS }}" ]; then
