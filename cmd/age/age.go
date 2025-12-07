@@ -181,7 +181,7 @@ func main() {
 		}
 		if armorFlag {
 			errorWithHint("-a/--armor can't be used with -d/--decrypt",
-				"note that armored files are detected automatically")
+				"note that armored files are detected automatically, try again without -a/--armor")
 		}
 		if passFlag {
 			errorWithHint("-p/--passphrase can't be used with -d/--decrypt",
