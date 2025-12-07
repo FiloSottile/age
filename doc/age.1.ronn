@@ -237,6 +237,20 @@ instruct the user to perform encryption with the `-e`/`--encrypt` and
 doesn't make sense (such as a password-encryption plugin) may instruct the user
 to use the `-j` flag.
 
+#### Tagged recipients
+
+`age` can natively encrypt to recipients starting with `age1tag1` (using P-256
+ECDH) or `age1tagpq1` (using the ML-KEM-768 + P-256 post-quantum hybrid). These
+are intended to be the public side of private keys held in hardware.
+
+They are directly supported to avoid the need to install the plugin, which may
+be platform-specific, on the encrypting side.
+
+The tag reduces privacy, by allowing an observer to correlate files with a
+recipient (but not files amongst them without knowledge of the recipient),
+but this is also a desirable property for hardware keys that require user
+interaction for each decryption operation.
+
 ## EXIT STATUS
 
 `age` will exit 0 if and only if encryption or decryption are successful for the
