@@ -285,6 +285,50 @@ func TestLabels(t *testing.T) {
 	}
 }
 
+// testIdentity is a non-native identity that records if Unwrap is called.
+type testIdentity struct {
+	called bool
+}
+
+func (ti *testIdentity) Unwrap(stanzas []*age.Stanza) ([]byte, error) {
+	ti.called = true
+	return nil, age.ErrIncorrectIdentity
+}
+
+func TestDecryptNativeIdentitiesFirst(t *testing.T) {
+	correct, err := age.GenerateX25519Identity()
+	if err != nil {
+		t.Fatal(err)
+	}
+	unrelated, err := age.GenerateX25519Identity()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	buf := &bytes.Buffer{}
+	w, err := age.Encrypt(buf, correct.Recipient())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := w.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	nonNative := &testIdentity{}
+
+	// Pass identities: unrelated native, non-native, correct native.
+	// Native identities should be tried first, so correct should match
+	// before nonNative is ever called.
+	_, err = age.Decrypt(bytes.NewReader(buf.Bytes()), unrelated, nonNative, correct)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if nonNative.called {
+		t.Error("non-native identity was called, but native identities should be tried first")
+	}
+}
+
 func TestDetachedHeader(t *testing.T) {
 	i, err := age.GenerateX25519Identity()
 	if err != nil {

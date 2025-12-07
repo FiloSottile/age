@@ -214,6 +214,7 @@ func (*NoIdentityMatchError) Error() string {
 //
 // It returns a Reader reading the decrypted plaintext of the age file read
 // from src. All identities will be tried until one successfully decrypts the file.
+// Native, non-interactive identities are tried before any other identities.
 //
 // If no identity matches the encrypted file, the returned error will be of type
 // [NoIdentityMatchError].
@@ -240,6 +241,24 @@ func decryptHdr(hdr *format.Header, identities ...Identity) ([]byte, error) {
 	if len(identities) == 0 {
 		return nil, errors.New("no identities specified")
 	}
+	slices.SortStableFunc(identities, func(a, b Identity) int {
+		var aIsNative, bIsNative bool
+		switch a.(type) {
+		case *X25519Identity, *HybridIdentity, *ScryptIdentity:
+			aIsNative = true
+		}
+		switch b.(type) {
+		case *X25519Identity, *HybridIdentity, *ScryptIdentity:
+			bIsNative = true
+		}
+		if aIsNative && !bIsNative {
+			return -1
+		}
+		if !aIsNative && bIsNative {
+			return 1
+		}
+		return 0
+	})
 
 	stanzas := make([]*Stanza, 0, len(hdr.Recipients))
 	for _, s := range hdr.Recipients {
