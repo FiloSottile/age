@@ -1,3 +1,10 @@
+// Package plugin implements the age plugin protocol.
+//
+// [Recipient] and [Indentity] are plugin clients, that execute plugin binaries to
+// perform encryption and decryption operations.
+//
+// [Plugin] is a framework for writing age plugins, that exposes an [age.Recipient]
+// and/or [age.Identity] implementation as a plugin binary.
 package plugin
 
 import (
@@ -71,6 +78,7 @@ func (p *Plugin) RegisterFlags(fs *flag.FlagSet) {
 // If the client supports labels, they will be passed through the protocol.
 //
 // It must be called before [Plugin.Main], and can be called at most once.
+// Otherwise, it panics.
 func (p *Plugin) HandleRecipient(f func(data []byte) (age.Recipient, error)) {
 	if p.recipient != nil {
 		panic("HandleRecipient called twice")
@@ -87,6 +95,7 @@ func (p *Plugin) HandleRecipient(f func(data []byte) (age.Recipient, error)) {
 // If the client supports labels, they will be passed through the protocol.
 //
 // It must be called before [Plugin.Main], and can be called at most once.
+// Otherwise, it panics.
 func (p *Plugin) HandleIdentityAsRecipient(f func(data []byte) (age.Recipient, error)) {
 	if p.idAsRecipient != nil {
 		panic("HandleIdentityAsRecipient called twice")
@@ -99,6 +108,7 @@ func (p *Plugin) HandleIdentityAsRecipient(f func(data []byte) (age.Recipient, e
 // payload.
 //
 // It must be called before [Plugin.Main], and can be called at most once.
+// Otherwise, it panics.
 func (p *Plugin) HandleIdentity(f func(data []byte) (age.Identity, error)) {
 	if p.identity != nil {
 		panic("HandleIdentity called twice")
