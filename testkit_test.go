@@ -9,6 +9,7 @@ package age_test
 
 import (
 	"bytes"
+	"compress/zlib"
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
@@ -55,6 +56,7 @@ type vector struct {
 }
 
 func parseVector(t *testing.T, test []byte) *vector {
+	var z bool
 	v := &vector{file: test}
 	for {
 		line, rest, ok := bytes.Cut(v.file, []byte("\n"))
@@ -105,11 +107,30 @@ func parseVector(t *testing.T, test []byte) *vector {
 			v.identities = append(v.identities, i)
 		case "armored":
 			v.armored = true
+		case "compressed":
+			if value != "zlib" {
+				t.Fatal("invalid test file: unknown compression:", value)
+			}
+			z = true
 		case "comment":
 			t.Log(value)
 		default:
 			t.Fatal("invalid test file: unknown header key:", key)
 		}
+	}
+	if z {
+		r, err := zlib.NewReader(bytes.NewReader(v.file))
+		if err != nil {
+			t.Fatal(err)
+		}
+		b, err := io.ReadAll(r)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := r.Close(); err != nil {
+			t.Fatal(err)
+		}
+		v.file = b
 	}
 	return v
 }

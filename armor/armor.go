@@ -140,6 +140,9 @@ func (r *armoredReader) Read(p []byte) (int, error) {
 	if string(line) == Footer {
 		return 0, r.setErr(drainTrailing())
 	}
+	if len(line) == 0 {
+		return 0, r.setErr(errors.New("empty line in armored data"))
+	}
 	if len(line) > format.ColumnsPerLine {
 		return 0, r.setErr(errors.New("column limit exceeded"))
 	}
