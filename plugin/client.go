@@ -4,7 +4,6 @@
 // license that can be found in the LICENSE file or at
 // https://developers.google.com/open-source/licenses/bsd
 
-// Package plugin implements the age plugin protocol.
 package plugin
 
 import (
@@ -53,6 +52,15 @@ func (r *Recipient) Name() string {
 	return r.name
 }
 
+// String returns the recipient encoding string ("age1name1...") or
+// "<identity-based recipient>" if r was created by [Identity.Recipient].
+func (r *Recipient) String() string {
+	if r.identity {
+		return "<identity-based recipient>"
+	}
+	return r.encoding
+}
+
 func (r *Recipient) Wrap(fileKey []byte) (stanzas []*age.Stanza, err error) {
 	stanzas, _, err = r.WrapWithLabels(fileKey)
 	return
@@ -79,7 +87,7 @@ func (r *Recipient) WrapWithLabels(fileKey []byte) (stanzas []*age.Stanza, label
 	if err := writeStanza(conn, addType, r.encoding); err != nil {
 		return nil, nil, err
 	}
-	if err := writeStanza(conn, fmt.Sprintf("grease-%x", rand.Int())); err != nil {
+	if _, err := writeGrease(conn); err != nil {
 		return nil, nil, err
 	}
 	if err := writeStanzaWithBody(conn, "wrap-file-key", fileKey); err != nil {
@@ -194,6 +202,11 @@ func (i *Identity) Name() string {
 	return i.name
 }
 
+// String returns the identity encoding string ("AGE-PLUGIN-NAME-1...").
+func (i *Identity) String() string {
+	return i.encoding
+}
+
 // Recipient returns a Recipient wrapping this identity. When that Recipient is
 // used to encrypt a file key, the identity encoding is provided as-is to the
 // plugin, which is expected to support encrypting to identities.
@@ -223,7 +236,7 @@ func (i *Identity) Unwrap(stanzas []*age.Stanza) (fileKey []byte, err error) {
 	if err := writeStanza(conn, "add-identity", i.encoding); err != nil {
 		return nil, err
 	}
-	if err := writeStanza(conn, fmt.Sprintf("grease-%x", rand.Int())); err != nil {
+	if _, err := writeGrease(conn); err != nil {
 		return nil, err
 	}
 	for _, rs := range stanzas {
@@ -452,4 +465,19 @@ func writeStanza(conn io.Writer, t string, args ...string) error {
 func writeStanzaWithBody(conn io.Writer, t string, body []byte) error {
 	s := &format.Stanza{Type: t, Body: body}
 	return s.Marshal(conn)
+}
+
+func writeGrease(conn io.Writer) (sent bool, err error) {
+	if rand.Intn(3) == 0 {
+		return false, nil
+	}
+	s := &format.Stanza{Type: fmt.Sprintf("grease-%x", rand.Int())}
+	for i := 0; i < rand.Intn(3); i++ {
+		s.Args = append(s.Args, fmt.Sprintf("%d", rand.Intn(100)))
+	}
+	if rand.Intn(2) == 0 {
+		s.Body = make([]byte, rand.Intn(100))
+		rand.Read(s.Body)
+	}
+	return true, s.Marshal(conn)
 }
