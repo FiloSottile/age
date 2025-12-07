@@ -37,7 +37,7 @@ func printf(format string, v ...interface{}) {
 func errorf(format string, v ...interface{}) {
 	l.Printf("age: error: "+format, v...)
 	l.Printf("age: report unexpected or unhelpful errors at https://filippo.io/age/report")
-	exit(1)
+	os.Exit(1)
 }
 
 func warningf(format string, v ...interface{}) {
@@ -50,21 +50,7 @@ func errorWithHint(error string, hints ...string) {
 		l.Printf("age: hint: %s", hint)
 	}
 	l.Printf("age: report unexpected or unhelpful errors at https://filippo.io/age/report")
-	exit(1)
-}
-
-// If testOnlyPanicInsteadOfExit is true, exit will set testOnlyDidExit and
-// panic instead of calling os.Exit. This way, the wrapper in TestMain can
-// recover the panic and return the exit code only if it was originated in exit.
-var testOnlyPanicInsteadOfExit bool
-var testOnlyDidExit bool
-
-func exit(code int) {
-	if testOnlyPanicInsteadOfExit {
-		testOnlyDidExit = true
-		panic(code)
-	}
-	os.Exit(code)
+	os.Exit(1)
 }
 
 // clearLine clears the current line on the terminal, or opens a new line if

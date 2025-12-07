@@ -99,7 +99,7 @@ func main() {
 
 	if len(os.Args) == 1 {
 		flag.Usage()
-		exit(1)
+		os.Exit(1)
 	}
 
 	var (
