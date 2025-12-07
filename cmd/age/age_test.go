@@ -16,22 +16,15 @@ import (
 )
 
 func TestMain(m *testing.M) {
-	os.Exit(testscript.RunMain(m, map[string]func() int{
-		"age": func() (exitCode int) {
-			testOnlyPanicInsteadOfExit = true
-			defer func() {
-				if testOnlyDidExit {
-					exitCode = recover().(int)
-				}
-			}()
+	testscript.Main(m, map[string]func(){
+		"age": func() {
 			testOnlyConfigureScryptIdentity = func(r *age.ScryptRecipient) {
 				r.SetWorkFactor(10)
 			}
 			testOnlyFixedRandomWord = "four"
 			main()
-			return 0
 		},
-		"age-plugin-test": func() (exitCode int) {
+		"age-plugin-test": func() {
 			p, _ := plugin.New("test")
 			p.HandleRecipient(func(data []byte) (age.Recipient, error) {
 				return testPlugin{}, nil
@@ -39,9 +32,9 @@ func TestMain(m *testing.M) {
 			p.HandleIdentity(func(data []byte) (age.Identity, error) {
 				return testPlugin{}, nil
 			})
-			return p.Main()
+			os.Exit(p.Main())
 		},
-	}))
+	})
 }
 
 type testPlugin struct{}
