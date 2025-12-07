@@ -16,19 +16,20 @@ jobs:
           - {GOOS: linux, GOARCH: amd64}
           - {GOOS: linux, GOARCH: arm, GOARM: 6}
           - {GOOS: linux, GOARCH: arm64}
-          - {GOOS: darwin, GOARCH: amd64}
           - {GOOS: darwin, GOARCH: arm64}
           - {GOOS: windows, GOARCH: amd64}
           - {GOOS: freebsd, GOARCH: amd64}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
+          persist-credentials: false
       - name: Install Go
         uses: actions/setup-go@v5
         with:
           go-version: 1.x
+          cache: false
       - name: Build binary
         run: |
           cp LICENSE "$RUNNER_TEMP/LICENSE"
