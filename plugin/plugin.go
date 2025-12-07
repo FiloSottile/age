@@ -106,6 +106,34 @@ func (p *Plugin) HandleIdentity(f func(data []byte) (age.Identity, error)) {
 	p.identity = f
 }
 
+// HandleRecipientEncoding is like [Plugin.HandleRecipient] but provides the
+// full recipient encoding string to the callback.
+//
+// It allows using functions like ParseRecipient directly.
+func (p *Plugin) HandleRecipientEncoding(f func(recipient string) (age.Recipient, error)) {
+	p.HandleRecipient(func(data []byte) (age.Recipient, error) {
+		return f(EncodeRecipient(p.name, data))
+	})
+}
+
+// HandleIdentityEncodingAsRecipient is like [Plugin.HandleIdentityAsRecipient] but
+// provides the full identity encoding string to the callback.
+func (p *Plugin) HandleIdentityEncodingAsRecipient(f func(identity string) (age.Recipient, error)) {
+	p.HandleIdentityAsRecipient(func(data []byte) (age.Recipient, error) {
+		return f(EncodeIdentity(p.name, data))
+	})
+}
+
+// HandleIdentityEncoding is like [Plugin.HandleIdentity] but provides the
+// full identity encoding string to the callback.
+//
+// It allows using functions like ParseIdentity directly.
+func (p *Plugin) HandleIdentityEncoding(f func(identity string) (age.Identity, error)) {
+	p.HandleIdentity(func(data []byte) (age.Identity, error) {
+		return f(EncodeIdentity(p.name, data))
+	})
+}
+
 // Main runs the plugin protocol. It returns an exit code to pass to os.Exit.
 //
 // It automatically calls [Plugin.RegisterFlags] and [flag.Parse] if they were
