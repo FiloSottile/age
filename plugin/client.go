@@ -52,6 +52,15 @@ func (r *Recipient) Name() string {
 	return r.name
 }
 
+// String returns the recipient encoding string ("age1name1...") or
+// "<identity-based recipient>" if r was created by [Identity.Recipient].
+func (r *Recipient) String() string {
+	if r.identity {
+		return "<identity-based recipient>"
+	}
+	return r.encoding
+}
+
 func (r *Recipient) Wrap(fileKey []byte) (stanzas []*age.Stanza, err error) {
 	stanzas, _, err = r.WrapWithLabels(fileKey)
 	return
@@ -191,6 +200,11 @@ func NewIdentityWithoutData(name string, ui *ClientUI) (*Identity, error) {
 // binary name ("age-plugin-name").
 func (i *Identity) Name() string {
 	return i.name
+}
+
+// String returns the identity encoding string ("AGE-PLUGIN-NAME-1...").
+func (i *Identity) String() string {
+	return i.encoding
 }
 
 // Recipient returns a Recipient wrapping this identity. When that Recipient is
