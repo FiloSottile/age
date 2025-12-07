@@ -13,23 +13,23 @@ jobs:
     name: Ronn
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      - name: Install ronn
-        run: sudo apt-get update && sudo apt-get install -y ronn
-      - name: Run ronn
-        run: bash -O globstar -c 'ronn **/*.ronn'
-      - name: Undo email mangling
-        # rdiscount randomizes the output for no good reason, which causes
-        # changes to always get committed. Sigh.
-        # https://github.com/davidfstr/rdiscount/blob/6b1471ec3/ext/generate.c#L781-L795
-        run: |-
-          for f in doc/*.html; do
-            awk '/Filippo Valsorda/ { $0 = "<p>Filippo Valsorda <a href=\"mailto:age@filippo.io\" data-bare-link=\"true\">age@filippo.io</a></p>" } { print }' "$f" > "$f.tmp"
-            mv "$f.tmp" "$f"
-          done
-      - name: Upload generated files
-        uses: actions/upload-artifact@v4
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: geomys/sandboxed-step@v1.2.1
+        with:
+          persist-workspace-changes: true
+          run: |
+            sudo apt-get update && sudo apt-get install -y ronn
+            bash -O globstar -c 'ronn **/*.ronn'
+            # rdiscount randomizes the output for no good reason, which causes
+            # changes to always get committed. Sigh.
+            # https://github.com/davidfstr/rdiscount/blob/6b1471ec3/ext/generate.c#L781-L795
+            for f in doc/*.html; do
+              awk '/Filippo Valsorda/ { $0 = "<p>Filippo Valsorda <a href=\"mailto:age@filippo.io\" data-bare-link=\"true\">age@filippo.io</a></p>" } { print }' "$f" > "$f.tmp"
+              mv "$f.tmp" "$f"
+            done
+      - uses: actions/upload-artifact@v4
         with:
           name: man-pages
           path: |
@@ -42,10 +42,10 @@ jobs:
       contents: write
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      - name: Download generated files
-        uses: actions/download-artifact@v4
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: true
+      - uses: actions/download-artifact@v4
         with:
           name: man-pages
           path: doc/
