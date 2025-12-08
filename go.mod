@@ -13,7 +13,7 @@ require (
 
 // Test dependencies.
 require (
-	c2sp.org/CCTV/age v0.0.0-20250426113718-46fad5b26cb2
+	c2sp.org/CCTV/age v0.0.0-20251208015420-e9274a7bdbfd
 	github.com/rogpeppe/go-internal v1.14.1
 	golang.org/x/tools v0.39.0 // indirect
 )

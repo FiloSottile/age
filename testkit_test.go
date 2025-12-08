@@ -94,7 +94,11 @@ func parseVector(t *testing.T, test []byte) *vector {
 			}
 			v.fileKey = (*[16]byte)(h)
 		case "identity":
+			var i age.Identity
 			i, err := age.ParseX25519Identity(value)
+			if err != nil {
+				i, err = age.ParseHybridIdentity(value)
+			}
 			if err != nil {
 				t.Fatal(err)
 			}
