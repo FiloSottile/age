@@ -6,8 +6,6 @@ package tagtest
 
 import (
 	"crypto/ecdh"
-	"crypto/hkdf"
-	"crypto/sha256"
 	"crypto/subtle"
 	"fmt"
 	"testing"
@@ -73,7 +71,7 @@ func (i *ClassicIdentity) Unwrap(ss []*age.Stanza) ([]byte, error) {
 			return nil, fmt.Errorf("invalid encrypted file key length: %d", len(s.Body))
 		}
 
-		expTag, err := hkdf.Extract(sha256.New, append(enc, i.k.PublicKey().Bytes()...), []byte("age-encryption.org/p256tag"))
+		expTag, err := i.Recipient().Tag(enc)
 		if err != nil {
 			return nil, fmt.Errorf("failed to compute tag: %v", err)
 		}
@@ -139,7 +137,7 @@ func (i *HybridIdentity) Unwrap(ss []*age.Stanza) ([]byte, error) {
 			return nil, fmt.Errorf("invalid encrypted file key length: %d", len(s.Body))
 		}
 
-		expTag, err := hkdf.Extract(sha256.New, append(enc[1088:], i.k.PublicKey().Bytes()[1184:]...), []byte("age-encryption.org/mlkem768p256tag"))
+		expTag, err := i.Recipient().Tag(enc)
 		if err != nil {
 			return nil, fmt.Errorf("failed to compute tag: %v", err)
 		}
