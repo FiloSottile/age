@@ -18,6 +18,7 @@ import (
 	"crypto/mlkem"
 	"crypto/sha256"
 	"fmt"
+	"slices"
 
 	"filippo.io/age"
 	"filippo.io/age/internal/format"
@@ -63,6 +64,7 @@ func ParseRecipient(s string) (*Recipient, error) {
 }
 
 const compressedPointSize = 1 + 32
+const uncompressedPointSize = 1 + 32 + 32
 
 // NewClassicRecipient returns a new P-256 [Recipient] from a raw public key.
 func NewClassicRecipient(publicKey []byte) (*Recipient, error) {
@@ -100,6 +102,30 @@ func (r *Recipient) Wrap(fileKey []byte) ([]*age.Stanza, error) {
 	return s, err
 }
 
+// Tag computes the 4-byte tag for the given ciphertext enc.
+//
+// This is a low-level method exposed for use by plugins that implement
+// identities compatible with tagged recipients.
+func (r *Recipient) Tag(enc []byte) ([]byte, error) {
+	label, tagRecipient := "age-encryption.org/p256tag", r.Bytes()
+	if r.Hybrid() {
+		label = "age-encryption.org/mlkem768p256tag"
+		// In hybrid mode, the tag is computed over just the P-256 part.
+		tagRecipient = tagRecipient[mlkem.EncapsulationKeySize768:]
+		if len(enc) != mlkem.CiphertextSize768+uncompressedPointSize {
+			return nil, fmt.Errorf("invalid ciphertext size")
+		}
+	} else if len(enc) != uncompressedPointSize {
+		return nil, fmt.Errorf("invalid ciphertext size")
+	}
+	rh := sha256.Sum256(tagRecipient)
+	tag, err := hkdf.Extract(sha256.New, append(slices.Clip(enc), rh[:4]...), []byte(label))
+	if err != nil {
+		return nil, fmt.Errorf("failed to compute tag: %v", err)
+	}
+	return tag[:4], nil
+}
+
 // WrapWithLabels implements [age.RecipientWithLabels], returning a single
 // "postquantum" label if r is a hybrid P-256 + ML-KEM-768 recipient. This
 // ensures a hybrid Recipient can't be mixed with other recipients that would
@@ -122,13 +148,7 @@ func (r *Recipient) WrapWithLabels(fileKey []byte) ([]*age.Stanza, []string, err
 		return nil, nil, fmt.Errorf("failed to encrypt file key: %v", err)
 	}
 
-	tagEnc, tagRecipient := enc, r.pk.Bytes()
-	if r.Hybrid() {
-		// In hybrid mode, the tag is computed over just the P-256 part.
-		tagEnc = enc[mlkem.CiphertextSize768:]
-		tagRecipient = tagRecipient[mlkem.EncapsulationKeySize768:]
-	}
-	tag, err := hkdf.Extract(sha256.New, append(tagEnc, tagRecipient...), []byte(label))
+	tag, err := r.Tag(enc)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to compute tag: %v", err)
 	}
@@ -148,14 +168,22 @@ func (r *Recipient) WrapWithLabels(fileKey []byte) ([]*age.Stanza, []string, err
 	return []*age.Stanza{l}, nil, nil
 }
 
-// String returns the Bech32 public key encoding of r.
-func (r *Recipient) String() string {
+// Bytes returns the raw recipient encoding.
+func (r *Recipient) Bytes() []byte {
 	if r.Hybrid() {
-		return plugin.EncodeRecipient("tagpq", r.pk.Bytes())
+		return r.pk.Bytes()
 	}
 	p, err := nistec.NewP256Point().SetBytes(r.pk.Bytes())
 	if err != nil {
 		panic("internal error: invalid P-256 public key")
 	}
-	return plugin.EncodeRecipient("tag", p.BytesCompressed())
+	return p.BytesCompressed()
+}
+
+// String returns the Bech32 public key encoding of r.
+func (r *Recipient) String() string {
+	if r.Hybrid() {
+		return plugin.EncodeRecipient("tagpq", r.Bytes())
+	}
+	return plugin.EncodeRecipient("tag", r.Bytes())
 }
