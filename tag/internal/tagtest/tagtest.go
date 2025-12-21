@@ -8,7 +8,6 @@ import (
 	"crypto/ecdh"
 	"crypto/subtle"
 	"fmt"
-	"testing"
 
 	"filippo.io/age"
 	"filippo.io/age/internal/format"
@@ -18,16 +17,15 @@ import (
 )
 
 type ClassicIdentity struct {
-	t *testing.T
 	k hpke.PrivateKey
 }
 
 var _ age.Identity = &ClassicIdentity{}
 
-func NewClassicIdentity(t *testing.T) *ClassicIdentity {
-	k, err := hpke.DHKEM(ecdh.P256()).GenerateKey()
+func NewClassicIdentity(seed string) *ClassicIdentity {
+	k, err := hpke.DHKEM(ecdh.P256()).DeriveKeyPair([]byte(seed))
 	if err != nil {
-		t.Fatalf("failed to generate key: %v", err)
+		panic(fmt.Sprintf("failed to generate key: %v", err))
 	}
 	return &ClassicIdentity{k: k}
 }
@@ -36,11 +34,11 @@ func (i *ClassicIdentity) Recipient() *tag.Recipient {
 	uncompressed := i.k.PublicKey().Bytes()
 	p, err := nistec.NewP256Point().SetBytes(uncompressed)
 	if err != nil {
-		i.t.Fatalf("failed to parse public key: %v", err)
+		panic(fmt.Sprintf("failed to parse public key: %v", err))
 	}
 	r, err := tag.NewClassicRecipient(p.BytesCompressed())
 	if err != nil {
-		i.t.Fatalf("failed to create recipient: %v", err)
+		panic(fmt.Sprintf("failed to create recipient: %v", err))
 	}
 	return r
 }
@@ -89,16 +87,15 @@ func (i *ClassicIdentity) Unwrap(ss []*age.Stanza) ([]byte, error) {
 }
 
 type HybridIdentity struct {
-	t *testing.T
 	k hpke.PrivateKey
 }
 
 var _ age.Identity = &HybridIdentity{}
 
-func NewHybridIdentity(t *testing.T) *HybridIdentity {
-	k, err := hpke.MLKEM768P256().GenerateKey()
+func NewHybridIdentity(seed string) *HybridIdentity {
+	k, err := hpke.MLKEM768P256().DeriveKeyPair([]byte(seed))
 	if err != nil {
-		t.Fatalf("failed to generate key: %v", err)
+		panic(fmt.Sprintf("failed to generate key: %v", err))
 	}
 	return &HybridIdentity{k: k}
 }
@@ -106,7 +103,7 @@ func NewHybridIdentity(t *testing.T) *HybridIdentity {
 func (i *HybridIdentity) Recipient() *tag.Recipient {
 	r, err := tag.NewHybridRecipient(i.k.PublicKey().Bytes())
 	if err != nil {
-		i.t.Fatalf("failed to create recipient: %v", err)
+		panic(fmt.Sprintf("failed to create recipient: %v", err))
 	}
 	return r
 }
