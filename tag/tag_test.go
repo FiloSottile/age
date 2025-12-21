@@ -15,7 +15,7 @@ import (
 )
 
 func TestClassicRoundTrip(t *testing.T) {
-	i := tagtest.NewClassicIdentity(t)
+	i := tagtest.NewClassicIdentity("test")
 	r := i.Recipient()
 
 	if r.Hybrid() {
@@ -62,7 +62,7 @@ func TestClassicRoundTrip(t *testing.T) {
 }
 
 func TestHybridRoundTrip(t *testing.T) {
-	i := tagtest.NewHybridIdentity(t)
+	i := tagtest.NewHybridIdentity("test")
 	r := i.Recipient()
 
 	if !r.Hybrid() {
@@ -113,7 +113,7 @@ func TestTagHybridMixingRestrictions(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	tagHybrid := tagtest.NewHybridIdentity(t).Recipient()
+	tagHybrid := tagtest.NewHybridIdentity("test").Recipient()
 
 	// Hybrid tag recipients can be used together with hybrid recipients.
 	hybrid, err := age.GenerateHybridIdentity()
@@ -133,7 +133,7 @@ func TestTagHybridMixingRestrictions(t *testing.T) {
 	}
 
 	// Classic tag and X25519 recipients can be mixed (both are non-PQ).
-	tagClassic := tagtest.NewClassicIdentity(t).Recipient()
+	tagClassic := tagtest.NewClassicIdentity("test").Recipient()
 	if _, err := age.Encrypt(io.Discard, tagClassic, x25519.Recipient()); err != nil {
 		t.Errorf("expected classic tag + X25519 to work, got %v", err)
 	}
