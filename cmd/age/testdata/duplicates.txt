@@ -1,0 +1,49 @@
+# Test duplicate recipient detection
+age -r age1jh0u9yam5jhql7vy4acz90p0rhqcr0rcyu4zm85s9sdcwrs7rfgshtdg85 -r age1yv2sxrjnyymx4qkn3ehdd5zdq4xnrea5ljm4hsmgxn5tpv985anqkrwqa7 -r age1jh0u9yam5jhql7vy4acz90p0rhqcr0rcyu4zm85s9sdcwrs7rfgshtdg85 -o test.age input
+stderr 'warning: duplicate recipient "age1jh0u9yam5jhql7vy4acz90p0rhqcr0rcyu4zm85s9sdcwrs7rfgshtdg85"'
+
+# Test duplicates separated by different argument
+age -r age1jh0u9yam5jhql7vy4acz90p0rhqcr0rcyu4zm85s9sdcwrs7rfgshtdg85 -a -r age1jh0u9yam5jhql7vy4acz90p0rhqcr0rcyu4zm85s9sdcwrs7rfgshtdg85 -o test2.age input
+stderr 'warning: duplicate recipient "age1jh0u9yam5jhql7vy4acz90p0rhqcr0rcyu4zm85s9sdcwrs7rfgshtdg85"'
+
+# Test duplicate recipients file detection
+age -R recipients1.txt -R recipients2.txt -R recipients1.txt -o test3.age input
+stderr 'warning: duplicate recipients file "recipients1.txt"'
+
+# Test duplicates separated by output flag
+age -R recipients1.txt -o test4.age -R recipients1.txt input
+stderr 'warning: duplicate recipients file "recipients1.txt"'
+
+# First create an encrypted file for decrypt tests
+age -r age1jh0u9yam5jhql7vy4acz90p0rhqcr0rcyu4zm85s9sdcwrs7rfgshtdg85 -o encrypted.age input
+
+# Test duplicate identity file detection (decrypt mode)
+age -d -i key1.txt -i key2.txt -i key1.txt encrypted.age
+stderr 'warning: duplicate identity file "key1.txt"'
+
+# Test duplicates separated by different argument in decrypt mode
+age -d -i key1.txt -o test.out -i key1.txt encrypted.age
+stderr 'warning: duplicate identity file "key1.txt"'
+
+# Test no warning when no duplicates
+age -r age1jh0u9yam5jhql7vy4acz90p0rhqcr0rcyu4zm85s9sdcwrs7rfgshtdg85 -r age1yv2sxrjnyymx4qkn3ehdd5zdq4xnrea5ljm4hsmgxn5tpv985anqkrwqa7 -o test5.age input
+! stderr 'warning: duplicate'
+
+# Test multiple duplicates (same value repeated 3+ times)
+age -r age1jh0u9yam5jhql7vy4acz90p0rhqcr0rcyu4zm85s9sdcwrs7rfgshtdg85 -r age1jh0u9yam5jhql7vy4acz90p0rhqcr0rcyu4zm85s9sdcwrs7rfgshtdg85 -r age1jh0u9yam5jhql7vy4acz90p0rhqcr0rcyu4zm85s9sdcwrs7rfgshtdg85 -o test6.age input
+stderr 'warning: duplicate recipient "age1jh0u9yam5jhql7vy4acz90p0rhqcr0rcyu4zm85s9sdcwrs7rfgshtdg85"'
+
+-- input --
+test data
+-- recipients1.txt --
+age1jh0u9yam5jhql7vy4acz90p0rhqcr0rcyu4zm85s9sdcwrs7rfgshtdg85
+-- recipients2.txt --
+age1yv2sxrjnyymx4qkn3ehdd5zdq4xnrea5ljm4hsmgxn5tpv985anqkrwqa7
+-- key1.txt --
+# created: 2025-12-22T22:06:22+01:00
+# public key: age1jh0u9yam5jhql7vy4acz90p0rhqcr0rcyu4zm85s9sdcwrs7rfgshtdg85
+AGE-SECRET-KEY-1WRM2S8SP3XSKLLXAXS489EXZNKCKRZWYQLQ8D2NRNQWCVAPSMA9SC5JWZQ
+-- key2.txt --
+# created: 2025-12-22T22:06:27+01:00
+# public key: age1yv2sxrjnyymx4qkn3ehdd5zdq4xnrea5ljm4hsmgxn5tpv985anqkrwqa7
+AGE-SECRET-KEY-1WZ3MRPAWEWR4DG474H460MXX7J2T0TEYNJ0SKQDMKP02JU7UJ9UQFGLZCE

@@ -10,10 +10,12 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"iter"
 	"os"
 	"path/filepath"
 	"regexp"
 	"runtime/debug"
+	"slices"
 	"strings"
 
 	"filippo.io/age"
@@ -214,6 +216,16 @@ func main() {
 			errorf("-p/--passphrase can't be combined with -i/--identity and -j")
 		}
 	}
+
+	warnDuplicates(slices.Values(recipientFlags), "recipient")
+	warnDuplicates(slices.Values(recipientsFileFlags), "recipients file")
+	warnDuplicates(func(yield func(string) bool) {
+		for _, f := range identityFlags {
+			if f.Type == "i" && !yield(f.Value) {
+				return
+			}
+		}
+	}, "identity file")
 
 	var inUseFiles []string
 	for _, i := range identityFlags {
@@ -549,4 +561,16 @@ func absPath(name string) string {
 		return abs
 	}
 	return name
+}
+
+func warnDuplicates(s iter.Seq[string], name string) {
+	seen := make(map[string]bool)
+	warned := make(map[string]bool)
+	for e := range s {
+		if seen[e] && !warned[e] {
+			warningf("duplicate %s %q", name, e)
+			warned[e] = true
+		}
+		seen[e] = true
+	}
 }
