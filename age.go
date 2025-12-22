@@ -137,7 +137,7 @@ func Encrypt(dst io.Writer, recipients ...Recipient) (io.WriteCloser, error) {
 	for i, r := range recipients {
 		stanzas, l, err := wrapWithLabels(r, fileKey)
 		if err != nil {
-			return nil, fmt.Errorf("failed to wrap key for recipient #%d: %v", i, err)
+			return nil, fmt.Errorf("failed to wrap key for recipient #%d: %w", i, err)
 		}
 		sort.Strings(l)
 		if i == 0 {
@@ -155,7 +155,7 @@ func Encrypt(dst io.Writer, recipients ...Recipient) (io.WriteCloser, error) {
 		hdr.MAC = mac
 	}
 	if err := hdr.Marshal(dst); err != nil {
-		return nil, fmt.Errorf("failed to write header: %v", err)
+		return nil, fmt.Errorf("failed to write header: %w", err)
 	}
 
 	nonce := make([]byte, streamNonceSize)
@@ -163,7 +163,7 @@ func Encrypt(dst io.Writer, recipients ...Recipient) (io.WriteCloser, error) {
 		return nil, err
 	}
 	if _, err := dst.Write(nonce); err != nil {
-		return nil, fmt.Errorf("failed to write nonce: %v", err)
+		return nil, fmt.Errorf("failed to write nonce: %w", err)
 	}
 
 	return stream.NewWriter(streamKey(fileKey, nonce), dst)
@@ -208,6 +208,10 @@ type NoIdentityMatchError struct {
 
 func (*NoIdentityMatchError) Error() string {
 	return "no identity matched any of the recipients"
+}
+
+func (e *NoIdentityMatchError) Unwrap() []error {
+	return e.Errors
 }
 
 // Decrypt decrypts a file encrypted to one or more identities.

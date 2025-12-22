@@ -76,7 +76,7 @@ func (r *Recipient) WrapWithLabels(fileKey []byte) (stanzas []*age.Stanza, label
 
 	conn, err := openClientConnection(r.name, "recipient-v1")
 	if err != nil {
-		return nil, nil, fmt.Errorf("couldn't start plugin: %v", err)
+		return nil, nil, fmt.Errorf("couldn't start plugin: %w", err)
 	}
 	defer conn.Close()
 
@@ -229,7 +229,7 @@ func (i *Identity) Unwrap(stanzas []*age.Stanza) (fileKey []byte, err error) {
 
 	conn, err := openClientConnection(i.name, "identity-v1")
 	if err != nil {
-		return nil, fmt.Errorf("couldn't start plugin: %v", err)
+		return nil, fmt.Errorf("couldn't start plugin: %w", err)
 	}
 	defer conn.Close()
 
