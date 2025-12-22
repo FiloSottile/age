@@ -253,22 +253,38 @@ overhead per recipient, plus 16 bytes every 64KiB of plaintext.</p>
 to. <code>IDENTITIES</code> are private values, like a private key, that allow decrypting
 a file encrypted to the corresponding <code>RECIPIENT</code>.</p>
 
-<h3 id="Native-X25519-keys">Native X25519 keys</h3>
+<h3 id="Native-keys">Native keys</h3>
 
 <p>Native <code>age</code> key pairs are generated with <a class="man-ref" href="age-keygen.1.html">age-keygen<span class="s">(1)</span></a>, and provide small
-encodings and strong encryption based on X25519. They are the recommended
-recipient type for most applications.</p>
+encodings and strong encryption based on X25519 for classic keys, and X25519 +
+ML-KEM-768 for post-quantum hybrid keys. The post-quantum hybrid keys are secure
+against future quantum computers and are the recommended recipient type for most
+applications.</p>
 
-<p>A <code>RECIPIENT</code> encoding begins with <code>age1</code> and looks like the following:</p>
+<p>A hybrid <code>RECIPIENT</code> encoding begins with <code>age1pq1</code> and looks like the following:</p>
+
+<pre><code>age1pq167[... 1950 more characters ...]
+</code></pre>
+
+<p>A hybrid <code>IDENTITY</code> encoding begins with <code>AGE-SECRET-KEY-PQ-1</code> and looks like
+the following:</p>
+
+<pre><code>AGE-SECRET-KEY-PQ-1K30MYPZAHAXHR22YHH27EGDVLU0QNSUH3DSV7J7NR3X6D9LHXNWSDLTV4T
+</code></pre>
+
+<p>A classic <code>RECIPIENT</code> encoding begins with <code>age1</code> and looks like the following:</p>
 
 <pre><code>age1gde3ncmahlqd9gg50tanl99r960llztrhfapnmx853s4tjum03uqfssgdh
 </code></pre>
 
-<p>An <code>IDENTITY</code> encoding begins with <code>AGE-SECRET-KEY-1</code> and looks like the
+<p>A classic <code>IDENTITY</code> encoding begins with <code>AGE-SECRET-KEY-1</code> and looks like the
 following:</p>
 
 <pre><code>AGE-SECRET-KEY-1KTYK6RVLN5TAPE7VF6FQQSKZ9HWWCDSKUGXXNUQDWZ7XXT5YK5LSF3UTKQ
 </code></pre>
+
+<p>A file can't be encrypted to both post-quantum and classic keys, as that would
+defeat the post-quantum security of the encryption.</p>
 
 <p>An encrypted file can't be linked to the native recipient it's encrypted to
 without access to the corresponding identity.</p>
@@ -331,6 +347,20 @@ instruct the user to perform encryption with the <code>-e</code>/<code>--encrypt
 doesn't make sense (such as a password-encryption plugin) may instruct the user
 to use the <code>-j</code> flag.</p>
 
+<h4 id="Tagged-recipients">Tagged recipients</h4>
+
+<p><code>age</code> can natively encrypt to recipients starting with <code>age1tag1</code> (using P-256
+ECDH) or <code>age1tagpq1</code> (using the ML-KEM-768 + P-256 post-quantum hybrid). These
+are intended to be the public side of private keys held in hardware.</p>
+
+<p>They are directly supported to avoid the need to install the plugin, which may
+be platform-specific, on the encrypting side.</p>
+
+<p>The tag reduces privacy, by allowing an observer to correlate files with a
+recipient (but not files amongst them without knowledge of the recipient),
+but this is also a desirable property for hardware keys that require user
+interaction for each decryption operation.</p>
+
 <h2 id="EXIT-STATUS">EXIT STATUS</h2>
 
 <p><code>age</code> will exit 0 if and only if encryption or decryption are successful for the
@@ -351,29 +381,28 @@ by default. In this case, a flag will be provided to force the operation.</p>
 
 <h2 id="EXAMPLES">EXAMPLES</h2>
 
-<p>Generate a new identity, encrypt data, and decrypt:</p>
+<p>Generate a new post-quantum identity, encrypt data, and decrypt:</p>
 
-<pre><code>$ age-keygen -o key.txt
-Public key: age1ql3z7hjy54pw3hyww5ayyfg7zqgvc7w3j2elw8zmrj2kg5sfn9aqmcac8p
+<pre><code>$ age-keygen -pq -o key.txt
+Public key: age1pq167[... 1950 more characters ...]
 
-$ tar cvz ~/data | age -r age1ql3z7hjy54pw3hyww5ayyfg7zqgvc7w3j2elw8zmrj2kg5sfn9aqmcac8p &gt; data.tar.gz.age
+$ tar cvz ~/data | age -r age1pq167[...] &gt; data.tar.gz.age
 
 $ age -d -o data.tar.gz -i key.txt data.tar.gz.age
 </code></pre>
 
 <p>Encrypt <code>example.jpg</code> to multiple recipients and output to <code>example.jpg.age</code>:</p>
 
-<pre><code>$ age -o example.jpg.age -r age1ql3z7hjy54pw3hyww5ayyfg7zqgvc7w3j2elw8zmrj2kg5sfn9aqmcac8p \
-    -r age1lggyhqrw2nlhcxprm67z43rta597azn8gknawjehu9d9dl0jq3yqqvfafg example.jpg
+<pre><code>$ age -o example.jpg.age -r age1pq167[...] -r age1pq1e3[...] example.jpg
 </code></pre>
 
 <p>Encrypt to a list of recipients:</p>
 
 <pre><code>$ cat &gt; recipients.txt
 # Alice
-age1ql3z7hjy54pw3hyww5ayyfg7zqgvc7w3j2elw8zmrj2kg5sfn9aqmcac8p
+age1pq167[... 1950 more characters ...]
 # Bob
-age1lggyhqrw2nlhcxprm67z43rta597azn8gknawjehu9d9dl0jq3yqqvfafg
+age1pq1e3[... 1950 more characters ...]
 
 $ age -R recipients.txt example.jpg &gt; example.jpg.age
 </code></pre>
@@ -432,7 +461,7 @@ $ age -d -i age-yubikey-identity-388178f3.txt secrets.txt.age
 
   <ol class='man-decor man-foot man foot'>
     <li class='tl'></li>
-    <li class='tc'>June 2024</li>
+    <li class='tc'>December 2025</li>
     <li class='tr'>age(1)</li>
   </ol>
 

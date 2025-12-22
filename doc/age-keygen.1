@@ -1,10 +1,10 @@
 .\" generated with Ronn-NG/v0.9.1
 .\" http://github.com/apjanke/ronn-ng/tree/0.9.1
-.TH "AGE\-KEYGEN" "1" "June 2024" ""
+.TH "AGE\-KEYGEN" "1" "December 2025" ""
 .SH "NAME"
 \fBage\-keygen\fR \- generate age(1) key pairs
 .SH "SYNOPSIS"
-\fBage\-keygen\fR [\fB\-o\fR \fIOUTPUT\fR]
+\fBage\-keygen\fR [\fB\-pq\fR] [\fB\-o\fR \fIOUTPUT\fR]
 .br
 \fBage\-keygen\fR \fB\-y\fR [\fB\-o\fR \fIOUTPUT\fR] [\fIINPUT\fR]
 .br
@@ -13,6 +13,11 @@
 .P
 If the output is not going to a terminal, \fBage\-keygen\fR prints the public key to standard error\.
 .SH "OPTIONS"
+.TP
+\fB\-pq\fR
+Generate a post\-quantum hybrid ML\-KEM\-768 + X25519 key pair\.
+.IP
+In the future, this might become the default\.
 .TP
 \fB\-o\fR, \fB\-\-output\fR=\fIOUTPUT\fR
 Write the identity to \fIOUTPUT\fR instead of standard output\.
@@ -25,7 +30,17 @@ Read an identity file from \fIINPUT\fR or from standard input and output the cor
 \fB\-\-version\fR
 Print the version and exit\.
 .SH "EXAMPLES"
-Generate a new identity:
+Generate a new post\-quantum identity:
+.IP "" 4
+.nf
+$ age\-keygen \-pq
+# created: 2025\-11\-17T13:39:06+01:00
+# public key: age1pq167[\|\.\|\.\|\. 1950 more characters \|\.\|\.\|\.]
+AGE\-SECRET\-KEY\-PQ\-1K30MYPZAHAXHR22YHH27EGDVLU0QNSUH3DSV7J7NR3X6D9LHXNWSDLTV4T
+.fi
+.IP "" 0
+.P
+Generate a new traditional identity:
 .IP "" 4
 .nf
 $ age\-keygen
@@ -35,11 +50,11 @@ AGE\-SECRET\-KEY\-1N9JEPW6DWJ0ZQUDX63F5A03GX8QUW7PXDE39N8UYF82VZ9PC8UFS3M7XA9
 .fi
 .IP "" 0
 .P
-Write a new identity to \fBkey\.txt\fR:
+Write a new post\-quantum identity to \fBkey\.txt\fR:
 .IP "" 4
 .nf
 $ age\-keygen \-o key\.txt
-Public key: age1ql3z7hjy54pw3hyww5ayyfg7zqgvc7w3j2elw8zmrj2kg5sfn9aqmcac8p
+Public key: age1pq1cd[\|\.\|\.\|\. 1950 more characters \|\.\|\.\|\.]
 .fi
 .IP "" 0
 .P
@@ -47,7 +62,7 @@ Convert an identity to a recipient:
 .IP "" 4
 .nf
 $ age\-keygen \-y key\.txt
-age1ql3z7hjy54pw3hyww5ayyfg7zqgvc7w3j2elw8zmrj2kg5sfn9aqmcac8p
+age1pq1cd[\|\.\|\.\|\. 1950 more characters \|\.\|\.\|\.]
 .fi
 .IP "" 0
 .SH "SEE ALSO"

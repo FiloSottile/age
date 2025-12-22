@@ -76,7 +76,7 @@
 </p>
 <h2 id="SYNOPSIS">SYNOPSIS</h2>
 
-<p><code>age-keygen</code> [<code>-o</code> <var>OUTPUT</var>]<br>
+<p><code>age-keygen</code> [<code>-pq</code>] [<code>-o</code> <var>OUTPUT</var>]<br>
 <code>age-keygen</code> <code>-y</code> [<code>-o</code> <var>OUTPUT</var>] [<var>INPUT</var>]<br></p>
 
 <h2 id="DESCRIPTION">DESCRIPTION</h2>
@@ -91,6 +91,11 @@ standard error.</p>
 <h2 id="OPTIONS">OPTIONS</h2>
 
 <dl>
+<dt><code>-pq</code></dt>
+<dd>  Generate a post-quantum hybrid ML-KEM-768 + X25519 key pair.
+
+    <p>In the future, this might become the default.</p>
+</dd>
 <dt>
 <code>-o</code>, <code>--output</code>=<var>OUTPUT</var>
 </dt>
@@ -107,7 +112,15 @@ standard error.</p>
 
 <h2 id="EXAMPLES">EXAMPLES</h2>
 
-<p>Generate a new identity:</p>
+<p>Generate a new post-quantum identity:</p>
+
+<pre><code>$ age-keygen -pq
+# created: 2025-11-17T13:39:06+01:00
+# public key: age1pq167[... 1950 more characters ...]
+AGE-SECRET-KEY-PQ-1K30MYPZAHAXHR22YHH27EGDVLU0QNSUH3DSV7J7NR3X6D9LHXNWSDLTV4T
+</code></pre>
+
+<p>Generate a new traditional identity:</p>
 
 <pre><code>$ age-keygen
 # created: 2021-01-02T15:30:45+01:00
@@ -115,16 +128,16 @@ standard error.</p>
 AGE-SECRET-KEY-1N9JEPW6DWJ0ZQUDX63F5A03GX8QUW7PXDE39N8UYF82VZ9PC8UFS3M7XA9
 </code></pre>
 
-<p>Write a new identity to <code>key.txt</code>:</p>
+<p>Write a new post-quantum identity to <code>key.txt</code>:</p>
 
 <pre><code>$ age-keygen -o key.txt
-Public key: age1ql3z7hjy54pw3hyww5ayyfg7zqgvc7w3j2elw8zmrj2kg5sfn9aqmcac8p
+Public key: age1pq1cd[... 1950 more characters ...]
 </code></pre>
 
 <p>Convert an identity to a recipient:</p>
 
 <pre><code>$ age-keygen -y key.txt
-age1ql3z7hjy54pw3hyww5ayyfg7zqgvc7w3j2elw8zmrj2kg5sfn9aqmcac8p
+age1pq1cd[... 1950 more characters ...]
 </code></pre>
 
 <h2 id="SEE-ALSO">SEE ALSO</h2>
@@ -137,7 +150,7 @@ age1ql3z7hjy54pw3hyww5ayyfg7zqgvc7w3j2elw8zmrj2kg5sfn9aqmcac8p
 
   <ol class='man-decor man-foot man foot'>
     <li class='tl'></li>
-    <li class='tc'>June 2024</li>
+    <li class='tc'>December 2025</li>
     <li class='tr'>age-keygen(1)</li>
   </ol>
 
