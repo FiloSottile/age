@@ -239,7 +239,9 @@ func Parse(input io.Reader) (*Header, io.Reader, error) {
 	rr := bufio.NewReader(input)
 
 	line, err := rr.ReadString('\n')
-	if err != nil {
+	if err == io.EOF {
+		return nil, nil, errorf("file is empty")
+	} else if err != nil {
 		return nil, nil, errorf("failed to read intro: %w", err)
 	}
 	if line != intro {

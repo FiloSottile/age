@@ -15,6 +15,11 @@ age -r age12phkzssndd5axajas2h74vtge62c86xjhd6u9anyanqhzvdg6sps0xthgl -o test.ag
 ! age -d -i key.txt test.age
 stderr 'no identity matched any of the recipients'
 
+# decrypt an empty file
+! age -d -i key.txt empty
+stderr empty
+
+-- empty --
 -- input --
 test
 -- key.txt --
