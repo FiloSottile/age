@@ -1,0 +1,95 @@
+.\" generated with Ronn-NG/v0.9.1
+.\" http://github.com/apjanke/ronn-ng/tree/0.9.1
+.TH "AGE\-INSPECT" "1" "December 2025" ""
+.SH "NAME"
+\fBage\-inspect\fR \- inspect age(1) encrypted files
+.SH "SYNOPSIS"
+\fBage\-inspect\fR [\fB\-\-json\fR] [\fIINPUT\fR]
+.SH "DESCRIPTION"
+\fBage\-inspect\fR reads an age(1) encrypted file from \fIINPUT\fR (or standard input) and displays metadata about it without decrypting\.
+.P
+This includes the recipient types, whether it uses post\-quantum encryption, and a size breakdown of the file components\.
+.SH "OPTIONS"
+.TP
+\fB\-\-json\fR
+Output machine\-readable JSON instead of human\-readable text\.
+.TP
+\fB\-\-version\fR
+Print the version and exit\.
+.SH "JSON FORMAT"
+When \fB\-\-json\fR is specified, the output is a JSON object with these fields:
+.IP "\[ci]" 4
+\fBversion\fR: The age format version (e\.g\., \fB"age\-encryption\.org/v1"\fR)\.
+.IP "\[ci]" 4
+\fBpostquantum\fR: Whether the file uses post\-quantum encryption: \fB"yes"\fR, \fB"no"\fR, or \fB"unknown"\fR\.
+.IP "\[ci]" 4
+\fBarmor\fR: Boolean indicating whether the file is ASCII\-armored\.
+.IP "\[ci]" 4
+\fBstanza_types\fR: Array of recipient stanza type strings (e\.g\., \fB["X25519"]\fR or \fB["mlkem768x25519"]\fR)\.
+.IP "\[ci]" 4
+\fBsizes\fR: Object containing size information in bytes:
+.IP "\[ci]" 4
+\fBheader\fR: Size of the age header\.
+.IP "\[ci]" 4
+\fBarmor\fR: Armor encoding overhead (0 if not armored)\.
+.IP "\[ci]" 4
+\fBoverhead\fR: Stream encryption overhead\.
+.IP "\[ci]" 4
+\fBmin_payload\fR, \fBmax_payload\fR: Payload size bounds (currently always matching)\.
+.IP "\[ci]" 4
+\fBmin_padding\fR, \fBmax_padding\fR: Padding size bounds (currently always 0)\.
+.IP "" 0
+.IP
+The fields add up to the total size of the file\.
+.IP "" 0
+.SH "EXAMPLES"
+Inspect an encrypted file:
+.IP "" 4
+.nf
+$ age\-inspect secrets\.age
+secrets\.age is an age file, version "age\-encryption\.org/v1"\.
+
+This file is encrypted to the following recipient types:
+\- "mlkem768x25519"
+
+This file uses post\-quantum encryption\.
+
+Size breakdown (assuming it decrypts successfully):
+
+    Header                      1627 bytes
+    Encryption overhead           32 bytes
+    Payload                       42 bytes
+                        \-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-
+    Total                       1701 bytes
+
+Tip: for machine\-readable output, use \-\-json\.
+.fi
+.IP "" 0
+.P
+Get JSON output for scripting:
+.IP "" 4
+.nf
+$ age\-inspect \-\-json secrets\.age
+{
+    "version": "age\-encryption\.org/v1",
+    "postquantum": "yes",
+    "armor": false,
+    "stanza_types": [
+        "mlkem768x25519"
+    ],
+    "sizes": {
+        "header": 1627,
+        "armor": 0,
+        "overhead": 32,
+        "min_payload": 42,
+        "max_payload": 42,
+        "min_padding": 0,
+        "max_padding": 0
+    }
+}
+.fi
+.IP "" 0
+.SH "SEE ALSO"
+age(1), age\-keygen(1)
+.SH "AUTHORS"
+Filippo Valsorda \fIage@filippo\.io\fR

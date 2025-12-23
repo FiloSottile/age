@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv='content-type' content='text/html;charset=utf8'>
+  <meta name='generator' content='Ronn-NG/v0.9.1 (http://github.com/apjanke/ronn-ng/tree/0.9.1)'>
+  <title>age-inspect(1) - inspect age(1) encrypted files</title>
+  <style type='text/css' media='all'>
+  /* style: man */
+  body#manpage {margin:0}
+  .mp {max-width:100ex;padding:0 9ex 1ex 4ex}
+  .mp p,.mp pre,.mp ul,.mp ol,.mp dl {margin:0 0 20px 0}
+  .mp h2 {margin:10px 0 0 0}
+  .mp > p,.mp > pre,.mp > ul,.mp > ol,.mp > dl {margin-left:8ex}
+  .mp h3 {margin:0 0 0 4ex}
+  .mp dt {margin:0;clear:left}
+  .mp dt.flush {float:left;width:8ex}
+  .mp dd {margin:0 0 0 9ex}
+  .mp h1,.mp h2,.mp h3,.mp h4 {clear:left}
+  .mp pre {margin-bottom:20px}
+  .mp pre+h2,.mp pre+h3 {margin-top:22px}
+  .mp h2+pre,.mp h3+pre {margin-top:5px}
+  .mp img {display:block;margin:auto}
+  .mp h1.man-title {display:none}
+  .mp,.mp code,.mp pre,.mp tt,.mp kbd,.mp samp,.mp h3,.mp h4 {font-family:monospace;font-size:14px;line-height:1.42857142857143}
+  .mp h2 {font-size:16px;line-height:1.25}
+  .mp h1 {font-size:20px;line-height:2}
+  .mp {text-align:justify;background:#fff}
+  .mp,.mp code,.mp pre,.mp pre code,.mp tt,.mp kbd,.mp samp {color:#131211}
+  .mp h1,.mp h2,.mp h3,.mp h4 {color:#030201}
+  .mp u {text-decoration:underline}
+  .mp code,.mp strong,.mp b {font-weight:bold;color:#131211}
+  .mp em,.mp var {font-style:italic;color:#232221;text-decoration:none}
+  .mp a,.mp a:link,.mp a:hover,.mp a code,.mp a pre,.mp a tt,.mp a kbd,.mp a samp {color:#0000ff}
+  .mp b.man-ref {font-weight:normal;color:#434241}
+  .mp pre {padding:0 4ex}
+  .mp pre code {font-weight:normal;color:#434241}
+  .mp h2+pre,h3+pre {padding-left:0}
+  ol.man-decor,ol.man-decor li {margin:3px 0 10px 0;padding:0;float:left;width:33%;list-style-type:none;text-transform:uppercase;color:#999;letter-spacing:1px}
+  ol.man-decor {width:100%}
+  ol.man-decor li.tl {text-align:left}
+  ol.man-decor li.tc {text-align:center;letter-spacing:4px}
+  ol.man-decor li.tr {text-align:right;float:right}
+  </style>
+</head>
+<!--
+  The following styles are deprecated and will be removed at some point:
+  div#man, div#man ol.man, div#man ol.head, div#man ol.man.
+
+  The .man-page, .man-decor, .man-head, .man-foot, .man-title, and
+  .man-navigation should be used instead.
+-->
+<body id='manpage'>
+  <div class='mp' id='man'>
+
+  <div class='man-navigation' style='display:none'>
+    <a href="#NAME">NAME</a>
+    <a href="#SYNOPSIS">SYNOPSIS</a>
+    <a href="#DESCRIPTION">DESCRIPTION</a>
+    <a href="#OPTIONS">OPTIONS</a>
+    <a href="#JSON-FORMAT">JSON FORMAT</a>
+    <a href="#EXAMPLES">EXAMPLES</a>
+    <a href="#SEE-ALSO">SEE ALSO</a>
+    <a href="#AUTHORS">AUTHORS</a>
+  </div>
+
+  <ol class='man-decor man-head man head'>
+    <li class='tl'>age-inspect(1)</li>
+    <li class='tc'></li>
+    <li class='tr'>age-inspect(1)</li>
+  </ol>
+
+  
+
+<h2 id="NAME">NAME</h2>
+<p class="man-name">
+  <code>age-inspect</code> - <span class="man-whatis">inspect <a class="man-ref" href="age.1.html">age<span class="s">(1)</span></a> encrypted files</span>
+</p>
+<h2 id="SYNOPSIS">SYNOPSIS</h2>
+
+<p><code>age-inspect</code> [<code>--json</code>] [<var>INPUT</var>]</p>
+
+<h2 id="DESCRIPTION">DESCRIPTION</h2>
+
+<p><code>age-inspect</code> reads an <a class="man-ref" href="age.1.html">age<span class="s">(1)</span></a> encrypted file from <var>INPUT</var> (or standard input)
+and displays metadata about it without decrypting.</p>
+
+<p>This includes the recipient types, whether it uses post-quantum encryption,
+and a size breakdown of the file components.</p>
+
+<h2 id="OPTIONS">OPTIONS</h2>
+
+<dl>
+<dt><code>--json</code></dt>
+<dd>  Output machine-readable JSON instead of human-readable text.</dd>
+<dt><code>--version</code></dt>
+<dd>  Print the version and exit.</dd>
+</dl>
+
+<h2 id="JSON-FORMAT">JSON FORMAT</h2>
+
+<p>When <code>--json</code> is specified, the output is a JSON object with these fields:</p>
+
+<ul>
+  <li>
+    <p><code>version</code>:
+  The age format version (e.g., <code>"age-encryption.org/v1"</code>).</p>
+  </li>
+  <li>
+    <p><code>postquantum</code>:
+  Whether the file uses post-quantum encryption: <code>"yes"</code>, <code>"no"</code>, or
+  <code>"unknown"</code>.</p>
+  </li>
+  <li>
+    <p><code>armor</code>:
+  Boolean indicating whether the file is ASCII-armored.</p>
+  </li>
+  <li>
+    <p><code>stanza_types</code>:
+  Array of recipient stanza type strings (e.g., <code>["X25519"]</code> or
+  <code>["mlkem768x25519"]</code>).</p>
+  </li>
+  <li>
+    <p><code>sizes</code>:
+  Object containing size information in bytes:</p>
+
+    <ul>
+      <li>
+<code>header</code>: Size of the age header.</li>
+      <li>
+<code>armor</code>: Armor encoding overhead (0 if not armored).</li>
+      <li>
+<code>overhead</code>: Stream encryption overhead.</li>
+      <li>
+<code>min_payload</code>, <code>max_payload</code>: Payload size bounds (currently always matching).</li>
+      <li>
+<code>min_padding</code>, <code>max_padding</code>: Padding size bounds (currently always 0).</li>
+    </ul>
+
+    <p>The fields add up to the total size of the file.</p>
+  </li>
+</ul>
+
+<h2 id="EXAMPLES">EXAMPLES</h2>
+
+<p>Inspect an encrypted file:</p>
+
+<pre><code>$ age-inspect secrets.age
+secrets.age is an age file, version "age-encryption.org/v1".
+
+This file is encrypted to the following recipient types:
+- "mlkem768x25519"
+
+This file uses post-quantum encryption.
+
+Size breakdown (assuming it decrypts successfully):
+
+    Header                      1627 bytes
+    Encryption overhead           32 bytes
+    Payload                       42 bytes
+                        -------------------
+    Total                       1701 bytes
+
+Tip: for machine-readable output, use --json.
+</code></pre>
+
+<p>Get JSON output for scripting:</p>
+
+<pre><code>$ age-inspect --json secrets.age
+{
+    "version": "age-encryption.org/v1",
+    "postquantum": "yes",
+    "armor": false,
+    "stanza_types": [
+        "mlkem768x25519"
+    ],
+    "sizes": {
+        "header": 1627,
+        "armor": 0,
+        "overhead": 32,
+        "min_payload": 42,
+        "max_payload": 42,
+        "min_padding": 0,
+        "max_padding": 0
+    }
+}
+</code></pre>
+
+<h2 id="SEE-ALSO">SEE ALSO</h2>
+
+<p><a class="man-ref" href="age.1.html">age<span class="s">(1)</span></a>, <a class="man-ref" href="age-keygen.1.html">age-keygen<span class="s">(1)</span></a></p>
+
+<h2 id="AUTHORS">AUTHORS</h2>
+
+<p>Filippo Valsorda <a href="mailto:age@filippo.io" data-bare-link="true">age@filippo.io</a></p>
+
+  <ol class='man-decor man-foot man foot'>
+    <li class='tl'></li>
+    <li class='tc'>December 2025</li>
+    <li class='tr'>age-inspect(1)</li>
+  </ol>
+
+  </div>
+</body>
+</html>
