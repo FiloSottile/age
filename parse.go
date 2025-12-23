@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"strings"
+	"unicode/utf8"
 )
 
 // ParseIdentities parses a file with one or more private key encodings, one per
@@ -31,6 +32,9 @@ func ParseIdentities(f io.Reader) ([]Identity, error) {
 		if strings.HasPrefix(line, "#") || line == "" {
 			continue
 		}
+		if !utf8.ValidString(line) {
+			return nil, fmt.Errorf("identities file is not valid UTF-8")
+		}
 		i, err := parseIdentity(line)
 		if err != nil {
 			return nil, fmt.Errorf("error at line %d: %v", n, err)
@@ -38,10 +42,10 @@ func ParseIdentities(f io.Reader) ([]Identity, error) {
 		ids = append(ids, i)
 	}
 	if err := scanner.Err(); err != nil {
-		return nil, fmt.Errorf("failed to read secret keys file: %v", err)
+		return nil, fmt.Errorf("failed to read identities file: %v", err)
 	}
 	if len(ids) == 0 {
-		return nil, fmt.Errorf("no secret keys found")
+		return nil, fmt.Errorf("no identities found")
 	}
 	return ids, nil
 }
@@ -77,6 +81,9 @@ func ParseRecipients(f io.Reader) ([]Recipient, error) {
 		line := scanner.Text()
 		if strings.HasPrefix(line, "#") || line == "" {
 			continue
+		}
+		if !utf8.ValidString(line) {
+			return nil, fmt.Errorf("recipients file is not valid UTF-8")
 		}
 		r, err := parseRecipient(line)
 		if err != nil {

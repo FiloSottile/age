@@ -11,6 +11,7 @@ import (
 	"io"
 	"os"
 	"strings"
+	"unicode/utf8"
 
 	"filippo.io/age"
 	"filippo.io/age/agessh"
@@ -76,6 +77,9 @@ func parseRecipientsFile(name string) ([]age.Recipient, error) {
 		line := scanner.Text()
 		if strings.HasPrefix(line, "#") || line == "" {
 			continue
+		}
+		if !utf8.ValidString(line) {
+			return nil, fmt.Errorf("%q: recipients file is not valid UTF-8", name)
 		}
 		if len(line) > lineLengthLimit {
 			return nil, fmt.Errorf("%q: line %d is too long", name, n)
@@ -226,19 +230,20 @@ func parseIdentities(f io.Reader) ([]age.Identity, error) {
 		if strings.HasPrefix(line, "#") || line == "" {
 			continue
 		}
-
+		if !utf8.ValidString(line) {
+			return nil, fmt.Errorf("identities file is not valid UTF-8")
+		}
 		i, err := parseIdentity(line)
 		if err != nil {
 			return nil, fmt.Errorf("error at line %d: %v", n, err)
 		}
 		ids = append(ids, i)
-
 	}
 	if err := scanner.Err(); err != nil {
-		return nil, fmt.Errorf("failed to read secret keys file: %v", err)
+		return nil, fmt.Errorf("failed to read identities file: %v", err)
 	}
 	if len(ids) == 0 {
-		return nil, fmt.Errorf("no secret keys found")
+		return nil, fmt.Errorf("no identities found")
 	}
 	return ids, nil
 }
