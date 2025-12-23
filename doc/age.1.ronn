@@ -335,7 +335,7 @@ Encrypt to the SSH keys of a GitHub user:
 
 ## SEE ALSO
 
-age-keygen(1)
+age-keygen(1), age-inspect(1)
 
 ## AUTHORS
 

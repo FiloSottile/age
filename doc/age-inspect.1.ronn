@@ -1,0 +1,102 @@
+age-inspect(1) -- inspect age(1) encrypted files
+====================================================
+
+## SYNOPSIS
+
+`age-inspect` [`--json`] [<INPUT>]
+
+## DESCRIPTION
+
+`age-inspect` reads an age(1) encrypted file from <INPUT> (or standard input)
+and displays metadata about it without decrypting.
+
+This includes the recipient types, whether it uses post-quantum encryption,
+and a size breakdown of the file components.
+
+## OPTIONS
+
+* `--json`:
+    Output machine-readable JSON instead of human-readable text.
+
+* `--version`:
+    Print the version and exit.
+
+## JSON FORMAT
+
+When `--json` is specified, the output is a JSON object with these fields:
+
+* `version`:
+    The age format version (e.g., `"age-encryption.org/v1"`).
+
+* `postquantum`:
+    Whether the file uses post-quantum encryption: `"yes"`, `"no"`, or
+    `"unknown"`.
+
+* `armor`:
+    Boolean indicating whether the file is ASCII-armored.
+
+* `stanza_types`:
+    Array of recipient stanza type strings (e.g., `["X25519"]` or
+    `["mlkem768x25519"]`).
+
+* `sizes`:
+    Object containing size information in bytes:
+
+    * `header`: Size of the age header.
+    * `armor`: Armor encoding overhead (0 if not armored).
+    * `overhead`: Stream encryption overhead.
+    * `min_payload`, `max_payload`: Payload size bounds (currently always matching).
+    * `min_padding`, `max_padding`: Padding size bounds (currently always 0).
+
+    The fields add up to the total size of the file.
+
+## EXAMPLES
+
+Inspect an encrypted file:
+
+    $ age-inspect secrets.age
+    secrets.age is an age file, version "age-encryption.org/v1".
+
+    This file is encrypted to the following recipient types:
+    - "mlkem768x25519"
+
+    This file uses post-quantum encryption.
+
+    Size breakdown (assuming it decrypts successfully):
+
+        Header                      1627 bytes
+        Encryption overhead           32 bytes
+        Payload                       42 bytes
+                            -------------------
+        Total                       1701 bytes
+
+    Tip: for machine-readable output, use --json.
+
+Get JSON output for scripting:
+
+    $ age-inspect --json secrets.age
+    {
+        "version": "age-encryption.org/v1",
+        "postquantum": "yes",
+        "armor": false,
+        "stanza_types": [
+            "mlkem768x25519"
+        ],
+        "sizes": {
+            "header": 1627,
+            "armor": 0,
+            "overhead": 32,
+            "min_payload": 42,
+            "max_payload": 42,
+            "min_padding": 0,
+            "max_padding": 0
+        }
+    }
+
+## SEE ALSO
+
+age(1), age-keygen(1)
+
+## AUTHORS
+
+Filippo Valsorda <age@filippo.io>

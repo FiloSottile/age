@@ -21,6 +21,7 @@ import (
 	"filippo.io/age"
 	"filippo.io/age/armor"
 	"filippo.io/age/internal/format"
+	"filippo.io/age/internal/inspect"
 	"filippo.io/age/internal/stream"
 	"golang.org/x/crypto/chacha20poly1305"
 	"golang.org/x/crypto/hkdf"
@@ -196,6 +197,30 @@ func testVector(t *testing.T, v *vector) {
 	}
 	if sha256.Sum256(out) != *v.payloadHash {
 		t.Error("payload hash mismatch")
+	}
+	for _, fileSize := range []int64{int64(len(v.file)), -1} {
+		metadata, err := inspect.Inspect(bytes.NewReader(v.file), fileSize)
+		if err != nil {
+			t.Fatalf("inspect failed: %v", err)
+		}
+		if metadata.Armor != v.armored {
+			t.Errorf("unexpected armor: %v", metadata.Armor)
+		}
+		if metadata.Armor && metadata.Sizes.Armor == 0 {
+			t.Errorf("expected non-zero armor size")
+		}
+		if metadata.Sizes.Armor+metadata.Sizes.Header+metadata.Sizes.Overhead+metadata.Sizes.MinPayload != int64(len(v.file)) {
+			t.Errorf("size breakdown does not add up to file size")
+		}
+		if metadata.Sizes.MinPayload != int64(len(out)) {
+			t.Errorf("unexpected payload size: got %d, want %d", metadata.Sizes.MinPayload, len(out))
+		}
+		if metadata.Sizes.MaxPayload != metadata.Sizes.MinPayload {
+			t.Errorf("unexpected max payload size: got %d, want %d", metadata.Sizes.MaxPayload, metadata.Sizes.MinPayload)
+		}
+		if metadata.Sizes.MinPadding != 0 || metadata.Sizes.MaxPadding != 0 {
+			t.Errorf("unexpected padding sizes: got min %d max %d, want 0", metadata.Sizes.MinPadding, metadata.Sizes.MaxPadding)
+		}
 	}
 }
 

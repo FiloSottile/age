@@ -62,7 +62,7 @@ Convert an identity to a recipient:
 
 ## SEE ALSO
 
-age(1)
+age(1), age-inspect(1)
 
 ## AUTHORS
 
