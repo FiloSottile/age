@@ -7,8 +7,11 @@
 package plugin
 
 import (
+	"bytes"
+	"errors"
 	"io"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"runtime"
 	"testing"
@@ -106,5 +109,57 @@ func TestLabels(t *testing.T) {
 	}
 	if _, err := age.Encrypt(io.Discard, testPlugin, testPluginPQC); err == nil {
 		t.Errorf("expected one pqc and one normal to fail")
+	}
+}
+
+func TestNotFound(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("Windows support is TODO")
+	}
+
+	r := EncodeRecipient("nonexistentplugin", nil)
+	t.Log(r)
+	testPluginRecipient, err := NewRecipient(r, &ClientUI{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var e *NotFoundError
+	if _, err := age.Encrypt(io.Discard, testPluginRecipient); err == nil {
+		t.Errorf("expected error for nonexistent plugin")
+	} else if !errors.As(err, &e) {
+		t.Errorf("expected NotFoundError, got %T: %v", err, err)
+	} else if e.Name != "nonexistentplugin" {
+		t.Errorf("expected NotFoundError.Name to be nonexistentplugin, got %q", e.Name)
+	} else if !errors.Is(err, exec.ErrNotFound) {
+		t.Errorf("expected error to wrap exec.ErrNotFound, got: %v", err)
+	}
+
+	buf := &bytes.Buffer{}
+	id, err := age.GenerateHybridIdentity()
+	if err != nil {
+		t.Fatal(err)
+	}
+	w, err := age.Encrypt(buf, id.Recipient())
+	if err != nil {
+		t.Fatal(err)
+	}
+	w.Close()
+
+	i := EncodeIdentity("nonexistentplugin", nil)
+	t.Log(i)
+	testPluginIdentity, err := NewIdentity(i, &ClientUI{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := age.Decrypt(buf, testPluginIdentity); err == nil {
+		t.Errorf("expected error for nonexistent plugin")
+	} else if errors.As(err, new(*age.NoIdentityMatchError)) {
+		t.Errorf("expected NotFoundError, got NoIdentityMatchError: %v", err)
+	} else if !errors.As(err, &e) {
+		t.Errorf("expected NotFoundError, got %T: %v", err, err)
+	} else if e.Name != "nonexistentplugin" {
+		t.Errorf("expected NotFoundError.Name to be nonexistentplugin, got %q", e.Name)
+	} else if !errors.Is(err, exec.ErrNotFound) {
+		t.Errorf("expected error to wrap exec.ErrNotFound, got: %v", err)
 	}
 }

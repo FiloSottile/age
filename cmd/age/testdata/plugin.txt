@@ -19,6 +19,12 @@ cp age-plugin-pwn/pwn $TMPDIR/age-plugin-pwn/pwn
 ! age -d -j pwn/pwn test.age
 ! exists pwn
 
+# check plugin not found hint
+! age -r age1nonexistentplugin1pt5d8z -o test1.age
+stderr /awesome#plugins
+! age -d -i nonexistent-identity.txt test.age
+stderr /awesome#plugins
+
 -- input --
 test
 -- key.txt --
@@ -32,3 +38,5 @@ AGE-PLUGIN-PWN/PWN-19GYK4WLY
 -- age-plugin-pwn/pwn --
 #!/bin/sh
 touch "$WORK/pwn"
+-- nonexistent-identity.txt --
+AGE-PLUGIN-NONEXISTENTPLUGIN-1R4XFW4

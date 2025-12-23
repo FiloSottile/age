@@ -9,6 +9,7 @@ package plugin
 import (
 	"bufio"
 	"crypto/rand"
+	"errors"
 	"fmt"
 	"io"
 	mathrand "math/rand/v2"
@@ -402,6 +403,24 @@ type clientConnection struct {
 	close     func()
 }
 
+// NotFoundError is returned by [Recipient.Wrap] and [Identity.Unwrap] when the
+// plugin binary cannot be found.
+type NotFoundError struct {
+	// Name is the plugin (not binary) name.
+	Name string
+	// Err is the underlying error, usually an [exec.Error] wrapping
+	// [exec.ErrNotFound].
+	Err error
+}
+
+func (e *NotFoundError) Error() string {
+	return fmt.Sprintf("%q plugin not found: %v", e.Name, e.Err)
+}
+
+func (e *NotFoundError) Unwrap() error {
+	return e.Err
+}
+
 var testOnlyPluginPath string
 
 func openClientConnection(name, protocol string) (*clientConnection, error) {
@@ -444,6 +463,9 @@ func openClientConnection(name, protocol string) (*clientConnection, error) {
 	cmd.Dir = os.TempDir()
 
 	if err := cmd.Start(); err != nil {
+		if errors.Is(err, exec.ErrNotFound) {
+			return nil, &NotFoundError{Name: name, Err: err}
+		}
 		return nil, err
 	}
 

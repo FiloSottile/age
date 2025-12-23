@@ -7,6 +7,7 @@ package main
 import (
 	"bufio"
 	"bytes"
+	"errors"
 	"flag"
 	"fmt"
 	"io"
@@ -406,7 +407,11 @@ func encrypt(recipients []age.Recipient, in io.Reader, out io.Writer, withArmor 
 		out = a
 	}
 	w, err := age.Encrypt(out, recipients...)
-	if err != nil {
+	if e := new(plugin.NotFoundError); errors.As(err, &e) {
+		errorWithHint(err.Error(),
+			fmt.Sprintf("you might want to install the %q plugin", e.Name),
+			"visit https://age-encryption.org/awesome#plugins for a list of available plugins")
+	} else if err != nil {
 		errorf("%v", err)
 	}
 	if _, err := io.Copy(w, in); err != nil {
@@ -483,7 +488,11 @@ func decrypt(identities []age.Identity, in io.Reader, out io.Writer) {
 	}
 
 	r, err := age.Decrypt(in, identities...)
-	if err != nil {
+	if e := new(plugin.NotFoundError); errors.As(err, &e) {
+		errorWithHint(err.Error(),
+			fmt.Sprintf("you might want to install the %q plugin", e.Name),
+			"visit https://age-encryption.org/awesome#plugins for a list of available plugins")
+	} else if err != nil {
 		errorf("%v", err)
 	}
 	out.Write(nil) // trigger the lazyOpener even if r is empty
