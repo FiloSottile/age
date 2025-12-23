@@ -150,14 +150,20 @@ func (i *ScryptIdentity) Unwrap(stanzas []*Stanza) ([]byte, error) {
 			return nil, errors.New("an scrypt recipient must be the only one")
 		}
 	}
-	return multiUnwrap(i.unwrap, stanzas)
+	for _, s := range stanzas {
+		if s.Type != "scrypt" {
+			continue
+		}
+		return i.unwrap(s)
+	}
+	return nil, fmt.Errorf("%w: file is not passphrase-encrypted", ErrIncorrectIdentity)
 }
 
 var digitsRe = regexp.MustCompile(`^[1-9][0-9]*$`)
 
 func (i *ScryptIdentity) unwrap(block *Stanza) ([]byte, error) {
 	if block.Type != "scrypt" {
-		return nil, ErrIncorrectIdentity
+		return nil, errors.New("internal error: unwrap called on non-scrypt stanza")
 	}
 	if len(block.Args) != 2 {
 		return nil, errors.New("invalid scrypt recipient block")
@@ -200,7 +206,9 @@ func (i *ScryptIdentity) unwrap(block *Stanza) ([]byte, error) {
 	if err == errIncorrectCiphertextSize {
 		return nil, errors.New("invalid scrypt recipient block: incorrect file key size")
 	} else if err != nil {
-		return nil, ErrIncorrectIdentity
+		// Wrap [ErrIncorrectIdentity] so that multiple passphrases can be tried
+		// in sequence by passing multiple [ScryptIdentity] values to [Decrypt].
+		return nil, fmt.Errorf("%w: incorrect passphrase", ErrIncorrectIdentity)
 	}
 	return fileKey, nil
 }

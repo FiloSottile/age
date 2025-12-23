@@ -209,7 +209,10 @@ type NoIdentityMatchError struct {
 	StanzaTypes []string
 }
 
-func (*NoIdentityMatchError) Error() string {
+func (e *NoIdentityMatchError) Error() string {
+	if len(e.Errors) == 1 {
+		return "identity did not match any of the recipients: " + e.Errors[0].Error()
+	}
 	return "no identity matched any of the recipients"
 }
 

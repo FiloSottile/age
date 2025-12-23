@@ -379,6 +379,71 @@ func TestNoIdentityMatchErrorStanzaTypes(t *testing.T) {
 	}
 }
 
+func TestScryptIdentityErrors(t *testing.T) {
+	t.Run("not passphrase-encrypted", func(t *testing.T) {
+		i, err := age.GenerateX25519Identity()
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		buf := &bytes.Buffer{}
+		w, err := age.Encrypt(buf, i.Recipient())
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := w.Close(); err != nil {
+			t.Fatal(err)
+		}
+
+		scryptID, err := age.NewScryptIdentity("password")
+		if err != nil {
+			t.Fatal(err)
+		}
+		_, err = age.Decrypt(bytes.NewReader(buf.Bytes()), scryptID)
+		if err == nil {
+			t.Fatal("expected decryption to fail")
+		}
+		if !errors.Is(err, age.ErrIncorrectIdentity) {
+			t.Errorf("expected ErrIncorrectIdentity, got %v", err)
+		}
+		if !strings.Contains(err.Error(), "not passphrase-encrypted") {
+			t.Errorf("expected error to mention 'not passphrase-encrypted', got %v", err)
+		}
+	})
+
+	t.Run("incorrect passphrase", func(t *testing.T) {
+		r, err := age.NewScryptRecipient("correct-password")
+		if err != nil {
+			t.Fatal(err)
+		}
+		r.SetWorkFactor(10) // Low for fast test
+
+		buf := &bytes.Buffer{}
+		w, err := age.Encrypt(buf, r)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := w.Close(); err != nil {
+			t.Fatal(err)
+		}
+
+		scryptID, err := age.NewScryptIdentity("wrong-password")
+		if err != nil {
+			t.Fatal(err)
+		}
+		_, err = age.Decrypt(bytes.NewReader(buf.Bytes()), scryptID)
+		if err == nil {
+			t.Fatal("expected decryption to fail")
+		}
+		if !errors.Is(err, age.ErrIncorrectIdentity) {
+			t.Errorf("expected ErrIncorrectIdentity, got %v", err)
+		}
+		if !strings.Contains(err.Error(), "incorrect passphrase") {
+			t.Errorf("expected error to mention 'incorrect passphrase', got %v", err)
+		}
+	})
+}
+
 func TestDetachedHeader(t *testing.T) {
 	i, err := age.GenerateX25519Identity()
 	if err != nil {
