@@ -654,7 +654,7 @@ func expectUnsupported(sr *format.StanzaReader) error {
 func (p *Plugin) writeError(args []string, err error) error {
 	s := &format.Stanza{Type: "error", Args: args}
 	s.Body = []byte(err.Error())
-	if err := s.Marshal(p.stderr); err != nil {
+	if err := s.Marshal(p.stdout); err != nil {
 		return fmt.Errorf("failed to write error stanza: %v", err)
 	}
 	if err := expectOk(p.sr); err != nil {

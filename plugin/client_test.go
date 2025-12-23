@@ -14,6 +14,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"testing"
 
 	"filippo.io/age"
@@ -32,6 +33,15 @@ func TestMain(m *testing.M) {
 		p, _ := New("testpqc")
 		p.HandleRecipient(func(data []byte) (age.Recipient, error) {
 			return testPQCRecipient{}, nil
+		})
+		os.Exit(p.Main())
+	case "age-plugin-error":
+		p, _ := New("error")
+		p.HandleRecipient(func(data []byte) (age.Recipient, error) {
+			return nil, errors.New("oh my, an error occurred")
+		})
+		p.HandleIdentity(func(data []byte) (age.Identity, error) {
+			return nil, errors.New("oh my, an error occurred")
 		})
 		os.Exit(p.Main())
 	default:
@@ -161,5 +171,57 @@ func TestNotFound(t *testing.T) {
 		t.Errorf("expected NotFoundError.Name to be nonexistentplugin, got %q", e.Name)
 	} else if !errors.Is(err, exec.ErrNotFound) {
 		t.Errorf("expected error to wrap exec.ErrNotFound, got: %v", err)
+	}
+}
+
+func TestPluginError(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("Windows support is TODO")
+	}
+	temp := t.TempDir()
+	testOnlyPluginPath = temp
+	t.Cleanup(func() { testOnlyPluginPath = "" })
+	ex, err := os.Executable()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Link(ex, filepath.Join(temp, "age-plugin-error")); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chmod(filepath.Join(temp, "age-plugin-error"), 0755); err != nil {
+		t.Fatal(err)
+	}
+
+	r := EncodeRecipient("error", nil)
+	testPluginRecipient, err := NewRecipient(r, &ClientUI{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := age.Encrypt(io.Discard, testPluginRecipient); err == nil {
+		t.Errorf("expected error from plugin")
+	} else if !strings.Contains(err.Error(), "oh my, an error occurred") {
+		t.Errorf("expected plugin error, got: %v", err)
+	}
+
+	buf := &bytes.Buffer{}
+	id, err := age.GenerateHybridIdentity()
+	if err != nil {
+		t.Fatal(err)
+	}
+	w, err := age.Encrypt(buf, id.Recipient())
+	if err != nil {
+		t.Fatal(err)
+	}
+	w.Close()
+
+	i := EncodeIdentity("error", nil)
+	testPluginIdentity, err := NewIdentity(i, &ClientUI{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := age.Decrypt(buf, testPluginIdentity); err == nil {
+		t.Errorf("expected error from plugin")
+	} else if !strings.Contains(err.Error(), "oh my, an error occurred") {
+		t.Errorf("expected plugin error, got: %v", err)
 	}
 }
