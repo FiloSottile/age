@@ -466,7 +466,7 @@ func decryptPass(in io.Reader, out io.Writer) {
 	identities := []age.Identity{
 		// If there is an scrypt recipient (it will have to be the only one and)
 		// this identity will be invoked.
-		&LazyScryptIdentity{passphrasePromptForDecryption},
+		lazyScryptIdentity,
 	}
 
 	decrypt(identities, in, out)
@@ -492,6 +492,10 @@ func decrypt(identities []age.Identity, in io.Reader, out io.Writer) {
 		errorWithHint(err.Error(),
 			fmt.Sprintf("you might want to install the %q plugin", e.Name),
 			"visit https://age-encryption.org/awesome#plugins for a list of available plugins")
+	} else if errors.As(err, new(*age.NoIdentityMatchError)) &&
+		len(identities) == 1 && identities[0] == lazyScryptIdentity {
+		errorWithHint("the file is not passphrase-encrypted, identities are required",
+			"specify identities with -i/--identity or -j to decrypt this file")
 	} else if err != nil {
 		errorf("%v", err)
 	}
@@ -500,6 +504,8 @@ func decrypt(identities []age.Identity, in io.Reader, out io.Writer) {
 		errorf("%v", err)
 	}
 }
+
+var lazyScryptIdentity = &LazyScryptIdentity{passphrasePromptForDecryption}
 
 func passphrasePromptForDecryption() (string, error) {
 	pass, err := readSecret("Enter passphrase:")

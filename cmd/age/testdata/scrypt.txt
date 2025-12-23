@@ -42,6 +42,11 @@ ttyin wrong
 stderr 'passphrases didn''t match'
 ! exists fail.age
 
+# fail when -i is missing
+age -r age1xmwwc06ly3ee5rytxm9mflaz2u56jjj36s0mypdrwsvlul66mv4q47ryef -o test.age input
+! age -d test.age
+stderr 'file is not passphrase-encrypted, identities are required'
+
 -- terminal --
 password
 password
