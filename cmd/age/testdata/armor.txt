@@ -1,0 +1,21 @@
+age -d -i key.txt armored_with_leading_and_trailing_whitespace.txt
+stdout test
+
+-- key.txt --
+# created: 2025-12-23T22:21:12+01:00
+# public key: age15w9kgvgggmfra4sz6vk39kz4mveuq2sfv5vmcu090y0k2sluepaqv7z2fv
+AGE-SECRET-KEY-18J6FVYJE2AFSJ0RPH6M29GMUU62UVRSCNWUJZSGETH6R38Q5AZ3S2DHAZ9
+
+-- armored_with_leading_and_trailing_whitespace.txt --
+
+   
+
+-----BEGIN AGE ENCRYPTED FILE-----
+YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSA5ODhFNHR6RVg0SGVHZFBM
+clBEclEzZ3NvOGhqVE9tcFZnbTc2c3R5a0Q4ClZjVzBLNjdxRElZV3E0Z3ZpZ255
+T3JWTFBHRFA2cytpWWtkeU45dDRadmcKLS0tIHV3L3hOVmJjL0hMRXBQa05lMlRs
+ZW45TndPeE9GcmRNeWFkR3YxeHg0YzQKJBp6KRlFFUE8jbAQUBlcAwaaQcPAflJD
+pWGoOjYP33gTxJHNPg==
+-----END AGE ENCRYPTED FILE-----
+
+   
