@@ -204,6 +204,9 @@ type NoIdentityMatchError struct {
 	// Errors is a slice of all the errors returned to Decrypt by the Unwrap
 	// calls it made. They all wrap [ErrIncorrectIdentity].
 	Errors []error
+	// StanzaTypes are the first argument of each recipient stanza in the
+	// encrypted file's header.
+	StanzaTypes []string
 }
 
 func (*NoIdentityMatchError) Error() string {
@@ -265,10 +268,11 @@ func decryptHdr(hdr *format.Header, identities ...Identity) ([]byte, error) {
 	})
 
 	stanzas := make([]*Stanza, 0, len(hdr.Recipients))
+	errNoMatch := &NoIdentityMatchError{}
 	for _, s := range hdr.Recipients {
+		errNoMatch.StanzaTypes = append(errNoMatch.StanzaTypes, s.Type)
 		stanzas = append(stanzas, (*Stanza)(s))
 	}
-	errNoMatch := &NoIdentityMatchError{}
 	var fileKey []byte
 	for _, id := range identities {
 		var err error

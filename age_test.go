@@ -6,10 +6,12 @@ package age_test
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"log"
 	"os"
+	"slices"
 	"strings"
 	"testing"
 
@@ -326,6 +328,54 @@ func TestDecryptNativeIdentitiesFirst(t *testing.T) {
 
 	if nonNative.called {
 		t.Error("non-native identity was called, but native identities should be tried first")
+	}
+}
+
+type stanzaTypeRecipient string
+
+func (s stanzaTypeRecipient) Wrap(fileKey []byte) ([]*age.Stanza, error) {
+	return []*age.Stanza{{Type: string(s)}}, nil
+}
+
+func TestNoIdentityMatchErrorStanzaTypes(t *testing.T) {
+	a, err := age.GenerateX25519Identity()
+	if err != nil {
+		t.Fatal(err)
+	}
+	b, err := age.GenerateX25519Identity()
+	if err != nil {
+		t.Fatal(err)
+	}
+	wrong, err := age.GenerateX25519Identity()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	buf := &bytes.Buffer{}
+	w, err := age.Encrypt(buf, a.Recipient(), stanzaTypeRecipient("other"), b.Recipient())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := io.WriteString(w, helloWorld); err != nil {
+		t.Fatal(err)
+	}
+	if err := w.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = age.Decrypt(bytes.NewReader(buf.Bytes()), wrong)
+	if err == nil {
+		t.Fatal("expected decryption to fail")
+	}
+
+	var noMatch *age.NoIdentityMatchError
+	if !errors.As(err, &noMatch) {
+		t.Fatalf("expected NoIdentityMatchError, got %T: %v", err, err)
+	}
+
+	want := []string{"X25519", "other", "X25519"}
+	if !slices.Equal(noMatch.StanzaTypes, want) {
+		t.Errorf("StanzaTypes = %v, want %v", noMatch.StanzaTypes, want)
 	}
 }
 
