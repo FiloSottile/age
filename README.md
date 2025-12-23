@@ -305,3 +305,28 @@ $ curl https://github.com/benjojo.keys | age -R - example.jpg > example.jpg.age
 ```
 
 Keep in mind that people might not protect SSH keys long-term, since they are revokable when used only for authentication, and that SSH keys held on YubiKeys can't be used to decrypt files.
+
+### Inspecting encrypted files
+
+The `age-inspect` command can display metadata about an encrypted file without decrypting it, including the recipient types, whether it uses post-quantum encryption, and the payload size.
+
+```
+$ age-inspect secrets.age
+secrets.age is an age file, version "age-encryption.org/v1".
+
+This file is encrypted to the following recipient types:
+  - "mlkem768x25519"
+
+This file uses post-quantum encryption.
+
+Size breakdown (assuming it decrypts successfully):
+
+    Header                      1627 bytes
+    Encryption overhead           32 bytes
+    Payload                       42 bytes
+                        -------------------
+    Total                       1701 bytes
+
+```
+
+For scripting, use `--json` to get machine-readable output.
