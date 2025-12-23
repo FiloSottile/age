@@ -91,6 +91,9 @@ func parseRecipientsFile(name string) ([]age.Recipient, error) {
 				warningf("recipients file %q: ignoring unsupported SSH key of type %q at line %d", name, t, n)
 				continue
 			}
+			if strings.HasPrefix(line, "AGE-") {
+				return nil, fmt.Errorf("%q: error at line %d: apparent identity found in recipients file", name, n)
+			}
 			// Hide the error since it might unintentionally leak the contents
 			// of confidential files.
 			return nil, fmt.Errorf("%q: malformed recipient at line %d", name, n)
@@ -235,6 +238,9 @@ func parseIdentities(f io.Reader) ([]age.Identity, error) {
 		}
 		i, err := parseIdentity(line)
 		if err != nil {
+			if strings.HasPrefix(line, "age1") {
+				return nil, fmt.Errorf("error at line %d: apparent recipient found in identities file", n)
+			}
 			return nil, fmt.Errorf("error at line %d: %v", n, err)
 		}
 		ids = append(ids, i)

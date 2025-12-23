@@ -87,9 +87,7 @@ func ParseRecipients(f io.Reader) ([]Recipient, error) {
 		}
 		r, err := parseRecipient(line)
 		if err != nil {
-			// Hide the error since it might unintentionally leak the contents
-			// of confidential files.
-			return nil, fmt.Errorf("malformed recipient at line %d", n)
+			return nil, fmt.Errorf("error at line %d: %v", n, err)
 		}
 		recs = append(recs, r)
 	}
