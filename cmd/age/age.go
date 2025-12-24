@@ -440,8 +440,7 @@ func (rejectScryptIdentity) Unwrap(stanzas []*age.Stanza) ([]byte, error) {
 }
 
 func decryptNotPass(flags identityFlags, in io.Reader, out io.Writer) {
-	identities := []age.Identity{rejectScryptIdentity{}}
-
+	var identities []age.Identity
 	for _, f := range flags {
 		switch f.Type {
 		case "i":
@@ -458,7 +457,7 @@ func decryptNotPass(flags identityFlags, in io.Reader, out io.Writer) {
 			identities = append(identities, id)
 		}
 	}
-
+	identities = append(identities, rejectScryptIdentity{})
 	decrypt(identities, in, out)
 }
 

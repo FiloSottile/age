@@ -1,0 +1,54 @@
+# encrypt and decrypt with AGE_PASSPHRASE
+env AGE_PASSPHRASE_WORK_FACTOR=5
+env AGE_PASSPHRASE=password
+age -e -j batchpass -o test.age input
+age -d -j batchpass test.age
+cmp stdout input
+
+# decrypt with AGE_PASSPHRASE_MAX_WORK_FACTOR
+env AGE_PASSPHRASE_MAX_WORK_FACTOR=10
+age -d -j batchpass test.age
+cmp stdout input
+
+# AGE_PASSPHRASE_MAX_WORK_FACTOR lower than work factor
+env AGE_PASSPHRASE_MAX_WORK_FACTOR=3
+! age -d -j batchpass test.age
+stderr 'work factor'
+env AGE_PASSPHRASE_MAX_WORK_FACTOR=
+
+# error: both AGE_PASSPHRASE and AGE_PASSPHRASE_FD set
+env AGE_PASSPHRASE=password
+env AGE_PASSPHRASE_FD=3
+! age -e -j batchpass -a input
+stderr 'mutually exclusive'
+
+# error: neither AGE_PASSPHRASE nor AGE_PASSPHRASE_FD set
+env AGE_PASSPHRASE=
+env AGE_PASSPHRASE_FD=
+! age -e -j batchpass -a test.age
+stderr 'must be set'
+
+# error: incorrect passphrase
+env AGE_PASSPHRASE=wrongpassword
+! age -d -j batchpass test.age
+stderr 'incorrect passphrase'
+
+# error: encrypting to other recipients along with passphrase
+env AGE_PASSPHRASE=password
+! age -e -j batchpass -r age1gc2zwslg9j25pg9e9ld7623aewc2gjzquzgq90m75r75myqdt5cq3yudvh -a input
+stderr 'incompatible recipients'
+! age -e -r age1gc2zwslg9j25pg9e9ld7623aewc2gjzquzgq90m75r75myqdt5cq3yudvh -j batchpass -a input
+stderr 'incompatible recipients'
+
+# decrypt with native scrypt
+[!linux] [!darwin] skip # no pty support
+[darwin] [go1.20] skip # https://go.dev/issue/61779
+ttyin terminal
+age -d test.age
+cmp stdout input
+
+-- terminal --
+password
+password
+-- input --
+test

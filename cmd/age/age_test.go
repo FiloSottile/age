@@ -60,6 +60,7 @@ var buildExtraCommands = sync.OnceValue(func() error {
 	}
 	cmd.Args = append(cmd.Args, "filippo.io/age/cmd/age-keygen")
 	cmd.Args = append(cmd.Args, "filippo.io/age/cmd/age-plugin-pq")
+	cmd.Args = append(cmd.Args, "filippo.io/age/cmd/age-plugin-batchpass")
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	return cmd.Run()

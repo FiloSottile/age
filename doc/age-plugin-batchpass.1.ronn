@@ -1,0 +1,58 @@
+age-plugin-batchpass(1) -- non-interactive passphrase encryption plugin for age(1)
+==================================================================================
+
+## SYNOPSIS
+
+`age` `-e` `-j` `batchpass`<br>
+`age` `-d` `-j` `batchpass`
+
+## DESCRIPTION
+
+`age-plugin-batchpass` is an age(1) plugin that enables non-interactive
+passphrase-based encryption and decryption using environment variables.
+
+It is not built into the age CLI because most applications should use
+native keys instead of scripting passphrase-based encryption.
+
+## ENVIRONMENT
+
+* `AGE_PASSPHRASE`:
+    The passphrase to use for encryption or decryption.
+    Mutually exclusive with `AGE_PASSPHRASE_FD`.
+
+* `AGE_PASSPHRASE_FD`:
+    A file descriptor number to read the passphrase from.
+    Trailing newlines are stripped from the file contents.
+    Mutually exclusive with `AGE_PASSPHRASE`.
+
+* `AGE_PASSPHRASE_WORK_FACTOR`:
+    The scrypt work factor to use when encrypting.
+    Must be between 1 and 30. Default is 18.
+    Higher values are more secure but slower.
+
+* `AGE_PASSPHRASE_MAX_WORK_FACTOR`:
+    The maximum scrypt work factor to accept when decrypting.
+    Must be between 1 and 30. Default is 30.
+    Can be used to avoid very slow decryptions.
+
+## EXAMPLES
+
+Encrypt a file with a passphrase:
+
+    $ AGE_PASSPHRASE=secret age -e -j batchpass file.txt > file.txt.age
+
+Decrypt a file with a passphrase:
+
+    $ AGE_PASSPHRASE=secret age -d -j batchpass file.txt.age > file.txt
+
+Read the passphrase from a file descriptor:
+
+    $ AGE_PASSPHRASE_FD=3 age -e -j batchpass file.txt 3< passphrase.txt > file.txt.age
+
+## SEE ALSO
+
+age(1)
+
+## AUTHORS
+
+Filippo Valsorda <age@filippo.io>
