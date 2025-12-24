@@ -22,8 +22,8 @@ import (
 	"filippo.io/age"
 	"filippo.io/age/agessh"
 	"filippo.io/age/armor"
+	"filippo.io/age/internal/term"
 	"filippo.io/age/plugin"
-	"golang.org/x/term"
 )
 
 const usage = `Usage:
@@ -251,7 +251,7 @@ func main() {
 		in = f
 	} else {
 		stdinInUse = true
-		if decryptFlag && term.IsTerminal(int(os.Stdin.Fd())) {
+		if decryptFlag && term.IsTerminal(os.Stdin) {
 			// If the input comes from a TTY, assume it's armored, and buffer up
 			// to the END line (or EOF/EOT) so that a password prompt or the
 			// output don't get in the way of typing the input. See Issue 364.
@@ -275,7 +275,7 @@ func main() {
 			}
 		}()
 		out = f
-	} else if term.IsTerminal(int(os.Stdout.Fd())) {
+	} else if term.IsTerminal(os.Stdout) {
 		if name != "-" {
 			if decryptFlag {
 				// TODO: buffer the output and check it's printable.
@@ -287,7 +287,7 @@ func main() {
 					`force anyway with "-o -"`)
 			}
 		}
-		if in == os.Stdin && term.IsTerminal(int(os.Stdin.Fd())) {
+		if in == os.Stdin && term.IsTerminal(os.Stdin) {
 			// If the input comes from a TTY and output will go to a TTY,
 			// buffer it up so it doesn't get in the way of typing the input.
 			buf := &bytes.Buffer{}
@@ -309,7 +309,7 @@ func main() {
 }
 
 func passphrasePromptForEncryption() (string, error) {
-	pass, err := readSecret("Enter passphrase (leave empty to autogenerate a secure one):")
+	pass, err := term.ReadSecret("Enter passphrase (leave empty to autogenerate a secure one):")
 	if err != nil {
 		return "", fmt.Errorf("could not read passphrase: %v", err)
 	}
@@ -325,7 +325,7 @@ func passphrasePromptForEncryption() (string, error) {
 			return "", fmt.Errorf("could not print passphrase: %v", err)
 		}
 	} else {
-		confirm, err := readSecret("Confirm passphrase:")
+		confirm, err := term.ReadSecret("Confirm passphrase:")
 		if err != nil {
 			return "", fmt.Errorf("could not read passphrase: %v", err)
 		}
@@ -370,7 +370,7 @@ func encryptNotPass(recs, files []string, identities identityFlags, in io.Reader
 			}
 			recipients = append(recipients, r...)
 		case "j":
-			id, err := plugin.NewIdentityWithoutData(f.Value, pluginTerminalUI)
+			id, err := plugin.NewIdentityWithoutData(f.Value, plugin.NewTerminalUI(printf, warningf))
 			if err != nil {
 				errorf("initializing %q: %v", f.Value, err)
 			}
@@ -450,7 +450,7 @@ func decryptNotPass(flags identityFlags, in io.Reader, out io.Writer) {
 			}
 			identities = append(identities, ids...)
 		case "j":
-			id, err := plugin.NewIdentityWithoutData(f.Value, pluginTerminalUI)
+			id, err := plugin.NewIdentityWithoutData(f.Value, plugin.NewTerminalUI(printf, warningf))
 			if err != nil {
 				errorf("initializing %q: %v", f.Value, err)
 			}
@@ -509,7 +509,7 @@ func decrypt(identities []age.Identity, in io.Reader, out io.Writer) {
 var lazyScryptIdentity = &LazyScryptIdentity{passphrasePromptForDecryption}
 
 func passphrasePromptForDecryption() (string, error) {
-	pass, err := readSecret("Enter passphrase:")
+	pass, err := term.ReadSecret("Enter passphrase:")
 	if err != nil {
 		return "", fmt.Errorf("could not read passphrase: %v", err)
 	}
