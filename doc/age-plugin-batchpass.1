@@ -1,0 +1,51 @@
+.\" generated with Ronn-NG/v0.9.1
+.\" http://github.com/apjanke/ronn-ng/tree/0.9.1
+.TH "AGE\-PLUGIN\-BATCHPASS" "1" "December 2025" ""
+.SH "NAME"
+\fBage\-plugin\-batchpass\fR \- non\-interactive passphrase encryption plugin for age(1)
+.SH "SYNOPSIS"
+\fBage\fR \fB\-e\fR \fB\-j\fR \fBbatchpass\fR
+.br
+\fBage\fR \fB\-d\fR \fB\-j\fR \fBbatchpass\fR
+.SH "DESCRIPTION"
+\fBage\-plugin\-batchpass\fR is an age(1) plugin that enables non\-interactive passphrase\-based encryption and decryption using environment variables\.
+.P
+It is not built into the age CLI because most applications should use native keys instead of scripting passphrase\-based encryption\.
+.SH "ENVIRONMENT"
+.TP
+\fBAGE_PASSPHRASE\fR
+The passphrase to use for encryption or decryption\. Mutually exclusive with \fBAGE_PASSPHRASE_FD\fR\.
+.TP
+\fBAGE_PASSPHRASE_FD\fR
+A file descriptor number to read the passphrase from\. Trailing newlines are stripped from the file contents\. Mutually exclusive with \fBAGE_PASSPHRASE\fR\.
+.TP
+\fBAGE_PASSPHRASE_WORK_FACTOR\fR
+The scrypt work factor to use when encrypting\. Must be between 1 and 30\. Default is 18\. Higher values are more secure but slower\.
+.TP
+\fBAGE_PASSPHRASE_MAX_WORK_FACTOR\fR
+The maximum scrypt work factor to accept when decrypting\. Must be between 1 and 30\. Default is 30\. Can be used to avoid very slow decryptions\.
+.SH "EXAMPLES"
+Encrypt a file with a passphrase:
+.IP "" 4
+.nf
+$ AGE_PASSPHRASE=secret age \-e \-j batchpass file\.txt > file\.txt\.age
+.fi
+.IP "" 0
+.P
+Decrypt a file with a passphrase:
+.IP "" 4
+.nf
+$ AGE_PASSPHRASE=secret age \-d \-j batchpass file\.txt\.age > file\.txt
+.fi
+.IP "" 0
+.P
+Read the passphrase from a file descriptor:
+.IP "" 4
+.nf
+$ AGE_PASSPHRASE_FD=3 age \-e \-j batchpass file\.txt 3< passphrase\.txt > file\.txt\.age
+.fi
+.IP "" 0
+.SH "SEE ALSO"
+age(1)
+.SH "AUTHORS"
+Filippo Valsorda \fIage@filippo\.io\fR

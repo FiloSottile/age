@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv='content-type' content='text/html;charset=utf8'>
+  <meta name='generator' content='Ronn-NG/v0.9.1 (http://github.com/apjanke/ronn-ng/tree/0.9.1)'>
+  <title>age-plugin-batchpass(1) - non-interactive passphrase encryption plugin for age(1)</title>
+  <style type='text/css' media='all'>
+  /* style: man */
+  body#manpage {margin:0}
+  .mp {max-width:100ex;padding:0 9ex 1ex 4ex}
+  .mp p,.mp pre,.mp ul,.mp ol,.mp dl {margin:0 0 20px 0}
+  .mp h2 {margin:10px 0 0 0}
+  .mp > p,.mp > pre,.mp > ul,.mp > ol,.mp > dl {margin-left:8ex}
+  .mp h3 {margin:0 0 0 4ex}
+  .mp dt {margin:0;clear:left}
+  .mp dt.flush {float:left;width:8ex}
+  .mp dd {margin:0 0 0 9ex}
+  .mp h1,.mp h2,.mp h3,.mp h4 {clear:left}
+  .mp pre {margin-bottom:20px}
+  .mp pre+h2,.mp pre+h3 {margin-top:22px}
+  .mp h2+pre,.mp h3+pre {margin-top:5px}
+  .mp img {display:block;margin:auto}
+  .mp h1.man-title {display:none}
+  .mp,.mp code,.mp pre,.mp tt,.mp kbd,.mp samp,.mp h3,.mp h4 {font-family:monospace;font-size:14px;line-height:1.42857142857143}
+  .mp h2 {font-size:16px;line-height:1.25}
+  .mp h1 {font-size:20px;line-height:2}
+  .mp {text-align:justify;background:#fff}
+  .mp,.mp code,.mp pre,.mp pre code,.mp tt,.mp kbd,.mp samp {color:#131211}
+  .mp h1,.mp h2,.mp h3,.mp h4 {color:#030201}
+  .mp u {text-decoration:underline}
+  .mp code,.mp strong,.mp b {font-weight:bold;color:#131211}
+  .mp em,.mp var {font-style:italic;color:#232221;text-decoration:none}
+  .mp a,.mp a:link,.mp a:hover,.mp a code,.mp a pre,.mp a tt,.mp a kbd,.mp a samp {color:#0000ff}
+  .mp b.man-ref {font-weight:normal;color:#434241}
+  .mp pre {padding:0 4ex}
+  .mp pre code {font-weight:normal;color:#434241}
+  .mp h2+pre,h3+pre {padding-left:0}
+  ol.man-decor,ol.man-decor li {margin:3px 0 10px 0;padding:0;float:left;width:33%;list-style-type:none;text-transform:uppercase;color:#999;letter-spacing:1px}
+  ol.man-decor {width:100%}
+  ol.man-decor li.tl {text-align:left}
+  ol.man-decor li.tc {text-align:center;letter-spacing:4px}
+  ol.man-decor li.tr {text-align:right;float:right}
+  </style>
+</head>
+<!--
+  The following styles are deprecated and will be removed at some point:
+  div#man, div#man ol.man, div#man ol.head, div#man ol.man.
+
+  The .man-page, .man-decor, .man-head, .man-foot, .man-title, and
+  .man-navigation should be used instead.
+-->
+<body id='manpage'>
+  <div class='mp' id='man'>
+
+  <div class='man-navigation' style='display:none'>
+    <a href="#NAME">NAME</a>
+    <a href="#SYNOPSIS">SYNOPSIS</a>
+    <a href="#DESCRIPTION">DESCRIPTION</a>
+    <a href="#ENVIRONMENT">ENVIRONMENT</a>
+    <a href="#EXAMPLES">EXAMPLES</a>
+    <a href="#SEE-ALSO">SEE ALSO</a>
+    <a href="#AUTHORS">AUTHORS</a>
+  </div>
+
+  <ol class='man-decor man-head man head'>
+    <li class='tl'>age-plugin-batchpass(1)</li>
+    <li class='tc'></li>
+    <li class='tr'>age-plugin-batchpass(1)</li>
+  </ol>
+
+  
+
+<h2 id="NAME">NAME</h2>
+<p class="man-name">
+  <code>age-plugin-batchpass</code> - <span class="man-whatis">non-interactive passphrase encryption plugin for <a class="man-ref" href="age.1.html">age<span class="s">(1)</span></a></span>
+</p>
+<h2 id="SYNOPSIS">SYNOPSIS</h2>
+
+<p><code>age</code> <code>-e</code> <code>-j</code> <code>batchpass</code><br>
+<code>age</code> <code>-d</code> <code>-j</code> <code>batchpass</code></p>
+
+<h2 id="DESCRIPTION">DESCRIPTION</h2>
+
+<p><code>age-plugin-batchpass</code> is an <a class="man-ref" href="age.1.html">age<span class="s">(1)</span></a> plugin that enables non-interactive
+passphrase-based encryption and decryption using environment variables.</p>
+
+<p>It is not built into the age CLI because most applications should use
+native keys instead of scripting passphrase-based encryption.</p>
+
+<h2 id="ENVIRONMENT">ENVIRONMENT</h2>
+
+<dl>
+<dt><code>AGE_PASSPHRASE</code></dt>
+<dd>  The passphrase to use for encryption or decryption.
+  Mutually exclusive with <code>AGE_PASSPHRASE_FD</code>.</dd>
+<dt><code>AGE_PASSPHRASE_FD</code></dt>
+<dd>  A file descriptor number to read the passphrase from.
+  Trailing newlines are stripped from the file contents.
+  Mutually exclusive with <code>AGE_PASSPHRASE</code>.</dd>
+<dt><code>AGE_PASSPHRASE_WORK_FACTOR</code></dt>
+<dd>  The scrypt work factor to use when encrypting.
+  Must be between 1 and 30. Default is 18.
+  Higher values are more secure but slower.</dd>
+<dt><code>AGE_PASSPHRASE_MAX_WORK_FACTOR</code></dt>
+<dd>  The maximum scrypt work factor to accept when decrypting.
+  Must be between 1 and 30. Default is 30.
+  Can be used to avoid very slow decryptions.</dd>
+</dl>
+
+<h2 id="EXAMPLES">EXAMPLES</h2>
+
+<p>Encrypt a file with a passphrase:</p>
+
+<pre><code>$ AGE_PASSPHRASE=secret age -e -j batchpass file.txt &gt; file.txt.age
+</code></pre>
+
+<p>Decrypt a file with a passphrase:</p>
+
+<pre><code>$ AGE_PASSPHRASE=secret age -d -j batchpass file.txt.age &gt; file.txt
+</code></pre>
+
+<p>Read the passphrase from a file descriptor:</p>
+
+<pre><code>$ AGE_PASSPHRASE_FD=3 age -e -j batchpass file.txt 3&lt; passphrase.txt &gt; file.txt.age
+</code></pre>
+
+<h2 id="SEE-ALSO">SEE ALSO</h2>
+
+<p><a class="man-ref" href="age.1.html">age<span class="s">(1)</span></a></p>
+
+<h2 id="AUTHORS">AUTHORS</h2>
+
+<p>Filippo Valsorda <a href="mailto:age@filippo.io" data-bare-link="true">age@filippo.io</a></p>
+
+  <ol class='man-decor man-foot man foot'>
+    <li class='tl'></li>
+    <li class='tc'>December 2025</li>
+    <li class='tr'>age-plugin-batchpass(1)</li>
+  </ol>
+
+  </div>
+</body>
+</html>
