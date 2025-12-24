@@ -17,7 +17,7 @@ import (
 const usage = `age-plugin-batchpass is an age plugin that enables non-interactive
 passphrase-based encryption and decryption using environment variables.
 
-WARNING:
+WARNING: IN 90% OF CASES, YOU DON'T NEED THIS PLUGIN.
 
 This functionality is not built into the age CLI because most applications
 should use native keys instead of scripting passphrase-based encryption.
