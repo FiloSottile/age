@@ -77,10 +77,7 @@ func (w *WrappedBase64Encoder) writeWrapped(p []byte) (int, error) {
 		panic("age: internal error: non-empty WrappedBase64Encoder.buf")
 	}
 	for len(p) > 0 {
-		toWrite := ColumnsPerLine - (w.written % ColumnsPerLine)
-		if toWrite > len(p) {
-			toWrite = len(p)
-		}
+		toWrite := min(ColumnsPerLine-(w.written%ColumnsPerLine), len(p))
 		n, _ := w.buf.Write(p[:toWrite])
 		w.written += n
 		p = p[n:]
@@ -228,7 +225,7 @@ func (e *ParseError) Unwrap() error {
 	return e.err
 }
 
-func errorf(format string, a ...interface{}) error {
+func errorf(format string, a ...any) error {
 	return &ParseError{fmt.Errorf(format, a...)}
 }
 

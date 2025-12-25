@@ -118,7 +118,7 @@ func main() {
 // l is a logger with no prefixes.
 var l = log.New(os.Stderr, "", 0)
 
-func errorf(format string, v ...interface{}) {
+func errorf(format string, v ...any) {
 	l.Printf("age-inspect: error: "+format, v...)
 	l.Printf("age-inspect: report unexpected or unhelpful errors at https://filippo.io/age/report")
 	os.Exit(1)

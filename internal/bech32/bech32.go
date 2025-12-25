@@ -37,7 +37,7 @@ func polymod(values []byte) uint32 {
 		top := chk >> 25
 		chk = (chk & 0x1ffffff) << 5
 		chk = chk ^ uint32(v)
-		for i := 0; i < 5; i++ {
+		for i := range 5 {
 			bit := top >> i & 1
 			if bit == 1 {
 				chk ^= generator[i]

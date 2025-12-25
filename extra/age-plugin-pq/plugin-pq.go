@@ -138,7 +138,7 @@ func convert(in io.Reader, out io.Writer) {
 	}
 }
 
-func errorf(format string, v ...interface{}) {
+func errorf(format string, v ...any) {
 	log.Printf("age-plugin-pq: error: "+format, v...)
 	log.Fatalf("age-plugin-pq: report unexpected or unhelpful errors at https://filippo.io/age/report")
 }

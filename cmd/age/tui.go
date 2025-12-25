@@ -30,17 +30,17 @@ import (
 // l is a logger with no prefixes.
 var l = log.New(os.Stderr, "", 0)
 
-func printf(format string, v ...interface{}) {
+func printf(format string, v ...any) {
 	l.Printf("age: "+format, v...)
 }
 
-func errorf(format string, v ...interface{}) {
+func errorf(format string, v ...any) {
 	l.Printf("age: error: "+format, v...)
 	l.Printf("age: report unexpected or unhelpful errors at https://filippo.io/age/report")
 	os.Exit(1)
 }
 
-func warningf(format string, v ...interface{}) {
+func warningf(format string, v ...any) {
 	l.Printf("age: warning: "+format, v...)
 }
 
@@ -53,7 +53,7 @@ func errorWithHint(error string, hints ...string) {
 	os.Exit(1)
 }
 
-func printfToTerminal(format string, v ...interface{}) error {
+func printfToTerminal(format string, v ...any) error {
 	return term.WithTerminal(func(_, out *os.File) error {
 		_, err := fmt.Fprintf(out, "age: "+format+"\n", v...)
 		return err

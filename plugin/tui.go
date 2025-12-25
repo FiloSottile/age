@@ -13,7 +13,7 @@ import (
 // The terminal is reached directly through /dev/tty or CONIN$/CONOUT$,
 // bypassing standard input and output, so this UI can be used even when
 // standard input or output are redirected.
-func NewTerminalUI(printf, warningf func(format string, v ...interface{})) *ClientUI {
+func NewTerminalUI(printf, warningf func(format string, v ...any)) *ClientUI {
 	return &ClientUI{
 		DisplayMessage: func(name, message string) error {
 			printf("%s plugin: %s", name, message)

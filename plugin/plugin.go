@@ -566,13 +566,13 @@ func (p *Plugin) Confirm(prompt, yes, no string) (choseYes bool, err error) {
 
 // fatalInteractf prints the error to stderr and sets the broken flag, so the
 // Wrap/Unwrap caller can exit with an error.
-func (p *Plugin) fatalInteractf(format string, args ...interface{}) error {
+func (p *Plugin) fatalInteractf(format string, args ...any) error {
 	p.broken = true
 	fmt.Fprintf(p.stderr, format, args...)
 	return fmt.Errorf(format, args...)
 }
 
-func (p *Plugin) fatalf(format string, args ...interface{}) int {
+func (p *Plugin) fatalf(format string, args ...any) int {
 	fmt.Fprintf(p.stderr, format, args...)
 	return 1
 }

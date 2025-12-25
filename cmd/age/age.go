@@ -156,11 +156,8 @@ func main() {
 
 			safe := true
 			unsafeShell := regexp.MustCompile(`[^\w@%+=:,./-]`)
-			for _, arg := range os.Args {
-				if unsafeShell.MatchString(arg) {
-					safe = false
-					break
-				}
+			if slices.ContainsFunc(os.Args, unsafeShell.MatchString) {
+				safe = false
 			}
 			if safe {
 				i := len(os.Args) - flag.NArg()
@@ -316,7 +313,7 @@ func passphrasePromptForEncryption() (string, error) {
 	p := string(pass)
 	if p == "" {
 		var words []string
-		for i := 0; i < 10; i++ {
+		for range 10 {
 			words = append(words, randomWord())
 		}
 		p = strings.Join(words, "-")
