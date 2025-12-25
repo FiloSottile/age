@@ -486,3 +486,30 @@ func TestDetachedHeader(t *testing.T) {
 		t.Errorf("wrong data: %q, expected %q", outBytes, helloWorld)
 	}
 }
+
+func TestEncryptReader(t *testing.T) {
+	a, err := age.GenerateX25519Identity()
+	if err != nil {
+		t.Fatal(err)
+	}
+	r, err := age.EncryptReader(strings.NewReader(helloWorld), a.Recipient())
+	if err != nil {
+		t.Fatal(err)
+	}
+	buf := &bytes.Buffer{}
+	if _, err := io.Copy(buf, r); err != nil {
+		t.Fatal(err)
+	}
+
+	out, err := age.Decrypt(buf, a)
+	if err != nil {
+		t.Fatal(err)
+	}
+	outBytes, err := io.ReadAll(out)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(outBytes) != helloWorld {
+		t.Errorf("wrong data: %q, excepted %q", outBytes, helloWorld)
+	}
+}

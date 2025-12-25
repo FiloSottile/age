@@ -288,7 +288,7 @@ func testVectorRoundTrip(t *testing.T, v *vector) {
 		t.Run("STREAM", func(t *testing.T) {
 			nonce, payload := payload[:16], payload[16:]
 			key := streamKey(v.fileKey[:], nonce)
-			r, err := stream.NewReader(key, bytes.NewReader(payload))
+			r, err := stream.NewDecryptReader(key, bytes.NewReader(payload))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -297,7 +297,7 @@ func testVectorRoundTrip(t *testing.T, v *vector) {
 				t.Fatal(err)
 			}
 			buf := &bytes.Buffer{}
-			w, err := stream.NewWriter(key, buf)
+			w, err := stream.NewEncryptWriter(key, buf)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -309,6 +309,18 @@ func testVectorRoundTrip(t *testing.T, v *vector) {
 			}
 			if !bytes.Equal(buf.Bytes(), payload) {
 				t.Error("got a different STREAM ciphertext")
+			}
+			buf.Reset()
+			er, err := stream.NewEncryptReader(key, bytes.NewReader(plaintext))
+			if err != nil {
+				t.Fatal(err)
+			}
+			ciphertext, err := io.ReadAll(er)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if !bytes.Equal(ciphertext, payload) {
+				t.Error("got a different STREAM ciphertext from EncryptReader")
 			}
 		})
 	}

@@ -115,21 +115,9 @@ type Stanza struct {
 const fileKeySize = 16
 const streamNonceSize = 16
 
-// Encrypt encrypts a file to one or more recipients.
-//
-// Writes to the returned WriteCloser are encrypted and written to dst as an age
-// file. Every recipient will be able to decrypt the file.
-//
-// The caller must call Close on the WriteCloser when done for the last chunk to
-// be encrypted and flushed to dst.
-func Encrypt(dst io.Writer, recipients ...Recipient) (io.WriteCloser, error) {
+func encryptHdr(fileKey []byte, recipients ...Recipient) (*format.Header, error) {
 	if len(recipients) == 0 {
 		return nil, errors.New("no recipients specified")
-	}
-
-	fileKey := make([]byte, fileKeySize)
-	if _, err := rand.Read(fileKey); err != nil {
-		return nil, err
 	}
 
 	hdr := &format.Header{}
@@ -154,19 +142,62 @@ func Encrypt(dst io.Writer, recipients ...Recipient) (io.WriteCloser, error) {
 	} else {
 		hdr.MAC = mac
 	}
+	return hdr, nil
+}
+
+// Encrypt encrypts a file to one or more recipients. Every recipient will be
+// able to decrypt the file.
+//
+// Writes to the returned WriteCloser are encrypted and written to dst as an age
+// file. The caller must call Close on the WriteCloser when done for the last
+// chunk to be encrypted and flushed to dst.
+func Encrypt(dst io.Writer, recipients ...Recipient) (io.WriteCloser, error) {
+	fileKey := make([]byte, fileKeySize)
+	rand.Read(fileKey)
+
+	hdr, err := encryptHdr(fileKey, recipients...)
+	if err != nil {
+		return nil, err
+	}
 	if err := hdr.Marshal(dst); err != nil {
 		return nil, fmt.Errorf("failed to write header: %w", err)
 	}
 
 	nonce := make([]byte, streamNonceSize)
-	if _, err := rand.Read(nonce); err != nil {
-		return nil, err
-	}
+	rand.Read(nonce)
 	if _, err := dst.Write(nonce); err != nil {
 		return nil, fmt.Errorf("failed to write nonce: %w", err)
 	}
 
-	return stream.NewWriter(streamKey(fileKey, nonce), dst)
+	return stream.NewEncryptWriter(streamKey(fileKey, nonce), dst)
+}
+
+// EncryptReader encrypts a file to one or more recipients. Every recipient will be
+// able to decrypt the file.
+//
+// Reads from the returned Reader produce the encrypted file, where the plaintext
+// is read from src.
+func EncryptReader(src io.Reader, recipients ...Recipient) (io.Reader, error) {
+	fileKey := make([]byte, fileKeySize)
+	rand.Read(fileKey)
+
+	hdr, err := encryptHdr(fileKey, recipients...)
+	if err != nil {
+		return nil, err
+	}
+	buf := &bytes.Buffer{}
+	if err := hdr.Marshal(buf); err != nil {
+		return nil, fmt.Errorf("failed to prepare header: %w", err)
+	}
+
+	nonce := make([]byte, streamNonceSize)
+	rand.Read(nonce)
+
+	r, err := stream.NewEncryptReader(streamKey(fileKey, nonce), src)
+	if err != nil {
+		return nil, err
+	}
+	return io.MultiReader(buf, bytes.NewReader(nonce), r), nil
 }
 
 func wrapWithLabels(r Recipient, fileKey []byte) (s []*Stanza, labels []string, err error) {
@@ -244,7 +275,7 @@ func Decrypt(src io.Reader, identities ...Identity) (io.Reader, error) {
 		return nil, fmt.Errorf("failed to read nonce: %w", err)
 	}
 
-	return stream.NewReader(streamKey(fileKey, nonce), payload)
+	return stream.NewDecryptReader(streamKey(fileKey, nonce), payload)
 }
 
 func decryptHdr(hdr *format.Header, identities ...Identity) ([]byte, error) {

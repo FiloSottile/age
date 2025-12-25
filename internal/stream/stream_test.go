@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"crypto/rand"
 	"fmt"
+	"io"
 	"testing"
 
 	"filippo.io/age/internal/stream"
@@ -17,12 +18,15 @@ import (
 const cs = stream.ChunkSize
 
 func TestRoundTrip(t *testing.T) {
-	for _, stepSize := range []int{512, 600, 1000, cs} {
-		for _, length := range []int{0, 1000, cs, cs + 100} {
+	for _, length := range []int{0, 1000, cs - 1, cs, cs + 1, cs + 100, 2 * cs, 2*cs + 500} {
+		for _, stepSize := range []int{512, 600, 1000, cs - 1, cs, cs + 1} {
 			t.Run(fmt.Sprintf("len=%d,step=%d", length, stepSize),
 				func(t *testing.T) { testRoundTrip(t, stepSize, length) })
 		}
 	}
+	length, stepSize := 2*cs+500, 1
+	t.Run(fmt.Sprintf("len=%d,step=%d", length, stepSize),
+		func(t *testing.T) { testRoundTrip(t, stepSize, length) })
 }
 
 func testRoundTrip(t *testing.T, stepSize, length int) {
@@ -36,17 +40,14 @@ func testRoundTrip(t *testing.T, stepSize, length int) {
 		t.Fatal(err)
 	}
 
-	w, err := stream.NewWriter(key, buf)
+	w, err := stream.NewEncryptWriter(key, buf)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	var n int
 	for n < length {
-		b := length - n
-		if b > stepSize {
-			b = stepSize
-		}
+		b := min(length-n, stepSize)
 		nn, err := w.Write(src[n : n+b])
 		if err != nil {
 			t.Fatal(err)
@@ -70,8 +71,9 @@ func testRoundTrip(t *testing.T, stepSize, length int) {
 	}
 
 	t.Logf("buffer size: %d", buf.Len())
+	ciphertext := bytes.Clone(buf.Bytes())
 
-	r, err := stream.NewReader(key, buf)
+	r, err := stream.NewDecryptReader(key, buf)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -89,5 +91,28 @@ func testRoundTrip(t *testing.T, stepSize, length int) {
 		}
 
 		n += nn
+	}
+
+	er, err := stream.NewEncryptReader(key, bytes.NewReader(src))
+	if err != nil {
+		t.Fatal(err)
+	}
+	n = 0
+	for {
+		nn, err := er.Read(readBuf)
+		if nn == 0 && err == io.EOF {
+			break
+		} else if err != nil {
+			t.Fatalf("EncryptReader Read error at index %d: %v", n, err)
+		}
+
+		if !bytes.Equal(readBuf[:nn], ciphertext[n:n+nn]) {
+			t.Errorf("EncryptReader wrong data at indexes %d - %d", n, n+nn)
+		}
+
+		n += nn
+	}
+	if n != len(ciphertext) {
+		t.Errorf("EncryptReader read %d bytes, expected %d", n, len(ciphertext))
 	}
 }

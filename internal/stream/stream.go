@@ -6,6 +6,7 @@
 package stream
 
 import (
+	"bytes"
 	"crypto/cipher"
 	"errors"
 	"fmt"
@@ -16,7 +17,7 @@ import (
 
 const ChunkSize = 64 * 1024
 
-type Reader struct {
+type DecryptReader struct {
 	a   cipher.AEAD
 	src io.Reader
 
@@ -32,18 +33,15 @@ const (
 	lastChunkFlag = 0x01
 )
 
-func NewReader(key []byte, src io.Reader) (*Reader, error) {
+func NewDecryptReader(key []byte, src io.Reader) (*DecryptReader, error) {
 	aead, err := chacha20poly1305.New(key)
 	if err != nil {
 		return nil, err
 	}
-	return &Reader{
-		a:   aead,
-		src: src,
-	}, nil
+	return &DecryptReader{a: aead, src: src}, nil
 }
 
-func (r *Reader) Read(p []byte) (int, error) {
+func (r *DecryptReader) Read(p []byte) (int, error) {
 	if len(r.unread) > 0 {
 		n := copy(p, r.unread)
 		r.unread = r.unread[n:]
@@ -85,7 +83,7 @@ func (r *Reader) Read(p []byte) (int, error) {
 // readChunk reads the next chunk of ciphertext from r.src and makes it available
 // in r.unread. last is true if the chunk was marked as the end of the message.
 // readChunk must not be called again after returning a last chunk or an error.
-func (r *Reader) readChunk() (last bool, err error) {
+func (r *DecryptReader) readChunk() (last bool, err error) {
 	if len(r.unread) != 0 {
 		panic("stream: internal error: readChunk called with dirty buffer")
 	}
@@ -130,12 +128,11 @@ func incNonce(nonce *[chacha20poly1305.NonceSize]byte) {
 	for i := len(nonce) - 2; i >= 0; i-- {
 		nonce[i]++
 		if nonce[i] != 0 {
-			break
-		} else if i == 0 {
-			// The counter is 88 bits, this is unreachable.
-			panic("stream: chunk counter wrapped around")
+			return
 		}
 	}
+	// The counter is 88 bits, this is unreachable.
+	panic("stream: chunk counter wrapped around")
 }
 
 func setLastChunkFlag(nonce *[chacha20poly1305.NonceSize]byte) {
@@ -146,30 +143,23 @@ func nonceIsZero(nonce *[chacha20poly1305.NonceSize]byte) bool {
 	return *nonce == [chacha20poly1305.NonceSize]byte{}
 }
 
-type Writer struct {
-	a         cipher.AEAD
-	dst       io.Writer
-	unwritten []byte // backed by buf
-	buf       [encChunkSize]byte
-	nonce     [chacha20poly1305.NonceSize]byte
-	err       error
+type EncryptWriter struct {
+	a     cipher.AEAD
+	dst   io.Writer
+	buf   bytes.Buffer
+	nonce [chacha20poly1305.NonceSize]byte
+	err   error
 }
 
-func NewWriter(key []byte, dst io.Writer) (*Writer, error) {
+func NewEncryptWriter(key []byte, dst io.Writer) (*EncryptWriter, error) {
 	aead, err := chacha20poly1305.New(key)
 	if err != nil {
 		return nil, err
 	}
-	w := &Writer{
-		a:   aead,
-		dst: dst,
-	}
-	w.unwritten = w.buf[:0]
-	return w, nil
+	return &EncryptWriter{a: aead, dst: dst}, nil
 }
 
-func (w *Writer) Write(p []byte) (n int, err error) {
-	// TODO: consider refactoring with a bytes.Buffer.
+func (w *EncryptWriter) Write(p []byte) (n int, err error) {
 	if w.err != nil {
 		return 0, w.err
 	}
@@ -179,12 +169,13 @@ func (w *Writer) Write(p []byte) (n int, err error) {
 
 	total := len(p)
 	for len(p) > 0 {
-		freeBuf := w.buf[len(w.unwritten):ChunkSize]
-		n := copy(freeBuf, p)
+		n := min(len(p), ChunkSize-w.buf.Len())
+		w.buf.Write(p[:n])
 		p = p[n:]
-		w.unwritten = w.unwritten[:len(w.unwritten)+n]
 
-		if len(w.unwritten) == ChunkSize && len(p) > 0 {
+		// Only flush if there's a full chunk with bytes still to write, or we
+		// can't know if this is the last chunk yet.
+		if w.buf.Len() == ChunkSize && len(p) > 0 {
 			if err := w.flushChunk(notLastChunk); err != nil {
 				w.err = err
 				return 0, err
@@ -195,7 +186,7 @@ func (w *Writer) Write(p []byte) (n int, err error) {
 }
 
 // Close flushes the last chunk. It does not close the underlying Writer.
-func (w *Writer) Close() error {
+func (w *EncryptWriter) Close() error {
 	if w.err != nil {
 		return w.err
 	}
@@ -214,17 +205,110 @@ const (
 	notLastChunk = false
 )
 
-func (w *Writer) flushChunk(last bool) error {
-	if !last && len(w.unwritten) != ChunkSize {
+func (w *EncryptWriter) flushChunk(last bool) error {
+	if !last && w.buf.Len() != ChunkSize {
 		panic("stream: internal error: flush called with partial chunk")
 	}
 
 	if last {
 		setLastChunkFlag(&w.nonce)
 	}
-	buf := w.a.Seal(w.buf[:0], w.nonce[:], w.unwritten, nil)
-	_, err := w.dst.Write(buf)
-	w.unwritten = w.buf[:0]
+	w.buf.Grow(chacha20poly1305.Overhead)
+	ciphertext := w.a.Seal(w.buf.Bytes()[:0], w.nonce[:], w.buf.Bytes(), nil)
+	_, err := w.dst.Write(ciphertext)
 	incNonce(&w.nonce)
+	w.buf.Reset()
 	return err
+}
+
+type EncryptReader struct {
+	a   cipher.AEAD
+	src io.Reader
+
+	// The first ready bytes of buf are already encrypted. This may be less than
+	// buf.Len(), because we need to over-read to know if a chunk is the last.
+	ready int
+	buf   bytes.Buffer
+
+	nonce [chacha20poly1305.NonceSize]byte
+	err   error
+}
+
+func NewEncryptReader(key []byte, src io.Reader) (*EncryptReader, error) {
+	aead, err := chacha20poly1305.New(key)
+	if err != nil {
+		return nil, err
+	}
+	return &EncryptReader{a: aead, src: src}, nil
+}
+
+func (r *EncryptReader) Read(p []byte) (int, error) {
+	if r.ready > 0 {
+		n, err := r.buf.Read(p[:min(len(p), r.ready)])
+		r.ready -= n
+		return n, err
+	}
+	if r.err != nil {
+		return 0, r.err
+	}
+	if len(p) == 0 {
+		return 0, nil
+	}
+
+	if err := r.feedBuffer(); err != nil {
+		r.err = err
+		return 0, err
+	}
+
+	n, err := r.buf.Read(p[:min(len(p), r.ready)])
+	r.ready -= n
+	return n, err
+}
+
+// feedBuffer reads and encrypts the next chunk from r.src and appends it to
+// r.buf. It sets r.ready to the number of newly available bytes in r.buf.
+func (r *EncryptReader) feedBuffer() error {
+	if r.ready > 0 {
+		panic("stream: internal error: feedBuffer called with dirty buffer")
+	}
+
+	// CopyN will use r.buf.ReadFrom/WriteTo to fill the buffer directly.
+	// We need ChunkSize + 1 bytes to determine if this is the last chunk.
+	_, err := io.CopyN(&r.buf, r.src, int64(ChunkSize-r.buf.Len()+1))
+	if err != nil && err != io.EOF {
+		return err
+	}
+
+	if last := r.buf.Len() <= ChunkSize; last {
+		setLastChunkFlag(&r.nonce)
+
+		// After Grow, we know r.buf.Bytes() has enough capacity for the
+		// overhead. We encrypt in place and then do a Write to include the
+		// overhead in the buffer.
+		r.buf.Grow(chacha20poly1305.Overhead)
+		plaintext := r.buf.Bytes()
+		r.a.Seal(plaintext[:0], r.nonce[:], plaintext, nil)
+		incNonce(&r.nonce)
+		r.buf.Write(plaintext[len(plaintext) : len(plaintext)+chacha20poly1305.Overhead])
+		r.ready = r.buf.Len()
+
+		r.err = io.EOF
+		return nil
+	}
+
+	// Same, but accounting for the tail byte which will remain unencrypted and
+	// needs to be shifted past the overhead.
+	if r.buf.Len() != ChunkSize+1 {
+		panic("stream: internal error: unexpected buffer length")
+	}
+	tailByte := r.buf.Bytes()[ChunkSize]
+	r.buf.Grow(chacha20poly1305.Overhead)
+	plaintext := r.buf.Bytes()[:ChunkSize]
+	r.a.Seal(plaintext[:0], r.nonce[:], plaintext, nil)
+	incNonce(&r.nonce)
+	r.buf.Write(plaintext[len(plaintext)+1 : len(plaintext)+chacha20poly1305.Overhead])
+	r.buf.WriteByte(tailByte)
+	r.ready = ChunkSize + chacha20poly1305.Overhead
+
+	return nil
 }
