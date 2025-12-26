@@ -284,8 +284,8 @@ func Decrypt(src io.Reader, identities ...Identity) (io.Reader, error) {
 // DecryptReaderAt takes an underlying [io.ReaderAt] and its total encrypted
 // size, and returns a ReaderAt of the decrypted plaintext and the plaintext
 // size. These can be used for example to instantiate an [io.SectionReader],
-// which implements [io.Reader] and [io.Seeker]. Note that ReaderAt by
-// definition disregards the seek position of src.
+// which implements [io.Reader] and [io.Seeker], or for [zip.NewReader].
+// Note that ReaderAt by definition disregards the seek position of src.
 //
 // The ReadAt method of the returned ReaderAt can be called concurrently.
 // The ReaderAt will internally cache the most recently decrypted chunk.

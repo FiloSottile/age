@@ -5,10 +5,12 @@
 package age_test
 
 import (
+	"archive/zip"
 	"bytes"
 	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"log"
 	"os"
 	"slices"
@@ -189,6 +191,40 @@ func TestEncryptDecryptScrypt(t *testing.T) {
 	if string(outBytes) != helloWorld {
 		t.Errorf("wrong data: %q, excepted %q", outBytes, helloWorld)
 	}
+}
+
+func ExampleDecryptReaderAt() {
+	identity, err := age.ParseX25519Identity(privateKey)
+	if err != nil {
+		log.Fatalf("Failed to parse private key: %v", err)
+	}
+
+	f, err := os.Open("testdata/example.zip.age")
+	if err != nil {
+		log.Fatalf("Failed to open file: %v", err)
+	}
+	stat, err := f.Stat()
+	if err != nil {
+		log.Fatalf("Failed to stat file: %v", err)
+	}
+
+	r, size, err := age.DecryptReaderAt(f, stat.Size(), identity)
+	if err != nil {
+		log.Fatalf("Failed to open encrypted file: %v", err)
+	}
+
+	z, err := zip.NewReader(r, size)
+	if err != nil {
+		log.Fatalf("Failed to open zip: %v", err)
+	}
+	contents, err := fs.ReadFile(z, "example.txt")
+	if err != nil {
+		log.Fatalf("Failed to read file from zip: %v", err)
+	}
+
+	fmt.Printf("File contents: %q\n", contents)
+	// Output:
+	// File contents: "Black lives matter."
 }
 
 func TestParseIdentities(t *testing.T) {
