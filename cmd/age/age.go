@@ -18,6 +18,7 @@ import (
 	"runtime/debug"
 	"slices"
 	"strings"
+	"unicode"
 
 	"filippo.io/age"
 	"filippo.io/age/agessh"
@@ -273,9 +274,24 @@ func main() {
 		}()
 		out = f
 	} else if term.IsTerminal(os.Stdout) {
+		buf := &bytes.Buffer{}
+		defer func() {
+			if out == buf {
+				io.Copy(os.Stdout, buf)
+			}
+		}()
 		if name != "-" {
 			if decryptFlag {
-				// TODO: buffer the output and check it's printable.
+				// Buffer the output to check it's printable.
+				out = buf
+				defer func() {
+					if bytes.ContainsFunc(buf.Bytes(), func(r rune) bool {
+						return r != '\n' && r != '\r' && r != '\t' && unicode.IsControl(r)
+					}) {
+						errorWithHint("refusing to output binary to the terminal",
+							`force anyway with "-o -"`)
+					}
+				}()
 			} else if !armorFlag {
 				// If the output wouldn't be armored, refuse to send binary to
 				// the terminal unless explicitly requested with "-o -".
@@ -287,8 +303,6 @@ func main() {
 		if in == os.Stdin && term.IsTerminal(os.Stdin) {
 			// If the input comes from a TTY and output will go to a TTY,
 			// buffer it up so it doesn't get in the way of typing the input.
-			buf := &bytes.Buffer{}
-			defer func() { io.Copy(os.Stdout, buf) }()
 			out = buf
 		}
 	}
