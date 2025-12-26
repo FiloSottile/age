@@ -398,6 +398,7 @@ func (r *DecryptReaderAt) ReadAt(p []byte, off int64) (n int, err error) {
 	if len(p) == 0 {
 		return 0, nil
 	}
+	var cacheUpdate *cachedChunk
 	chunk := make([]byte, encChunkSize)
 	for len(p) > 0 && off < r.size {
 		chunkIndex := off / ChunkSize
@@ -409,6 +410,7 @@ func (r *DecryptReaderAt) ReadAt(p []byte, off int64) (n int, err error) {
 		var plaintext []byte
 		if cached != nil && cached.off == chunkOff {
 			plaintext = cached.data
+			cacheUpdate = nil
 		} else {
 			nn, err := r.src.ReadAt(chunk[:chunkSize], chunkOff)
 			if err == io.EOF {
@@ -429,7 +431,7 @@ func (r *DecryptReaderAt) ReadAt(p []byte, off int64) (n int, err error) {
 			if err != nil {
 				return n, fmt.Errorf("failed to decrypt and authenticate chunk at offset %d: %w", chunkOff, err)
 			}
-			r.cache.Store(&cachedChunk{off: chunkOff, data: plaintext})
+			cacheUpdate = &cachedChunk{off: chunkOff, data: plaintext}
 		}
 
 		plainChunkOff := int(off - chunkIndex*ChunkSize)
@@ -438,6 +440,9 @@ func (r *DecryptReaderAt) ReadAt(p []byte, off int64) (n int, err error) {
 		p = p[copySize:]
 		off += int64(copySize)
 		n += copySize
+	}
+	if cacheUpdate != nil {
+		r.cache.Store(cacheUpdate)
 	}
 	if off == r.size {
 		return n, io.EOF
