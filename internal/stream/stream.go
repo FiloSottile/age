@@ -8,14 +8,41 @@ package stream
 import (
 	"bytes"
 	"crypto/cipher"
+	"encoding/binary"
 	"errors"
 	"fmt"
 	"io"
+	"sync/atomic"
 
 	"golang.org/x/crypto/chacha20poly1305"
 )
 
 const ChunkSize = 64 * 1024
+
+func EncryptedChunkCount(encryptedSize int64) (int64, error) {
+	chunks := (encryptedSize + encChunkSize - 1) / encChunkSize
+
+	plaintextSize := encryptedSize - chunks*chacha20poly1305.Overhead
+	expChunks := (plaintextSize + ChunkSize - 1) / ChunkSize
+	// Empty plaintext, the only case that allows (and requires) an empty chunk.
+	if plaintextSize == 0 {
+		expChunks = 1
+	}
+	if expChunks != chunks {
+		return 0, fmt.Errorf("invalid encrypted payload size: %d", encryptedSize)
+	}
+
+	return chunks, nil
+}
+
+func PlaintextSize(encryptedSize int64) (int64, error) {
+	chunks, err := EncryptedChunkCount(encryptedSize)
+	if err != nil {
+		return 0, err
+	}
+	plaintextSize := encryptedSize - chunks*chacha20poly1305.Overhead
+	return plaintextSize, nil
+}
 
 type DecryptReader struct {
 	a   cipher.AEAD
@@ -133,6 +160,12 @@ func incNonce(nonce *[chacha20poly1305.NonceSize]byte) {
 	}
 	// The counter is 88 bits, this is unreachable.
 	panic("stream: chunk counter wrapped around")
+}
+
+func nonceForChunk(chunkIndex int64) *[chacha20poly1305.NonceSize]byte {
+	var nonce [chacha20poly1305.NonceSize]byte
+	binary.BigEndian.PutUint64(nonce[3:11], uint64(chunkIndex))
+	return &nonce
 }
 
 func setLastChunkFlag(nonce *[chacha20poly1305.NonceSize]byte) {
@@ -311,4 +344,103 @@ func (r *EncryptReader) feedBuffer() error {
 	r.ready = ChunkSize + chacha20poly1305.Overhead
 
 	return nil
+}
+
+type DecryptReaderAt struct {
+	a      cipher.AEAD
+	src    io.ReaderAt
+	size   int64
+	chunks int64
+	cache  atomic.Pointer[cachedChunk]
+}
+
+type cachedChunk struct {
+	off  int64
+	data []byte
+}
+
+func NewDecryptReaderAt(key []byte, src io.ReaderAt, size int64) (*DecryptReaderAt, error) {
+	aead, err := chacha20poly1305.New(key)
+	if err != nil {
+		return nil, err
+	}
+
+	// Check that size is valid by decrypting the final chunk.
+	chunks, err := EncryptedChunkCount(size)
+	if err != nil {
+		return nil, err
+	}
+	finalChunkIndex := chunks - 1
+	finalChunkOff := finalChunkIndex * encChunkSize
+	finalChunkSize := size - finalChunkOff
+	finalChunk := make([]byte, finalChunkSize)
+	if _, err := src.ReadAt(finalChunk, finalChunkOff); err != nil {
+		return nil, fmt.Errorf("failed to read final chunk: %w", err)
+	}
+	nonce := nonceForChunk(finalChunkIndex)
+	setLastChunkFlag(nonce)
+	plaintext, err := aead.Open(finalChunk[:0], nonce[:], finalChunk, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to decrypt and authenticate final chunk: %w", err)
+	}
+	cache := &cachedChunk{off: finalChunkOff, data: plaintext}
+
+	plaintextSize := size - chunks*chacha20poly1305.Overhead
+	r := &DecryptReaderAt{a: aead, src: src, size: plaintextSize, chunks: chunks}
+	r.cache.Store(cache)
+	return r, nil
+}
+
+func (r *DecryptReaderAt) ReadAt(p []byte, off int64) (n int, err error) {
+	if off < 0 || off > r.size {
+		return 0, fmt.Errorf("offset out of range [0:%d]: %d", r.size, off)
+	}
+	if len(p) == 0 {
+		return 0, nil
+	}
+	chunk := make([]byte, encChunkSize)
+	for len(p) > 0 && off < r.size {
+		chunkIndex := off / ChunkSize
+		chunkOff := chunkIndex * encChunkSize
+		encSize := r.size + r.chunks*chacha20poly1305.Overhead
+		chunkSize := min(encSize-chunkOff, encChunkSize)
+
+		cached := r.cache.Load()
+		var plaintext []byte
+		if cached != nil && cached.off == chunkOff {
+			plaintext = cached.data
+		} else {
+			nn, err := r.src.ReadAt(chunk[:chunkSize], chunkOff)
+			if err == io.EOF {
+				if int64(nn) != chunkSize {
+					err = io.ErrUnexpectedEOF
+				} else {
+					err = nil
+				}
+			}
+			if err != nil {
+				return n, fmt.Errorf("failed to read chunk at offset %d: %w", chunkOff, err)
+			}
+			nonce := nonceForChunk(chunkIndex)
+			if chunkIndex == r.chunks-1 {
+				setLastChunkFlag(nonce)
+			}
+			plaintext, err = r.a.Open(chunk[:0], nonce[:], chunk[:chunkSize], nil)
+			if err != nil {
+				return n, fmt.Errorf("failed to decrypt and authenticate chunk at offset %d: %w", chunkOff, err)
+			}
+			r.cache.Store(&cachedChunk{off: chunkOff, data: plaintext})
+		}
+
+		plainChunkOff := int(off - chunkIndex*ChunkSize)
+		copySize := min(len(plaintext)-plainChunkOff, len(p))
+		copy(p, plaintext[plainChunkOff:plainChunkOff+copySize])
+		p = p[copySize:]
+		off += int64(copySize)
+		n += copySize
+	}
+	if off == r.size {
+		return n, io.EOF
+	}
+	return n, nil
 }

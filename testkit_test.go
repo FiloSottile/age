@@ -140,10 +140,16 @@ func parseVector(t *testing.T, test []byte) *vector {
 }
 
 func TestVectors(t *testing.T) {
-	forEachVector(t, testVector)
+	forEachVector(t, func(t *testing.T, v *vector) {
+		var plaintext []byte
+		t.Run("Decrypt", func(t *testing.T) { plaintext = testDecrypt(t, v) })
+		t.Run("DecryptReaderAt", func(t *testing.T) { testDecryptReaderAt(t, v, plaintext) })
+		t.Run("Inspect", func(t *testing.T) { testInspect(t, v, plaintext) })
+		t.Run("RoundTrip", func(t *testing.T) { testVectorRoundTrip(t, v) })
+	})
 }
 
-func testVector(t *testing.T, v *vector) {
+func testDecrypt(t *testing.T, v *vector) []byte {
 	var in io.Reader = bytes.NewReader(v.file)
 	if v.armored {
 		in = armor.NewReader(in)
@@ -152,25 +158,25 @@ func testVector(t *testing.T, v *vector) {
 	if err != nil && strings.HasSuffix(err.Error(), "bad header MAC") {
 		if v.expect == "HMAC failure" {
 			t.Log(err)
-			return
+			return nil
 		}
 		t.Fatalf("expected %s, got HMAC error", v.expect)
 	} else if e := new(armor.Error); errors.As(err, &e) {
 		if v.expect == "armor failure" {
 			t.Log(err)
-			return
+			return nil
 		}
 		t.Fatalf("expected %s, got: %v", v.expect, err)
 	} else if _, ok := err.(*age.NoIdentityMatchError); ok {
 		if v.expect == "no match" {
 			t.Log(err)
-			return
+			return nil
 		}
 		t.Fatalf("expected %s, got: %v", v.expect, err)
 	} else if err != nil {
 		if v.expect == "header failure" {
 			t.Log(err)
-			return
+			return nil
 		}
 		t.Fatalf("expected %s, got: %v", v.expect, err)
 	} else if v.expect != "success" && v.expect != "payload failure" &&
@@ -188,14 +194,76 @@ func testVector(t *testing.T, v *vector) {
 			}
 		}
 		if v.payloadHash != nil && sha256.Sum256(out) != *v.payloadHash {
-			t.Error("partial payload hash mismatch")
+			t.Errorf("partial payload hash mismatch, read %d bytes", len(out))
 		}
-		return
+		return out
 	} else if v.expect != "success" {
 		t.Fatalf("expected %s, got success", v.expect)
 	}
 	if sha256.Sum256(out) != *v.payloadHash {
 		t.Error("payload hash mismatch")
+	}
+	return out
+}
+
+func testDecryptReaderAt(t *testing.T, v *vector, plaintext []byte) {
+	if v.armored {
+		t.Skip("armor.NewReader does not implement ReaderAt")
+	}
+	rAt, s, err := age.DecryptReaderAt(bytes.NewReader(v.file), int64(len(v.file)), v.identities...)
+	switch v.expect {
+	case "success":
+		if err != nil {
+			t.Fatalf("expected success, got: %v", err)
+		}
+		if int64(len(plaintext)) != s {
+			t.Errorf("unexpected size: got %d, want %d", s, len(plaintext))
+		}
+	case "payload failure":
+		// DecryptReaderAt detects some (but not all) payload failures upfront,
+		// either from the size of the payload, or by decrypting the last chunk
+		// to authenticate its size.
+		if err != nil {
+			t.Log(err)
+			return
+		}
+	default:
+		if err != nil {
+			t.Log(err)
+			return
+		}
+		t.Fatalf("expected %s, got success", v.expect)
+	}
+	out, err := io.ReadAll(io.NewSectionReader(rAt, 0, s))
+	if v.expect == "success" {
+		if err != nil {
+			t.Fatalf("expected success, got: %v", err)
+		}
+	} else {
+		if err == nil {
+			t.Fatalf("expected %s, got success", v.expect)
+		}
+		t.Log(err)
+		// We can't check the partial payload hash, because the ReaderAt will
+		// notice errors that a linearly scanning Reader could not. For example,
+		// if there are two final chunks, the linear Reader will decrypt the
+		// first one and then error out on the second, while the ReaderAt will
+		// decrypt the second one to check the size, and then know that the
+		// first chunk could not be the last one. Instead, check that the
+		// prefix, if any, matches.
+		if !bytes.HasPrefix(plaintext, out) {
+			t.Errorf("partial payload prefix mismatch, read %d bytes", len(out))
+		}
+		return
+	}
+	if sha256.Sum256(out) != *v.payloadHash {
+		t.Error("payload hash mismatch")
+	}
+}
+
+func testInspect(t *testing.T, v *vector, plaintext []byte) {
+	if v.expect != "success" {
+		t.Skip("invalid file, can't inspect")
 	}
 	for _, fileSize := range []int64{int64(len(v.file)), -1} {
 		metadata, err := inspect.Inspect(bytes.NewReader(v.file), fileSize)
@@ -211,8 +279,8 @@ func testVector(t *testing.T, v *vector) {
 		if metadata.Sizes.Armor+metadata.Sizes.Header+metadata.Sizes.Overhead+metadata.Sizes.MinPayload != int64(len(v.file)) {
 			t.Errorf("size breakdown does not add up to file size")
 		}
-		if metadata.Sizes.MinPayload != int64(len(out)) {
-			t.Errorf("unexpected payload size: got %d, want %d", metadata.Sizes.MinPayload, len(out))
+		if metadata.Sizes.MinPayload != int64(len(plaintext)) {
+			t.Errorf("unexpected payload size: got %d, want %d", metadata.Sizes.MinPayload, len(plaintext))
 		}
 		if metadata.Sizes.MaxPayload != metadata.Sizes.MinPayload {
 			t.Errorf("unexpected max payload size: got %d, want %d", metadata.Sizes.MaxPayload, metadata.Sizes.MinPayload)
@@ -223,16 +291,12 @@ func testVector(t *testing.T, v *vector) {
 	}
 }
 
-// TestVectorsRoundTrip checks that any (valid) armor, header, and/or STREAM
+// testVectorsRoundTrip checks that any (valid) armor, header, and/or STREAM
 // payload in the test vectors re-encodes identically.
-func TestVectorsRoundTrip(t *testing.T) {
-	forEachVector(t, testVectorRoundTrip)
-}
-
 func testVectorRoundTrip(t *testing.T, v *vector) {
 	if v.armored {
 		if v.expect == "armor failure" {
-			t.SkipNow()
+			t.Skip("invalid armor, nothing to round-trip")
 		}
 		t.Run("armor", func(t *testing.T) {
 			payload, err := io.ReadAll(armor.NewReader(bytes.NewReader(v.file)))
@@ -261,7 +325,7 @@ func testVectorRoundTrip(t *testing.T, v *vector) {
 	}
 
 	if v.expect == "header failure" {
-		t.SkipNow()
+		t.Skip("invalid header, nothing to round-trip")
 	}
 	hdr, p, err := format.Parse(bytes.NewReader(v.file))
 	if err != nil {
@@ -283,46 +347,62 @@ func testVectorRoundTrip(t *testing.T, v *vector) {
 		}
 	})
 
-	if v.expect == "success" {
-		t.Run("STREAM", func(t *testing.T) {
-			nonce, payload := payload[:16], payload[16:]
-			key := streamKey(v.fileKey[:], nonce)
-			r, err := stream.NewDecryptReader(key, bytes.NewReader(payload))
-			if err != nil {
-				t.Fatal(err)
-			}
-			plaintext, err := io.ReadAll(r)
-			if err != nil {
-				t.Fatal(err)
-			}
-			buf := &bytes.Buffer{}
-			w, err := stream.NewEncryptWriter(key, buf)
-			if err != nil {
-				t.Fatal(err)
-			}
-			if _, err := w.Write(plaintext); err != nil {
-				t.Fatal(err)
-			}
-			if err := w.Close(); err != nil {
-				t.Fatal(err)
-			}
-			if !bytes.Equal(buf.Bytes(), payload) {
-				t.Error("got a different STREAM ciphertext")
-			}
-			buf.Reset()
-			er, err := stream.NewEncryptReader(key, bytes.NewReader(plaintext))
-			if err != nil {
-				t.Fatal(err)
-			}
-			ciphertext, err := io.ReadAll(er)
-			if err != nil {
-				t.Fatal(err)
-			}
-			if !bytes.Equal(ciphertext, payload) {
-				t.Error("got a different STREAM ciphertext from EncryptReader")
-			}
-		})
+	if v.expect != "success" {
+		return
 	}
+
+	t.Run("STREAM", func(t *testing.T) {
+		nonce, payload := payload[:16], payload[16:]
+		key := streamKey(v.fileKey[:], nonce)
+
+		r, err := stream.NewDecryptReader(key, bytes.NewReader(payload))
+		if err != nil {
+			t.Fatal(err)
+		}
+		plaintext, err := io.ReadAll(r)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		rAt, err := stream.NewDecryptReaderAt(key, bytes.NewReader(payload), int64(len(payload)))
+		if err != nil {
+			t.Fatal(err)
+		}
+		plaintextAt, err := io.ReadAll(io.NewSectionReader(rAt, 0, int64(len(plaintext))))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !bytes.Equal(plaintextAt, plaintext) {
+			t.Errorf("got a different plaintext from DecryptReaderAt")
+		}
+
+		buf := &bytes.Buffer{}
+		w, err := stream.NewEncryptWriter(key, buf)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err := w.Write(plaintext); err != nil {
+			t.Fatal(err)
+		}
+		if err := w.Close(); err != nil {
+			t.Fatal(err)
+		}
+		if !bytes.Equal(buf.Bytes(), payload) {
+			t.Error("got a different STREAM ciphertext")
+		}
+
+		er, err := stream.NewEncryptReader(key, bytes.NewReader(plaintext))
+		if err != nil {
+			t.Fatal(err)
+		}
+		ciphertext, err := io.ReadAll(er)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !bytes.Equal(ciphertext, payload) {
+			t.Error("got a different STREAM ciphertext from EncryptReader")
+		}
+	})
 }
 
 func streamKey(fileKey, nonce []byte) []byte {

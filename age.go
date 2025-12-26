@@ -252,13 +252,12 @@ func (e *NoIdentityMatchError) Unwrap() []error {
 }
 
 // Decrypt decrypts a file encrypted to one or more identities.
-//
-// It returns a Reader reading the decrypted plaintext of the age file read
-// from src. All identities will be tried until one successfully decrypts the file.
+// All identities will be tried until one successfully decrypts the file.
 // Native, non-interactive identities are tried before any other identities.
 //
-// If no identity matches the encrypted file, the returned error will be of type
-// [NoIdentityMatchError].
+// Decrypt returns a Reader reading the decrypted plaintext of the age file read
+// from src. If no identity matches the encrypted file, the returned error will
+// be of type [NoIdentityMatchError].
 func Decrypt(src io.Reader, identities ...Identity) (io.Reader, error) {
 	hdr, payload, err := format.Parse(src)
 	if err != nil {
@@ -276,6 +275,58 @@ func Decrypt(src io.Reader, identities ...Identity) (io.Reader, error) {
 	}
 
 	return stream.NewDecryptReader(streamKey(fileKey, nonce), payload)
+}
+
+// DecryptReaderAt decrypts a file encrypted to one or more identities.
+// All identities will be tried until one successfully decrypts the file.
+// Native, non-interactive identities are tried before any other identities.
+//
+// DecryptReaderAt takes an underlying [io.ReaderAt] and its total encrypted
+// size, and returns a ReaderAt of the decrypted plaintext and the plaintext
+// size. These can be used for example to instantiate an [io.SectionReader],
+// which implements [io.Reader] and [io.Seeker]. Note that ReaderAt by
+// definition disregards the seek position of src.
+//
+// The ReadAt method of the returned ReaderAt can be called concurrently.
+// The ReaderAt will internally cache the most recently decrypted chunk.
+// DecryptReaderAt reads and decrypts the final chunk before returning,
+// to authenticate the plaintext size.
+//
+// If no identity matches the encrypted file, the returned error will be of
+// type [NoIdentityMatchError].
+func DecryptReaderAt(src io.ReaderAt, encryptedSize int64, identities ...Identity) (io.ReaderAt, int64, error) {
+	srcReader := io.NewSectionReader(src, 0, encryptedSize)
+	hdr, payload, err := format.Parse(srcReader)
+	if err != nil {
+		return nil, 0, fmt.Errorf("failed to read header: %w", err)
+	}
+	buf := &bytes.Buffer{}
+	if err := hdr.Marshal(buf); err != nil {
+		return nil, 0, fmt.Errorf("failed to serialize header: %w", err)
+	}
+
+	fileKey, err := decryptHdr(hdr, identities...)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	nonce := make([]byte, streamNonceSize)
+	if _, err := io.ReadFull(payload, nonce); err != nil {
+		return nil, 0, fmt.Errorf("failed to read nonce: %w", err)
+	}
+
+	payloadOffset := int64(buf.Len()) + int64(len(nonce))
+	payloadSize := encryptedSize - payloadOffset
+	plaintextSize, err := stream.PlaintextSize(payloadSize)
+	if err != nil {
+		return nil, 0, err
+	}
+	payloadReaderAt := io.NewSectionReader(src, payloadOffset, payloadSize)
+	r, err := stream.NewDecryptReaderAt(streamKey(fileKey, nonce), payloadReaderAt, payloadSize)
+	if err != nil {
+		return nil, 0, err
+	}
+	return r, plaintextSize, nil
 }
 
 func decryptHdr(hdr *format.Header, identities ...Identity) ([]byte, error) {

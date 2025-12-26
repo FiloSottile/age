@@ -10,7 +10,6 @@ import (
 	"filippo.io/age/armor"
 	"filippo.io/age/internal/format"
 	"filippo.io/age/internal/stream"
-	"golang.org/x/crypto/chacha20poly1305"
 )
 
 type Metadata struct {
@@ -88,9 +87,9 @@ func Inspect(r io.Reader, fileSize int64) (*Metadata, error) {
 		}
 		data.Sizes.Armor = tr.count - fileSize
 	}
-	data.Sizes.Overhead = streamOverhead(fileSize - data.Sizes.Header)
-	if data.Sizes.Overhead > fileSize-data.Sizes.Header {
-		return nil, fmt.Errorf("payload too small to be a valid age file")
+	data.Sizes.Overhead, err = streamOverhead(fileSize - data.Sizes.Header)
+	if err != nil {
+		return nil, fmt.Errorf("failed to compute stream overhead: %w", err)
 	}
 	data.Sizes.MinPayload = fileSize - data.Sizes.Header - data.Sizes.Overhead
 	data.Sizes.MaxPayload = data.Sizes.MinPayload
@@ -114,13 +113,15 @@ func (tr *trackReader) Read(p []byte) (int, error) {
 	return n, err
 }
 
-func streamOverhead(payloadSize int64) int64 {
+func streamOverhead(payloadSize int64) (int64, error) {
 	const streamNonceSize = 16
-	const encChunkSize = stream.ChunkSize + chacha20poly1305.Overhead
-	payloadSize -= streamNonceSize
-	if payloadSize <= 0 {
-		return streamNonceSize
+	if payloadSize < streamNonceSize {
+		return 0, fmt.Errorf("encrypted size too small: %d", payloadSize)
 	}
-	chunks := (payloadSize + encChunkSize - 1) / encChunkSize
-	return streamNonceSize + chunks*chacha20poly1305.Overhead
+	encryptedSize := payloadSize - streamNonceSize
+	plaintextSize, err := stream.PlaintextSize(encryptedSize)
+	if err != nil {
+		return 0, err
+	}
+	return payloadSize - plaintextSize, nil
 }
