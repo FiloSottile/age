@@ -65,12 +65,39 @@ jobs:
       - name: Upload workflow artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: age-binaries-${{ matrix.GOOS }}-${{ matrix.GOARCH }}
+          name: age-artifacts-${{ matrix.GOOS }}-${{ matrix.GOARCH }}
           path: age-*
+  source:
+    name: Package source code
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Install Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: 1.x
+          cache: false
+      - name: Create source tarball
+        run: |
+          VERSION="$(git describe --tags)"
+          DIR="$(mktemp -d)"
+          mkdir "$DIR/age"
+          git archive --format=tar.gz HEAD | tar -xz -C "$DIR/age"
+          ( cd "$DIR/age"; go mod vendor )
+          tar -cvzf "age-$VERSION-source.tar.gz" -C "$DIR" age
+      - name: Upload workflow artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: age-artifacts-source
+          path: age-*-source.tar.gz
   upload:
-    name: Upload and attest release binaries
+    name: Upload and attest release artifacts
     if: github.event_name == 'release'
-    needs: build
+    needs: [build, source]
     permissions:
       contents: write
       attestations: write
@@ -80,7 +107,7 @@ jobs:
       - name: Download workflow artifacts
         uses: actions/download-artifact@v4
         with:
-          pattern: age-binaries-*
+          pattern: age-artifacts-*
           merge-multiple: true
       - name: Generate artifacts attestation
         uses: actions/attest-build-provenance@v3
