@@ -68,11 +68,13 @@ jobs:
           name: age-binaries-${{ matrix.GOOS }}-${{ matrix.GOARCH }}
           path: age-*
   upload:
-    name: Upload release binaries
+    name: Upload and attest release binaries
     if: github.event_name == 'release'
     needs: build
     permissions:
       contents: write
+      attestations: write
+      id-token: write
     runs-on: ubuntu-latest
     steps:
       - name: Download workflow artifacts
@@ -80,6 +82,10 @@ jobs:
         with:
           pattern: age-binaries-*
           merge-multiple: true
+      - name: Generate artifacts attestation
+        uses: actions/attest-build-provenance@v3
+        with:
+          subject-path: age-*
       - name: Upload release artifacts
         run: gh release upload "$GITHUB_REF_NAME" age-*
         env:
