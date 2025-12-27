@@ -15,7 +15,6 @@ jobs:
         go:
           - { go-version: stable }
           - { go-version: oldstable }
-          - { go-version-file: go.mod }
         os:
           - ubuntu-latest
           - macos-latest
@@ -28,7 +27,6 @@ jobs:
       - uses: actions/setup-go@v6
         with:
           go-version: ${{ matrix.go.go-version }}
-          go-version-file: ${{ matrix.go.go-version-file }}
       - run: |
           go test -race ./...
   test-latest:
@@ -39,7 +37,6 @@ jobs:
         go:
           - { go-version: stable }
           - { go-version: oldstable }
-          - { go-version-file: go.mod }
     steps:
       - uses: actions/checkout@v5
         with:
@@ -47,7 +44,6 @@ jobs:
       - uses: actions/setup-go@v6
         with:
           go-version: ${{ matrix.go.go-version }}
-          go-version-file: ${{ matrix.go.go-version-file }}
       - uses: geomys/sandboxed-step@v1.2.1
         with:
           run: |

@@ -2,6 +2,9 @@ module filippo.io/age
 
 go 1.24.0
 
+// Release build version.
+toolchain go1.25.5
+
 require (
 	filippo.io/edwards25519 v1.1.0
 	filippo.io/hpke v0.4.0

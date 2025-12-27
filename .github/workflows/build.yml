@@ -26,20 +26,18 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
       - name: Install Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v6
         with:
-          go-version: 1.x
+          go-version-file: go.mod
           cache: false
       - name: Build binary
         run: |
-          cp LICENSE "$RUNNER_TEMP/LICENSE"
-          echo -e "\n---\n" >> "$RUNNER_TEMP/LICENSE"
-          curl -L "https://go.dev/LICENSE?m=text" >> "$RUNNER_TEMP/LICENSE"
           VERSION="$(git describe --tags)"
           DIR="$(mktemp -d)"
           mkdir "$DIR/age"
-          cp "$RUNNER_TEMP/LICENSE" "$DIR/age"
           go build -o "$DIR/age" -trimpath ./cmd/...
+          cp LICENSE "$DIR/age/LICENSE"
+          cat .github/workflows/LICENSE.suffix.txt >> "$DIR/age/LICENSE"
           if [ "$GOOS" == "windows" ]; then
             sudo apt-get update && sudo apt-get install -y osslsigncode
             if [ -n "${{ secrets.SIGN_PASS }}" ]; then
@@ -77,9 +75,9 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
       - name: Install Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v6
         with:
-          go-version: 1.x
+          go-version-file: go.mod
           cache: false
       - name: Create source tarball
         run: |
