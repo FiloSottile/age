@@ -86,6 +86,11 @@ jobs:
           mkdir "$DIR/age"
           git archive --format=tar.gz HEAD | tar -xz -C "$DIR/age"
           ( cd "$DIR/age"; go mod vendor )
+          for cmd in "$DIR"/age/{cmd,extra}/*; do
+            echo "package main" >> "$cmd/version.go"
+            echo "" >> "$cmd/version.go"
+            echo "func init() { Version = \"$VERSION\" }" >> "$cmd/version.go"
+          done
           tar -cvzf "age-$VERSION-source.tar.gz" -C "$DIR" age
       - name: Upload workflow artifacts
         uses: actions/upload-artifact@v4
