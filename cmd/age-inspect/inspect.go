@@ -24,6 +24,10 @@ Options:
 INPUT defaults to standard input. "-" may be used as INPUT to explicitly
 read from standard input.`
 
+// Version can be set at link time to override debug.BuildInfo.Main.Version when
+// building manually without git history. It should look like "v1.2.3".
+var Version string
+
 func main() {
 	flag.Usage = func() { fmt.Fprintf(os.Stderr, "%s\n", usage) }
 
@@ -37,11 +41,10 @@ func main() {
 	flag.Parse()
 
 	if versionFlag {
-		if buildInfo, ok := debug.ReadBuildInfo(); ok {
-			fmt.Println(buildInfo.Main.Version)
-			return
+		if buildInfo, ok := debug.ReadBuildInfo(); ok && Version == "" {
+			Version = buildInfo.Main.Version
 		}
-		fmt.Println("(unknown)")
+		fmt.Println(Version)
 		return
 	}
 

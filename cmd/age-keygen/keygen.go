@@ -56,6 +56,10 @@ Examples:
     $ age-keygen -y key.txt
     age1ql3z7hjy54pw3hyww5ayyfg7zqgvc7w3j2elw8zmrj2kg5sfn9aqmcac8p`
 
+// Version can be set at link time to override debug.BuildInfo.Main.Version when
+// building manually without git history. It should look like "v1.2.3".
+var Version string
+
 func main() {
 	log.SetFlags(0)
 	flag.Usage = func() { fmt.Fprintf(os.Stderr, "%s\n", usage) }
@@ -69,6 +73,15 @@ func main() {
 	flag.StringVar(&outFlag, "o", "", "output to `FILE` (default stdout)")
 	flag.StringVar(&outFlag, "output", "", "output to `FILE` (default stdout)")
 	flag.Parse()
+
+	if versionFlag {
+		if buildInfo, ok := debug.ReadBuildInfo(); ok && Version == "" {
+			Version = buildInfo.Main.Version
+		}
+		fmt.Println(Version)
+		return
+	}
+
 	if len(flag.Args()) != 0 && !convertFlag {
 		errorf("too many arguments")
 	}
@@ -77,14 +90,6 @@ func main() {
 	}
 	if pqFlag && convertFlag {
 		errorf("-pq cannot be used with -y")
-	}
-	if versionFlag {
-		if buildInfo, ok := debug.ReadBuildInfo(); ok {
-			fmt.Println(buildInfo.Main.Version)
-			return
-		}
-		fmt.Println("(unknown)")
-		return
 	}
 
 	out := os.Stdout

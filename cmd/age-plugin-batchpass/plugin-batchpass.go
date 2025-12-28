@@ -7,6 +7,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"runtime/debug"
 	"strconv"
 	"strings"
 
@@ -73,6 +74,10 @@ When decrypting, you can set AGE_PASSPHRASE_MAX_WORK_FACTOR to limit the
 maximum scrypt work factor accepted (between 1 and 30, default 30). This can
 be used to avoid very slow decryptions.`
 
+// Version can be set at link time to override debug.BuildInfo.Main.Version when
+// building manually without git history. It should look like "v1.2.3".
+var Version string
+
 func main() {
 	flag.Usage = func() { fmt.Fprintf(os.Stderr, "%s\n", usage) }
 
@@ -80,6 +85,19 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	p.RegisterFlags(nil)
+
+	versionFlag := flag.Bool("version", false, "print the version")
+	flag.Parse()
+
+	if *versionFlag {
+		if buildInfo, ok := debug.ReadBuildInfo(); ok && Version == "" {
+			Version = buildInfo.Main.Version
+		}
+		fmt.Println(Version)
+		return
+	}
+
 	p.HandleIdentityAsRecipient(func(data []byte) (age.Recipient, error) {
 		if len(data) != 0 {
 			return nil, fmt.Errorf("batchpass identity does not take any payload")

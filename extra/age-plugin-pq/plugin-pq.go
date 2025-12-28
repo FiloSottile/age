@@ -30,12 +30,16 @@ implementation of age that supports plugins.
 Recipients work out of the box, while identities need to be converted to plugin
 identities with -identity. If OUTPUT already exists, it is not overwritten.`
 
+// Version can be set at link time to override debug.BuildInfo.Main.Version when
+// building manually without git history. It should look like "v1.2.3".
+var Version string
+
 func main() {
 	log.SetFlags(0)
 
 	p, err := plugin.New("pq")
 	if err != nil {
-		log.Fatal(err)
+		errorf("failed to create plugin: %v", err)
 	}
 	p.RegisterFlags(nil)
 
@@ -50,11 +54,10 @@ func main() {
 	flag.Parse()
 
 	if versionFlag {
-		if buildInfo, ok := debug.ReadBuildInfo(); ok {
-			fmt.Println(buildInfo.Main.Version)
-			return
+		if buildInfo, ok := debug.ReadBuildInfo(); ok && Version == "" {
+			Version = buildInfo.Main.Version
 		}
-		fmt.Println("(unknown)")
+		fmt.Println(Version)
 		return
 	}
 

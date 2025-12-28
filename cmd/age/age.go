@@ -98,6 +98,10 @@ func (f *identityFlags) addPluginFlag(value string) error {
 	return nil
 }
 
+// Version can be set at link time to override debug.BuildInfo.Main.Version when
+// building manually without git history. It should look like "v1.2.3".
+var Version string
+
 func main() {
 	flag.Usage = func() { fmt.Fprintf(os.Stderr, "%s\n", usage) }
 
@@ -136,13 +140,10 @@ func main() {
 	flag.Parse()
 
 	if versionFlag {
-		if buildInfo, ok := debug.ReadBuildInfo(); ok {
-			// TODO: use buildInfo.Settings to prepare a pseudoversion such as
-			// v0.0.0-20210817164053-32db794688a5+dirty on Go 1.18+.
-			fmt.Println(buildInfo.Main.Version)
-			return
+		if buildInfo, ok := debug.ReadBuildInfo(); ok && Version == "" {
+			Version = buildInfo.Main.Version
 		}
-		fmt.Println("(unknown)")
+		fmt.Println(Version)
 		return
 	}
 
