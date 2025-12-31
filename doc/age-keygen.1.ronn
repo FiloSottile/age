@@ -52,7 +52,7 @@ Generate a new traditional identity:
 
 Write a new post-quantum identity to `key.txt`:
 
-    $ age-keygen -o key.txt
+    $ age-keygen -pq -o key.txt
     Public key: age1pq1cd[... 1950 more characters ...]
 
 Convert an identity to a recipient:
