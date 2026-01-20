@@ -32,7 +32,7 @@ $ age --decrypt -i key.txt data.tar.gz.age > data.tar.gz
 
 ✨ For more plugins, implementations, tools, and integrations, check out the [awesome age](https://github.com/FiloSottile/awesome-age) list.
 
-💬 The author pronounces it `[aɡe̞]` [with a hard _g_](https://translate.google.com/?sl=it&text=aghe), like GIF, and it's always spelled lowercase.
+💬 The author pronounces it `[aɡe̞]` [with a hard *g*](https://translate.google.com/?sl=it&text=aghe), like GIF, and it's always spelled lowercase.
 
 ## Installation
 
