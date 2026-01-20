@@ -1,11 +1,12 @@
-<p align="center">
+<div align="center">
     <picture>
         <source media="(prefers-color-scheme: dark)" srcset="https://github.com/FiloSottile/age/blob/main/logo/logo_white.svg">
         <source media="(prefers-color-scheme: light)" srcset="https://github.com/FiloSottile/age/blob/main/logo/logo.svg">
         <img alt="The age logo, a wireframe of St. Peters dome in Rome, with the text: age, file encryption" width="600" src="https://github.com/FiloSottile/age/blob/main/logo/logo.svg">
     </picture>
-</p>
+</div>
 
+[![Go Report Card](https://goreportcard.com/badge/filippo.io/age)](https://goreportcard.com/report/filippo.io/age)
 [![Go Reference](https://pkg.go.dev/badge/filippo.io/age.svg)](https://pkg.go.dev/filippo.io/age)
 [![man page](<https://img.shields.io/badge/age(1)-man%20page-lightgrey>)](https://filippo.io/age/age.1)
 [![C2SP specification](https://img.shields.io/badge/%C2%A7%23-specification-blueviolet)](https://age-encryption.org/v1)
@@ -31,7 +32,7 @@ $ age --decrypt -i key.txt data.tar.gz.age > data.tar.gz
 
 ✨ For more plugins, implementations, tools, and integrations, check out the [awesome age](https://github.com/FiloSottile/awesome-age) list.
 
-💬 The author pronounces it `[aɡe̞]` [with a hard *g*](https://translate.google.com/?sl=it&text=aghe), like GIF, and it's always spelled lowercase.
+💬 The author pronounces it `[aɡe̞]` [with a hard _g_](https://translate.google.com/?sl=it&text=aghe), like GIF, and it's always spelled lowercase.
 
 ## Installation
 
