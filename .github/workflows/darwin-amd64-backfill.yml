@@ -1,0 +1,51 @@
+name: Backfill darwin/amd64 binaries for v1.3.0 and v1.3.1
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  attestations: write
+  id-token: write
+
+jobs:
+  build:
+    name: Build darwin/amd64 for ${{ matrix.version }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        version: [v1.3.0, v1.3.1]
+    steps:
+      - name: Checkout repository at ${{ matrix.version }}
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ matrix.version }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Install Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          cache: false
+      - name: Build binary
+        run: |
+          VERSION="${{ matrix.version }}"
+          DIR="$(mktemp -d)"
+          mkdir "$DIR/age"
+          go build -o "$DIR/age" -trimpath ./cmd/...
+          cp LICENSE "$DIR/age/LICENSE"
+          cat .github/workflows/LICENSE.suffix.txt >> "$DIR/age/LICENSE"
+          tar -cvzf "age-$VERSION-darwin-amd64.tar.gz" -C "$DIR" age
+        env:
+          CGO_ENABLED: 0
+          GOOS: darwin
+          GOARCH: amd64
+      - name: Generate artifact attestation
+        uses: actions/attest-build-provenance@v3
+        with:
+          subject-path: age-${{ matrix.version }}-darwin-amd64.tar.gz
+      - name: Upload to release
+        run: gh release upload "${{ matrix.version }}" "age-${{ matrix.version }}-darwin-amd64.tar.gz"
+        env:
+          GH_REPO: ${{ github.repository }}
+          GH_TOKEN: ${{ github.token }}
