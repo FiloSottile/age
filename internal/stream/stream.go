@@ -189,7 +189,10 @@ func NewEncryptWriter(key []byte, dst io.Writer) (*EncryptWriter, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &EncryptWriter{a: aead, dst: dst}, nil
+	// We write at most ChunkSize bytes and
+	// need extra capacity to encrypt in place.
+	const capacity = ChunkSize + chacha20poly1305.Overhead
+	return &EncryptWriter{a: aead, dst: dst, buf: *bytes.NewBuffer(make([]byte, 0, capacity))}, nil
 }
 
 func (w *EncryptWriter) Write(p []byte) (n int, err error) {
@@ -246,7 +249,7 @@ func (w *EncryptWriter) flushChunk(last bool) error {
 	if last {
 		setLastChunkFlag(&w.nonce)
 	}
-	w.buf.Grow(chacha20poly1305.Overhead)
+	// We know w.buf.Bytes() has enough capacity for the overhead.
 	ciphertext := w.a.Seal(w.buf.Bytes()[:0], w.nonce[:], w.buf.Bytes(), nil)
 	_, err := w.dst.Write(ciphertext)
 	incNonce(&w.nonce)
@@ -272,7 +275,11 @@ func NewEncryptReader(key []byte, src io.Reader) (*EncryptReader, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &EncryptReader{a: aead, src: src}, nil
+	// We read at most ChunkSize + 1 bytes from src and
+	// need extra capacity to encrypt in place and
+	// to prevent r.buf.ReadFrom from growing the buffer.
+	const capacity = ChunkSize + 1 + max(chacha20poly1305.Overhead, bytes.MinRead)
+	return &EncryptReader{a: aead, src: src, buf: *bytes.NewBuffer(make([]byte, 0, capacity))}, nil
 }
 
 func (r *EncryptReader) Read(p []byte) (int, error) {
@@ -312,16 +319,14 @@ func (r *EncryptReader) feedBuffer() error {
 		return err
 	}
 
-	if last := r.buf.Len() <= ChunkSize; last {
+	if r.buf.Len() <= ChunkSize {
 		setLastChunkFlag(&r.nonce)
 
-		// After Grow, we know r.buf.Bytes() has enough capacity for the
-		// overhead. We encrypt in place and then do a Write to include the
+		// We know r.buf.Bytes() has enough capacity for the overhead.
+		// We encrypt in place and then do a Write to include the
 		// overhead in the buffer.
-		r.buf.Grow(chacha20poly1305.Overhead)
 		plaintext := r.buf.Bytes()
 		r.a.Seal(plaintext[:0], r.nonce[:], plaintext, nil)
-		incNonce(&r.nonce)
 		r.buf.Write(plaintext[len(plaintext) : len(plaintext)+chacha20poly1305.Overhead])
 		r.ready = r.buf.Len()
 
@@ -335,7 +340,6 @@ func (r *EncryptReader) feedBuffer() error {
 		panic("stream: internal error: unexpected buffer length")
 	}
 	tailByte := r.buf.Bytes()[ChunkSize]
-	r.buf.Grow(chacha20poly1305.Overhead)
 	plaintext := r.buf.Bytes()[:ChunkSize]
 	r.a.Seal(plaintext[:0], r.nonce[:], plaintext, nil)
 	incNonce(&r.nonce)
