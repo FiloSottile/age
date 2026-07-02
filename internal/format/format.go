@@ -15,6 +15,9 @@ import (
 	"strings"
 )
 
+const MaxHeaderSize = 16 << 20 // 16 MiB
+const MaxStanzaSize = 1 << 20  // 1 MiB
+
 type Header struct {
 	Recipients []*Stanza
 	MAC        []byte
@@ -154,8 +157,9 @@ func (h *Header) Marshal(w io.Writer) error {
 }
 
 type StanzaReader struct {
-	r   *bufio.Reader
-	err error
+	r         *bufio.Reader
+	err       error
+	lastBytes int64
 }
 
 func NewStanzaReader(r *bufio.Reader) *StanzaReader {
@@ -167,11 +171,18 @@ func (r *StanzaReader) ReadStanza() (s *Stanza, err error) {
 	if r.err != nil {
 		return nil, r.err
 	}
-	defer func() { r.err = err }()
+	var bytesRead int64
+	defer func() {
+		r.lastBytes = bytesRead
+		r.err = err
+	}()
 
 	s = &Stanza{}
 
-	line, err := r.r.ReadBytes('\n')
+	line, err := readLimitedLine(r.r, &bytesRead, MaxStanzaSize)
+	if errors.Is(err, errSizeLimitExceeded) {
+		return nil, fmt.Errorf("stanza exceeds %d byte limit", MaxStanzaSize)
+	}
 	if err != nil {
 		return nil, fmt.Errorf("failed to read line: %w", err)
 	}
@@ -191,7 +202,10 @@ func (r *StanzaReader) ReadStanza() (s *Stanza, err error) {
 	s.Args = args[1:]
 
 	for {
-		line, err := r.r.ReadBytes('\n')
+		line, err := readLimitedLine(r.r, &bytesRead, MaxStanzaSize)
+		if errors.Is(err, errSizeLimitExceeded) {
+			return nil, fmt.Errorf("stanza exceeds %d byte limit", MaxStanzaSize)
+		}
 		if err != nil {
 			return nil, fmt.Errorf("failed to read line: %w", err)
 		}
@@ -210,6 +224,28 @@ func (r *StanzaReader) ReadStanza() (s *Stanza, err error) {
 		if len(b) < BytesPerLine {
 			// A stanza body always ends with a short line.
 			return s, nil
+		}
+	}
+}
+
+var errSizeLimitExceeded = errors.New("size limit exceeded")
+
+func readLimitedLine(r *bufio.Reader, bytesRead *int64, limit int64) ([]byte, error) {
+	var line []byte
+	for {
+		frag, err := r.ReadSlice('\n')
+		if len(frag) > 0 {
+			if limit > 0 && *bytesRead+int64(len(frag)) > limit {
+				return nil, errSizeLimitExceeded
+			}
+			*bytesRead += int64(len(frag))
+			line = append(line, frag...)
+		}
+		if err == nil {
+			return line, nil
+		}
+		if err != bufio.ErrBufferFull {
+			return nil, err
 		}
 	}
 }
@@ -235,8 +271,13 @@ func errorf(format string, a ...any) error {
 func Parse(input io.Reader) (*Header, io.Reader, error) {
 	h := &Header{}
 	rr := bufio.NewReader(input)
+	var headerBytes int64
 
-	line, err := rr.ReadString('\n')
+	lineBytes, err := readLimitedLine(rr, &headerBytes, MaxHeaderSize)
+	line := string(lineBytes)
+	if errors.Is(err, errSizeLimitExceeded) {
+		return nil, nil, errorf("header exceeds %d byte limit", MaxHeaderSize)
+	}
 	if err == io.EOF {
 		return nil, nil, errorf("file is empty")
 	} else if err != nil {
@@ -254,7 +295,10 @@ func Parse(input io.Reader) (*Header, io.Reader, error) {
 		}
 
 		if bytes.Equal(peek, footerPrefix) {
-			line, err := rr.ReadBytes('\n')
+			line, err := readLimitedLine(rr, &headerBytes, MaxHeaderSize)
+			if errors.Is(err, errSizeLimitExceeded) {
+				return nil, nil, errorf("header exceeds %d byte limit", MaxHeaderSize)
+			}
 			if err != nil {
 				return nil, nil, fmt.Errorf("failed to read header: %w", err)
 			}
@@ -273,6 +317,10 @@ func Parse(input io.Reader) (*Header, io.Reader, error) {
 		s, err := sr.ReadStanza()
 		if err != nil {
 			return nil, nil, fmt.Errorf("failed to parse header: %w", err)
+		}
+		headerBytes += sr.lastBytes
+		if headerBytes > MaxHeaderSize {
+			return nil, nil, errorf("header exceeds %d byte limit", MaxHeaderSize)
 		}
 		h.Recipients = append(h.Recipients, s)
 	}

@@ -153,7 +153,9 @@ func encryptHdr(fileKey []byte, recipients ...Recipient) (*format.Header, error)
 // chunk to be encrypted and flushed to dst.
 func Encrypt(dst io.Writer, recipients ...Recipient) (io.WriteCloser, error) {
 	fileKey := make([]byte, fileKeySize)
-	rand.Read(fileKey)
+	if _, err := rand.Read(fileKey); err != nil {
+		return nil, fmt.Errorf("failed to generate file key: %w", err)
+	}
 
 	hdr, err := encryptHdr(fileKey, recipients...)
 	if err != nil {
@@ -164,7 +166,9 @@ func Encrypt(dst io.Writer, recipients ...Recipient) (io.WriteCloser, error) {
 	}
 
 	nonce := make([]byte, streamNonceSize)
-	rand.Read(nonce)
+	if _, err := rand.Read(nonce); err != nil {
+		return nil, fmt.Errorf("failed to generate nonce: %w", err)
+	}
 	if _, err := dst.Write(nonce); err != nil {
 		return nil, fmt.Errorf("failed to write nonce: %w", err)
 	}
@@ -179,7 +183,9 @@ func Encrypt(dst io.Writer, recipients ...Recipient) (io.WriteCloser, error) {
 // is read from src.
 func EncryptReader(src io.Reader, recipients ...Recipient) (io.Reader, error) {
 	fileKey := make([]byte, fileKeySize)
-	rand.Read(fileKey)
+	if _, err := rand.Read(fileKey); err != nil {
+		return nil, fmt.Errorf("failed to generate file key: %w", err)
+	}
 
 	hdr, err := encryptHdr(fileKey, recipients...)
 	if err != nil {
@@ -191,7 +197,9 @@ func EncryptReader(src io.Reader, recipients ...Recipient) (io.Reader, error) {
 	}
 
 	nonce := make([]byte, streamNonceSize)
-	rand.Read(nonce)
+	if _, err := rand.Read(nonce); err != nil {
+		return nil, fmt.Errorf("failed to generate nonce: %w", err)
+	}
 
 	r, err := stream.NewEncryptReader(streamKey(fileKey, nonce), src)
 	if err != nil {

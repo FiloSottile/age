@@ -500,7 +500,9 @@ func writeGrease(conn io.Writer) (sent bool, err error) {
 	}
 	if mathrand.IntN(2) == 0 {
 		s.Body = make([]byte, mathrand.IntN(100))
-		rand.Read(s.Body)
+		if _, err := rand.Read(s.Body); err != nil {
+			return false, fmt.Errorf("failed to generate grease body: %w", err)
+		}
 	}
 	return true, s.Marshal(conn)
 }
