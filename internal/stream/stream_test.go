@@ -266,10 +266,7 @@ func TestDecryptReaderAt(t *testing.T) {
 
 		// Verify data correctness
 		if n > 0 && off >= 0 && off < int64(plaintextSize) {
-			end := int(off) + n
-			if end > plaintextSize {
-				end = plaintextSize
-			}
+			end := min(int(off)+n, plaintextSize)
 			if !bytes.Equal(p[:n], plaintext[off:end]) {
 				t.Errorf("%s: data mismatch", name)
 			}
