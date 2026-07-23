@@ -103,12 +103,13 @@ type trackReader struct {
 }
 
 func (tr *trackReader) Read(p []byte) (int, error) {
+	if tr.done {
+		return 0, io.EOF
+	}
 	n, err := tr.r.Read(p)
 	tr.count += int64(n)
 	if err == io.EOF {
 		tr.done = true
-	} else if tr.done {
-		panic("non-EOF read after EOF")
 	}
 	return n, err
 }

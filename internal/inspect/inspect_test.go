@@ -3,11 +3,17 @@ package inspect
 import (
 	"bytes"
 	"fmt"
+	"io"
 	"testing"
 
 	"filippo.io/age/internal/format"
 	"filippo.io/age/internal/stream"
 )
+
+type readAfterEOFReader struct {
+	data []byte
+	read bool
+}
 
 // buildFile serializes a header with a single stanza of the given type,
 // followed by the minimal valid encrypted payload (a 16-byte stream nonce
@@ -49,6 +55,27 @@ func TestInspectTagStanzas(t *testing.T) {
 				t.Errorf("StanzaTypes = %v, want [%q]", md.StanzaTypes, tt.stanzaType)
 			}
 		})
+	}
+}
+
+func (r *readAfterEOFReader) Read(p []byte) (int, error) {
+	if !r.read {
+		r.read = true
+		n := copy(p, r.data)
+		return n, io.EOF
+	}
+	return 0, nil
+}
+
+func TestInspectReadAfterEOF(t *testing.T) {
+	f := buildFile(t, "X25519")
+	r := &readAfterEOFReader{data: f}
+	md, err := Inspect(r, -1)
+	if err != nil {
+		t.Fatalf("Inspect failed: %v", err)
+	}
+	if md.Version != "age-encryption.org/v1" {
+		t.Errorf("Version = %q, want age-encryption.org/v1", md.Version)
 	}
 }
 
