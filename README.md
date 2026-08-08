@@ -205,6 +205,10 @@ When --encrypt is specified explicitly, -i can also be used to encrypt to an
 identity file symmetrically, instead or in addition to normal recipients.
 ```
 
+On Windows, a conventional location for an identity file is
+`%USERPROFILE%\.config\age\keys.txt` or `%USERPROFILE%\.age\keys.txt`.
+age does not load these paths automatically; pass them with `-i`.
+
 ### Multiple recipients
 
 Files can be encrypted to multiple recipients by repeating `-r/--recipient`. Every recipient will be able to decrypt the file.
