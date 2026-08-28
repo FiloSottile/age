@@ -21,10 +21,10 @@ jobs:
           - windows-latest
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           persist-credentials: false
-      - uses: actions/setup-go@v6
+      - uses: actions/setup-go@v7
         with:
           go-version: ${{ matrix.go.go-version }}
       - run: |
@@ -38,13 +38,13 @@ jobs:
           - { go-version: stable }
           - { go-version: oldstable }
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           persist-credentials: false
-      - uses: actions/setup-go@v6
+      - uses: actions/setup-go@v7
         with:
           go-version: ${{ matrix.go.go-version }}
-      - uses: geomys/sandboxed-step@v1.2.1
+      - uses: geomys/sandboxed-step@v1.2.2
         with:
           run: |
             go get -u -t ./...
@@ -52,24 +52,24 @@ jobs:
   staticcheck:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           persist-credentials: false
-      - uses: actions/setup-go@v6
+      - uses: actions/setup-go@v7
         with:
           go-version: stable
-      - uses: geomys/sandboxed-step@v1.2.1
+      - uses: geomys/sandboxed-step@v1.2.2
         with:
           run: go run honnef.co/go/tools/cmd/staticcheck@latest ./...
   govulncheck:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           persist-credentials: false
-      - uses: actions/setup-go@v6
+      - uses: actions/setup-go@v7
         with:
           go-version: stable
-      - uses: geomys/sandboxed-step@v1.2.1
+      - uses: geomys/sandboxed-step@v1.2.2
         with:
           run: go run golang.org/x/vuln/cmd/govulncheck@latest ./...

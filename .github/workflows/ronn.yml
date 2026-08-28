@@ -13,10 +13,10 @@ jobs:
     name: Ronn
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           persist-credentials: false
-      - uses: geomys/sandboxed-step@v1.2.1
+      - uses: geomys/sandboxed-step@v1.2.2
         with:
           persist-workspace-changes: true
           run: |
@@ -29,7 +29,7 @@ jobs:
               awk '/Filippo Valsorda/ { $0 = "<p>Filippo Valsorda <a href=\"mailto:age@filippo.io\" data-bare-link=\"true\">age@filippo.io</a></p>" } { print }' "$f" > "$f.tmp"
               mv "$f.tmp" "$f"
             done
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: man-pages
           path: |
@@ -42,10 +42,10 @@ jobs:
       contents: write
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           persist-credentials: true
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: man-pages
           path: doc/
