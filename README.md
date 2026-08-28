@@ -157,7 +157,7 @@ If you download the pre-built binaries, you can check their [Sigsum proofs](./SI
 
 If your system has [a supported version of Go](https://go.dev/dl/), you can build from source.
 
-```shell
+```
 go install filippo.io/age/cmd/...@latest
 ```
 
@@ -207,7 +207,7 @@ identity file symmetrically, instead or in addition to normal recipients.
 
 Files can be encrypted to multiple recipients by repeating `-r/--recipient`. Every recipient will be able to decrypt the file.
 
-```console
+```
 $ age -o example.jpg.age -r age1ql3z7hjy54pw3hyww5ayyfg7zqgvc7w3j2elw8zmrj2kg5sfn9aqmcac8p \
     -r age1lggyhqrw2nlhcxprm67z43rta597azn8gknawjehu9d9dl0jq3yqqvfafg example.jpg
 ```
@@ -216,7 +216,7 @@ $ age -o example.jpg.age -r age1ql3z7hjy54pw3hyww5ayyfg7zqgvc7w3j2elw8zmrj2kg5sf
 
 Multiple recipients can also be listed one per line in one or more files passed with the `-R/--recipients-file` flag.
 
-```console
+```
 $ cat recipients.txt
 # Alice
 age1ql3z7hjy54pw3hyww5ayyfg7zqgvc7w3j2elw8zmrj2kg5sfn9aqmcac8p
