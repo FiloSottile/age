@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"filippo.io/age"
+	passphrasegen "filippo.io/age/internal/passphrase"
 	"filippo.io/age/plugin"
 )
 
@@ -66,6 +67,12 @@ Usage:
 Alternatively, you can use AGE_PASSPHRASE_FD to read the passphrase from
 a file descriptor. Trailing newlines are stripped from the file contents.
 
+When encrypting, AGE_PASSPHRASE_GENERATE_FD can be used to generate a secure
+passphrase and write it to a file descriptor:
+
+    $ umask 077
+    $ AGE_PASSPHRASE_GENERATE_FD=3 age -e -j batchpass file.txt 3> passphrase.txt > file.txt.age
+
 When encrypting, you can set AGE_PASSPHRASE_WORK_FACTOR to adjust the scrypt
 work factor (between 1 and 30, default 18). Higher values are more secure
 but slower.
@@ -102,7 +109,18 @@ func main() {
 		if len(data) != 0 {
 			return nil, fmt.Errorf("batchpass identity does not take any payload")
 		}
-		pass, err := passphrase()
+		var workFactor int
+		if envWorkFactor := os.Getenv("AGE_PASSPHRASE_WORK_FACTOR"); envWorkFactor != "" {
+			n, err := strconv.Atoi(envWorkFactor)
+			if err != nil {
+				return nil, fmt.Errorf("invalid AGE_PASSPHRASE_WORK_FACTOR: %v", err)
+			}
+			if n > 30 || n < 1 {
+				return nil, fmt.Errorf("AGE_PASSPHRASE_WORK_FACTOR must be between 1 and 30")
+			}
+			workFactor = n
+		}
+		pass, err := passphraseForEncryption()
 		if err != nil {
 			return nil, err
 		}
@@ -110,14 +128,7 @@ func main() {
 		if err != nil {
 			return nil, fmt.Errorf("failed to create scrypt recipient: %v", err)
 		}
-		if envWorkFactor := os.Getenv("AGE_PASSPHRASE_WORK_FACTOR"); envWorkFactor != "" {
-			workFactor, err := strconv.Atoi(envWorkFactor)
-			if err != nil {
-				return nil, fmt.Errorf("invalid AGE_PASSPHRASE_WORK_FACTOR: %v", err)
-			}
-			if workFactor > 30 || workFactor < 1 {
-				return nil, fmt.Errorf("AGE_PASSPHRASE_WORK_FACTOR must be between 1 and 30")
-			}
+		if workFactor != 0 {
 			r.SetWorkFactor(workFactor)
 		}
 		return r, nil
@@ -179,7 +190,38 @@ func (i *batchpassIdentity) Unwrap(stanzas []*age.Stanza) ([]byte, error) {
 	return fileKey, err
 }
 
+func passphraseForEncryption() (string, error) {
+	envGenerateFD := os.Getenv("AGE_PASSPHRASE_GENERATE_FD")
+	if envGenerateFD == "" {
+		return passphrase()
+	}
+	if os.Getenv("AGE_PASSPHRASE") != "" || os.Getenv("AGE_PASSPHRASE_FD") != "" {
+		return "", fmt.Errorf("AGE_PASSPHRASE, AGE_PASSPHRASE_FD, and AGE_PASSPHRASE_GENERATE_FD are mutually exclusive")
+	}
+
+	fd, err := strconv.Atoi(envGenerateFD)
+	if err != nil {
+		return "", fmt.Errorf("invalid AGE_PASSPHRASE_GENERATE_FD: %v", err)
+	}
+	f := os.NewFile(uintptr(fd), "AGE_PASSPHRASE_GENERATE_FD")
+	if f == nil {
+		return "", fmt.Errorf("failed to open file descriptor %d", fd)
+	}
+	p := passphrasegen.Generate()
+	if _, err := fmt.Fprintln(f, p); err != nil {
+		f.Close()
+		return "", fmt.Errorf("failed to write generated passphrase to fd %d: %v", fd, err)
+	}
+	if err := f.Close(); err != nil {
+		return "", fmt.Errorf("failed to close generated passphrase fd %d: %v", fd, err)
+	}
+	return p, nil
+}
+
 func passphrase() (string, error) {
+	if os.Getenv("AGE_PASSPHRASE_GENERATE_FD") != "" {
+		return "", fmt.Errorf("AGE_PASSPHRASE_GENERATE_FD is only supported for encryption")
+	}
 	envPASSPHRASE := os.Getenv("AGE_PASSPHRASE")
 	envFD := os.Getenv("AGE_PASSPHRASE_FD")
 	if envPASSPHRASE != "" && envFD != "" {

@@ -22,7 +22,7 @@ func TestMain(m *testing.M) {
 			testOnlyConfigureScryptIdentity = func(r *age.ScryptRecipient) {
 				r.SetWorkFactor(10)
 			}
-			testOnlyFixedRandomWord = "four"
+			generatePassphrase = func() string { return "four-four-four-four-four-four-four-four-four-four" }
 			main()
 		},
 		"age-plugin-test": func() {

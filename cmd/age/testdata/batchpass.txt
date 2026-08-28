@@ -16,11 +16,38 @@ env AGE_PASSPHRASE_MAX_WORK_FACTOR=3
 stderr 'work factor'
 env AGE_PASSPHRASE_MAX_WORK_FACTOR=
 
+# generate a passphrase
+[!linux] [!darwin] skip # shell file descriptor redirections
+exec sh -c 'AGE_PASSPHRASE= AGE_PASSPHRASE_GENERATE_FD=3 age -e -j batchpass -o generated.age input 3>generated.passphrase'
+exec sh -c 'AGE_PASSPHRASE= AGE_PASSPHRASE_FD=3 age -d -j batchpass generated.age 3<generated.passphrase'
+cmp stdout input
+
+# error: generated passphrase during decryption
+env AGE_PASSPHRASE=
+env AGE_PASSPHRASE_GENERATE_FD=3
+! age -d -j batchpass test.age
+stderr 'only supported for encryption'
+env AGE_PASSPHRASE_GENERATE_FD=
+
+# error: generated passphrase can't be written
+env AGE_PASSPHRASE_GENERATE_FD=9999
+! age -e -j batchpass -o fail.age input
+stderr 'failed to write generated passphrase'
+! exists fail.age
+env AGE_PASSPHRASE_GENERATE_FD=
+
 # error: both AGE_PASSPHRASE and AGE_PASSPHRASE_FD set
 env AGE_PASSPHRASE=password
 env AGE_PASSPHRASE_FD=3
 ! age -e -j batchpass -a input
 stderr 'mutually exclusive'
+
+# error: AGE_PASSPHRASE and AGE_PASSPHRASE_GENERATE_FD set
+env AGE_PASSPHRASE_FD=
+env AGE_PASSPHRASE_GENERATE_FD=3
+! age -e -j batchpass -a input
+stderr 'mutually exclusive'
+env AGE_PASSPHRASE_GENERATE_FD=
 
 # error: neither AGE_PASSPHRASE nor AGE_PASSPHRASE_FD set
 env AGE_PASSPHRASE=
