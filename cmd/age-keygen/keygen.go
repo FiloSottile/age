@@ -26,6 +26,7 @@ Options:
                               (This might become the default in the future.)
     -o, --output OUTPUT       Write the result to the file at path OUTPUT.
     -y                        Convert an identity file to a recipients file.
+    -v, --version             Print the version.
 
 age-keygen generates a new native X25519 or, with the -pq flag, post-quantum
 hybrid ML-KEM-768 + X25519 key pair, and outputs it to standard output or to
@@ -67,6 +68,7 @@ func main() {
 	var outFlag string
 	var pqFlag, versionFlag, convertFlag bool
 
+	flag.BoolVar(&versionFlag, "v", false, "print the version")
 	flag.BoolVar(&versionFlag, "version", false, "print the version")
 	flag.BoolVar(&pqFlag, "pq", false, "generate a post-quantum key pair")
 	flag.BoolVar(&convertFlag, "y", false, "convert identities to recipients")

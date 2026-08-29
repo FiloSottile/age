@@ -16,10 +16,12 @@ import (
 )
 
 const usage = `Usage:
+    age-inspect [INPUT]
     age-inspect [--json] [INPUT]
 
 Options:
     --json                      Output machine-readable JSON.
+    -v, --version               Print the version.
 
 INPUT defaults to standard input. "-" may be used as INPUT to explicitly
 read from standard input.`
@@ -36,6 +38,7 @@ func main() {
 		jsonFlag    bool
 	)
 
+	flag.BoolVar(&versionFlag, "v", false, "print the version")
 	flag.BoolVar(&versionFlag, "version", false, "print the version")
 	flag.BoolVar(&jsonFlag, "json", false, "output machine-readable JSON")
 	flag.Parse()
@@ -63,6 +66,18 @@ func main() {
 		defer f.Close()
 		in = f
 		if stat, err := f.Stat(); err == nil && stat.Mode().IsRegular() {
+			fileSize = stat.Size()
+		}
+	} else {
+		stat, err := in.Stat()
+		if err != nil {
+			errorf("failed to stat stdin: %v", err)
+		}
+		if name == "" && (stat.Mode()&os.ModeCharDevice) != 0 {
+			flag.Usage()
+			os.Exit(1)
+		}
+		if stat.Mode().IsRegular() {
 			fileSize = stat.Size()
 		}
 	}
