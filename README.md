@@ -28,6 +28,8 @@ $ age --decrypt -i key.txt data.tar.gz.age > data.tar.gz
 
 🌍 [Typage](https://github.com/FiloSottile/typage) is a TypeScript implementation. It works in the browser, Node.js, Deno, and Bun.
 
+🐘 PHP implementation: https://github.com/xepozz/php-age
+
 🔑 Hardware PIV tokens such as YubiKeys are supported through the [age-plugin-yubikey](https://github.com/str4d/age-plugin-yubikey) plugin.
 
 ✨ For more plugins, implementations, tools, and integrations, check out the [awesome age](https://github.com/FiloSottile/awesome-age) list.
