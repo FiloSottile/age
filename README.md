@@ -32,7 +32,7 @@ $ age --decrypt -i key.txt data.tar.gz.age > data.tar.gz
 
 ✨ For more plugins, implementations, tools, and integrations, check out the [awesome age](https://github.com/FiloSottile/awesome-age) list.
 
-💬 The author pronounces it `[aɡe̞]` [with a hard *g*](https://translate.google.com/?sl=it&text=aghe), like GIF, and it's always spelled lowercase.
+💬 The author pronounces it `[aɡe̞]` [with a hard _g_](https://translate.google.com/?sl=it&text=aghe), like GIF, and it's always spelled lowercase.
 
 ## Installation
 
@@ -183,6 +183,7 @@ Options:
     -r, --recipient RECIPIENT   Encrypt to the specified RECIPIENT. Can be repeated.
     -R, --recipients-file PATH  Encrypt to recipients listed at PATH. Can be repeated.
     -i, --identity PATH         Use the identity file at PATH. Can be repeated.
+    --version                   Print the version.
 
 INPUT defaults to standard input, and OUTPUT defaults to standard output.
 If OUTPUT exists, it will be overwritten.
