@@ -518,15 +518,13 @@ func TestDecryptDoesNotReorderIdentities(t *testing.T) {
 		want := slices.Clone(identities)
 		var wg sync.WaitGroup
 		for range 4 {
-			wg.Add(1)
-			go func() {
-				defer wg.Done()
+			wg.Go(func() {
 				for range 20 {
 					if _, err := age.Decrypt(bytes.NewReader(encrypted), identities...); err != nil {
 						t.Error(err)
 					}
 				}
-			}()
+			})
 		}
 		wg.Wait()
 		if !slices.Equal(identities, want) {
