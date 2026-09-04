@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// Package tag implements tagged P-256 or hybrid P-256 + ML-KEM-768 recipients,
+// Package tag implements tagged P-256/X25519 or hybrid P-256/X25519 + ML-KEM-768 recipients,
 // which can be used with identities stored on hardware keys, usually supported
 // by dedicated plugins.
 //
@@ -25,9 +25,10 @@ import (
 	"filippo.io/age/plugin"
 	"filippo.io/hpke"
 	"filippo.io/nistec"
+	"golang.org/x/crypto/curve25519"
 )
 
-// Recipient is a tagged P-256 or hybrid P-256 + ML-KEM-768 recipient.
+// Recipient is a tagged P-256/X25519 or hybrid P-256/X25519 + ML-KEM-768 recipient.
 //
 // The latter recipient is safe against future cryptographically-relevant
 // quantum computers, and can only be used along with other post-quantum
@@ -66,35 +67,50 @@ func ParseRecipient(s string) (*Recipient, error) {
 const compressedPointSize = 1 + 32
 const uncompressedPointSize = 1 + 32 + 32
 
-// NewClassicRecipient returns a new P-256 [Recipient] from a raw public key.
+// NewClassicRecipient returns a new P-256/X25519 [Recipient] from a raw public key.
 func NewClassicRecipient(publicKey []byte) (*Recipient, error) {
-	if len(publicKey) != compressedPointSize {
+	var k hpke.PublicKey
+	var err error
+	if len(publicKey) == curve25519.PointSize {
+		k, err = hpke.DHKEM(ecdh.X25519()).NewPublicKey(publicKey)
+		if err != nil {
+			return nil, fmt.Errorf("invalid tag recipient public key: %v", err)
+		}
+	} else if len(publicKey) == compressedPointSize {
+		p, err := nistec.NewP256Point().SetBytes(publicKey)
+		if err != nil {
+			return nil, fmt.Errorf("invalid tag recipient public key: %v", err)
+		}
+		k, err = hpke.DHKEM(ecdh.P256()).NewPublicKey(p.Bytes())
+		if err != nil {
+			return nil, fmt.Errorf("invalid tag recipient public key: %v", err)
+		}
+	} else {
 		return nil, fmt.Errorf("invalid tag recipient public key size %d", len(publicKey))
-	}
-	p, err := nistec.NewP256Point().SetBytes(publicKey)
-	if err != nil {
-		return nil, fmt.Errorf("invalid tag recipient public key: %v", err)
-	}
-	k, err := hpke.DHKEM(ecdh.P256()).NewPublicKey(p.Bytes())
-	if err != nil {
-		return nil, fmt.Errorf("invalid tag recipient public key: %v", err)
 	}
 	return &Recipient{k}, nil
 }
 
-// NewHybridRecipient returns a new hybrid P-256 + ML-KEM-768 [Recipient] from
+// NewHybridRecipient returns a new hybrid P-256/X25519 + ML-KEM-768 [Recipient] from
 // raw concatenated public keys.
 func NewHybridRecipient(publicKey []byte) (*Recipient, error) {
-	k, err := hpke.MLKEM768P256().NewPublicKey(publicKey)
+	var k hpke.PublicKey
+	var err error
+	if len(publicKey) == 1216 {
+		k, err = hpke.MLKEM768X25519().NewPublicKey(publicKey)
+	} else {
+		k, err = hpke.MLKEM768P256().NewPublicKey(publicKey)
+	}
 	if err != nil {
 		return nil, fmt.Errorf("invalid tagpq recipient public key: %v", err)
 	}
 	return &Recipient{k}, nil
 }
 
-// Hybrid reports whether r is a hybrid P-256 + ML-KEM-768 recipient.
+// Hybrid reports whether r is a hybrid P-256/X25519 + ML-KEM-768 recipient.
 func (r *Recipient) Hybrid() bool {
-	return r.pk.KEM().ID() == hpke.MLKEM768P256().ID()
+	hybridIds := []uint16{hpke.MLKEM768P256().ID(), hpke.MLKEM768X25519().ID()}
+	return slices.Contains(hybridIds, r.pk.KEM().ID())
 }
 
 func (r *Recipient) Wrap(fileKey []byte) ([]*age.Stanza, error) {
@@ -107,15 +123,30 @@ func (r *Recipient) Wrap(fileKey []byte) ([]*age.Stanza, error) {
 // This is a low-level method exposed for use by plugins that implement
 // identities compatible with tagged recipients.
 func (r *Recipient) Tag(enc []byte) ([]byte, error) {
-	label, tagRecipient := "age-encryption.org/p256tag", r.Bytes()
+	var label string
+	tagRecipient := r.Bytes()
 	if r.Hybrid() {
-		label = "age-encryption.org/mlkem768p256tag"
-		// In hybrid mode, the tag is computed over just the P-256 part.
-		tagRecipient = tagRecipient[mlkem.EncapsulationKeySize768:]
-		if len(enc) != mlkem.CiphertextSize768+uncompressedPointSize {
-			return nil, fmt.Errorf("invalid ciphertext size")
+		switch r.pk.KEM().ID() {
+		case hpke.MLKEM768P256().ID():
+			label = "age-encryption.org/mlkem768p256tag"
+			// In hybrid mode, the tag is computed over just the P-256 part.
+			tagRecipient = tagRecipient[mlkem.EncapsulationKeySize768:]
+			if len(enc) != mlkem.CiphertextSize768+uncompressedPointSize {
+				return nil, fmt.Errorf("invalid ciphertext size")
+			}
+		case hpke.MLKEM768X25519().ID():
+			label = "age-encryption.org/mlkem768x25519tag"
+			// In hybrid mode, the tag is computed over just the X25519 part.
+			tagRecipient = tagRecipient[mlkem.EncapsulationKeySize768:]
+			if len(enc) != mlkem.CiphertextSize768+curve25519.PointSize {
+				return nil, fmt.Errorf("invalid ciphertext size")
+			}
 		}
-	} else if len(enc) != uncompressedPointSize {
+	} else if len(enc) == curve25519.PointSize {
+		label = "age-encryption.org/x25519tag"
+	} else if len(enc) == uncompressedPointSize {
+		label = "age-encryption.org/p256tag"
+	} else {
 		return nil, fmt.Errorf("invalid ciphertext size")
 	}
 	rh := sha256.Sum256(tagRecipient)
@@ -127,16 +158,25 @@ func (r *Recipient) Tag(enc []byte) ([]byte, error) {
 }
 
 // WrapWithLabels implements [age.RecipientWithLabels], returning a single
-// "postquantum" label if r is a hybrid P-256 + ML-KEM-768 recipient. This
+// "postquantum" label if r is a hybrid P-256/X25519 + ML-KEM-768 recipient. This
 // ensures a hybrid Recipient can't be mixed with other recipients that would
 // defeat its post-quantum security.
 //
 // To unsafely bypass this restriction, wrap Recipient in an [age.Recipient]
 // type that doesn't expose WrapWithLabels.
 func (r *Recipient) WrapWithLabels(fileKey []byte) ([]*age.Stanza, []string, error) {
-	label, arg := "age-encryption.org/p256tag", "p256tag"
+	var label, arg string
 	if r.Hybrid() {
-		label, arg = "age-encryption.org/mlkem768p256tag", "mlkem768p256tag"
+		switch r.pk.KEM().ID() {
+		case hpke.MLKEM768P256().ID():
+			label, arg = "age-encryption.org/mlkem768p256tag", "mlkem768p256tag"
+		case hpke.MLKEM768X25519().ID():
+			label, arg = "age-encryption.org/mlkem768x25519tag", "mlkem768x25519tag"
+		}
+	} else if len(r.pk.Bytes()) == curve25519.PointSize {
+		label, arg = "age-encryption.org/x25519tag", "x25519tag"
+	} else {
+		label, arg = "age-encryption.org/p256tag", "p256tag"
 	}
 
 	enc, s, err := hpke.NewSender(r.pk, hpke.HKDFSHA256(), hpke.ChaCha20Poly1305(), []byte(label))
@@ -170,7 +210,7 @@ func (r *Recipient) WrapWithLabels(fileKey []byte) ([]*age.Stanza, []string, err
 
 // Bytes returns the raw recipient encoding.
 func (r *Recipient) Bytes() []byte {
-	if r.Hybrid() {
+	if r.Hybrid() || len(r.pk.Bytes()) == curve25519.PointSize {
 		return r.pk.Bytes()
 	}
 	p, err := nistec.NewP256Point().SetBytes(r.pk.Bytes())
