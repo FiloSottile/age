@@ -279,6 +279,26 @@ Enter passphrase for identity file "key.age":
 
 Passphrase-protected identity files are not necessary for most use cases, where access to the encrypted identity file implies access to the whole system. However, they can be useful if the identity file is stored remotely.
 
+### Storing identities in a password manager
+
+Rather than keeping an identity file on disk, it can be kept in a password manager and piped in with `-i -`. Use a name scoped to the purpose of the key, since age identities are cheap to generate and can't be rotated.
+
+```console
+$ op read "op://Personal/git-repo-secrets-age-identity/password" | age -d -i - secrets.txt.age
+```
+
+The same pattern works with other password manager CLIs, such as `bw get notes ...` (Bitwarden) or `pass show ...` (pass).
+
+Tools that require an identity file path, such as [SOPS](https://github.com/getsops/sops), need the key to be materialized to a temporary file instead.
+
+```console
+$ SOPS_AGE_KEY_FILE=$(mktemp) && trap 'rm -f "$SOPS_AGE_KEY_FILE"' EXIT
+$ chmod 600 "$SOPS_AGE_KEY_FILE"
+$ op read "op://Personal/git-repo-secrets-age-identity/password" > "$SOPS_AGE_KEY_FILE"
+$ export SOPS_AGE_KEY_FILE
+$ sops -d secrets.enc.yaml
+```
+
 ### SSH keys
 
 As a convenience feature, age also supports encrypting to `ssh-rsa` and `ssh-ed25519` SSH public keys, and decrypting with the respective private key file. (`ssh-agent` is not supported.)
