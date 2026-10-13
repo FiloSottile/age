@@ -52,8 +52,9 @@ type DecryptReader struct {
 	a   cipher.AEAD
 	src io.Reader
 
-	unread []byte // decrypted but unread data, backed by buf
+	unread []byte // decrypted but unread data, backed by out
 	buf    [encChunkSize]byte
+	out    []byte // allocated on first readChunk
 
 	err   error
 	nonce [chacha20poly1305.NonceSize]byte
@@ -138,20 +139,26 @@ func (r *DecryptReader) readChunk() (last bool, err error) {
 		return false, err
 	}
 
-	outBuf := make([]byte, 0, ChunkSize)
-	out, err := r.a.Open(outBuf, r.nonce[:], in, nil)
+	// Allocate the output buffer once and only on first readChunk
+	if r.out == nil {
+		r.out = make([]byte, ChunkSize)
+	}
+
+	// Don't decrypt in place because a failed Open may overwrite dst and
+	// the ciphertext is needed again to retry as a full-length final chunk.
+	out, err := r.a.Open(r.out[:0], r.nonce[:], in, nil)
 	if err != nil && !last {
 		// Check if this was a full-length final chunk.
 		last = true
 		setLastChunkFlag(&r.nonce)
-		out, err = r.a.Open(outBuf, r.nonce[:], in, nil)
+		out, err = r.a.Open(r.out[:0], r.nonce[:], in, nil)
 	}
 	if err != nil {
 		return false, errors.New("failed to decrypt and authenticate payload chunk, file may be corrupted or tampered with")
 	}
 
 	incNonce(&r.nonce)
-	r.unread = r.buf[:copy(r.buf[:], out)]
+	r.unread = out
 	return last, nil
 }
 
