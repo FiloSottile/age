@@ -900,3 +900,135 @@ func TestDecryptReaderAtCorrupted(t *testing.T) {
 		t.Error("corrupted first read: expected error, got nil")
 	}
 }
+
+func TestStreamAllocs(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping allocation test in short mode")
+	}
+	const runs = 10
+
+	// Setup the key and enough plaintext for the
+	// AllocsPerRun warmup (1) + 10 runs + 1 to
+	// ensure we stay in the full chunk hot path
+	key := make([]byte, chacha20poly1305.KeySize)
+	rand.Read(key)
+	plaintext := make([]byte, (runs+2)*cs)
+	rand.Read(plaintext)
+
+	aead, err := chacha20poly1305.New(key)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var nonce [chacha20poly1305.NonceSize]byte
+
+	// The crypto implementation can allocate, so only check that the
+	// age stream doesn't add any allocations of its own. So the test
+	// is:
+	//  1. Measure allocs using direct aead
+	//  2. Measure allocs using stream.New[Encrypt|Decrypt]Writer
+
+	t.Run("EncryptWriter", func(t *testing.T) {
+		out := make([]byte, 0, cs+aead.Overhead())
+		baselineAllocs := testing.AllocsPerRun(runs, func() {
+			aead.Seal(out[:0], nonce[:], plaintext[:cs], nil)
+		})
+
+		w, err := stream.NewEncryptWriter(key, io.Discard)
+		if err != nil {
+			t.Fatal(err)
+		}
+		chunks := plaintext
+		streamAllocs := testing.AllocsPerRun(runs, func() {
+			if _, err := w.Write(chunks[:cs]); err != nil {
+				t.Fatal(err)
+			}
+			chunks = chunks[cs:]
+		})
+		if streamAllocs > baselineAllocs {
+			t.Errorf("EncryptWriter allocated %v times per chunk; the crypto implementation allocated %v", streamAllocs, baselineAllocs)
+		}
+	})
+
+	t.Run("DecryptReader", func(t *testing.T) {
+		ciphertext := aead.Seal(nil, nonce[:], plaintext[:cs], nil)
+		out := make([]byte, 0, cs)
+		baselineAllocs := testing.AllocsPerRun(runs, func() {
+			if _, err := aead.Open(out[:0], nonce[:], ciphertext, nil); err != nil {
+				t.Fatal(err)
+			}
+		})
+
+		r, err := stream.NewDecryptReader(key, bytes.NewReader(encrypt(t, key, plaintext)))
+		if err != nil {
+			t.Fatal(err)
+		}
+		p := make([]byte, cs)
+		streamAllocs := testing.AllocsPerRun(runs, func() {
+			if _, err := io.ReadFull(r, p); err != nil {
+				t.Fatal(err)
+			}
+		})
+		if streamAllocs > baselineAllocs {
+			t.Errorf("DecryptReader allocated %v times per chunk; the crypto implementation allocated %v", streamAllocs, baselineAllocs)
+		}
+	})
+}
+
+func BenchmarkEncryptWriter(b *testing.B) {
+	for _, size := range []int{cs, 1 << 20, 16 << 20} {
+		b.Run(fmt.Sprintf("size=%d", size), func(b *testing.B) {
+			key := make([]byte, chacha20poly1305.KeySize)
+			rand.Read(key)
+			plaintext := make([]byte, size)
+			rand.Read(plaintext)
+			b.SetBytes(int64(size))
+			b.ReportAllocs()
+			for b.Loop() {
+				w, err := stream.NewEncryptWriter(key, io.Discard)
+				if err != nil {
+					b.Fatal(err)
+				}
+				if _, err := w.Write(plaintext); err != nil {
+					b.Fatal(err)
+				}
+				if err := w.Close(); err != nil {
+					b.Fatal(err)
+				}
+			}
+		})
+	}
+}
+
+func BenchmarkDecryptReader(b *testing.B) {
+	for _, size := range []int{cs, 1 << 20, 16 << 20} {
+		b.Run(fmt.Sprintf("size=%d", size), func(b *testing.B) {
+			key := make([]byte, chacha20poly1305.KeySize)
+			rand.Read(key)
+			plaintext := make([]byte, size)
+			rand.Read(plaintext)
+			buf := &bytes.Buffer{}
+			w, err := stream.NewEncryptWriter(key, buf)
+			if err != nil {
+				b.Fatal(err)
+			}
+			if _, err := w.Write(plaintext); err != nil {
+				b.Fatal(err)
+			}
+			if err := w.Close(); err != nil {
+				b.Fatal(err)
+			}
+			ciphertext := buf.Bytes()
+			b.SetBytes(int64(size))
+			b.ReportAllocs()
+			for b.Loop() {
+				r, err := stream.NewDecryptReader(key, bytes.NewReader(ciphertext))
+				if err != nil {
+					b.Fatal(err)
+				}
+				if _, err := io.Copy(io.Discard, r); err != nil {
+					b.Fatal(err)
+				}
+			}
+		})
+	}
+}
