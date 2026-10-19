@@ -34,6 +34,8 @@ $ age --decrypt -i key.txt data.tar.gz.age > data.tar.gz
 
 💬 The author pronounces it `[aɡe̞]` [with a hard *g*](https://translate.google.com/?sl=it&text=aghe), like GIF, and it's always spelled lowercase.
 
+[![Live demo by Demoshell](https://build.demoshell.com/v1/embed/badge.svg)](https://build.demoshell.com/launch?snapshot=demoshell%2Ftui%3Aage&utm_source=badge)
+
 ## Installation
 
 <table>
