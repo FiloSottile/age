@@ -116,6 +116,39 @@ func TestWriterLifecycle(t *testing.T) {
 	})
 }
 
+type endless byte
+
+func (e endless) Read(p []byte) (int, error) {
+	for i := range p {
+		p[i] = byte(e)
+	}
+	return len(p), nil
+}
+
+type countingReader struct {
+	r io.Reader
+	n int
+}
+
+func (c *countingReader) Read(p []byte) (int, error) {
+	n, err := c.r.Read(p)
+	c.n += n
+	return n, err
+}
+
+func TestLongLine(t *testing.T) {
+	for _, prefix := range []string{"", armor.Header + "\n"} {
+		cr := &countingReader{r: io.MultiReader(strings.NewReader(prefix),
+			io.LimitReader(endless('A'), 64<<20))}
+		if _, err := io.ReadAll(armor.NewReader(cr)); err == nil {
+			t.Errorf("prefix %q: expected error", prefix)
+		}
+		if cr.n > 1<<20 {
+			t.Errorf("prefix %q: read %d bytes before failing", prefix, cr.n)
+		}
+	}
+}
+
 func testArmor(t *testing.T, size int) {
 	buf := &bytes.Buffer{}
 	w := armor.NewWriter(buf)

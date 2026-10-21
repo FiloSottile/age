@@ -102,8 +102,11 @@ func (r *armoredReader) Read(p []byte) (int, error) {
 	}
 
 	getLine := func() ([]byte, error) {
-		line, err := r.r.ReadBytes('\n')
-		if err == io.EOF && len(line) == 0 {
+		// ReadSlice bounds the line to the bufio buffer, unlike ReadBytes.
+		line, err := r.r.ReadSlice('\n')
+		if err == bufio.ErrBufferFull {
+			return nil, errors.New("column limit exceeded")
+		} else if err == io.EOF && len(line) == 0 {
 			return nil, io.ErrUnexpectedEOF
 		} else if err != nil && err != io.EOF {
 			return nil, err
