@@ -5,6 +5,7 @@
 package plugin
 
 import (
+	"errors"
 	"crypto/ecdh"
 	"crypto/mlkem"
 	"fmt"
@@ -60,7 +61,7 @@ func ParseRecipient(s string) (name string, data []byte, err error) {
 		return "", nil, fmt.Errorf("invalid recipient encoding: %v", err)
 	}
 	if !strings.HasPrefix(hrp, "age1") {
-		return "", nil, fmt.Errorf("not a plugin recipient: %v", err)
+		return "", nil, errors.New("not a plugin recipient")
 	}
 	name = strings.TrimPrefix(hrp, "age1")
 	if !validPluginName(name) {
