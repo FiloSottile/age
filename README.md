@@ -289,7 +289,20 @@ $ op read "op://Personal/git-repo-secrets-age-identity/password" | age -d -i - s
 
 The same pattern works with other password manager CLIs, such as `bw get notes ...` (Bitwarden) or `pass show ...` (pass).
 
-Tools that require an identity file path, such as [SOPS](https://github.com/getsops/sops), need the key to be materialized to a temporary file instead.
+Note that this way the identity is only as safe as the password manager: anyone who can read the entry, such as through a compromised account or an unlocked session, can decrypt every file encrypted to it. If that's not acceptable, store a [passphrase-protected identity](#passphrase-protected-key-files) instead, armored so that it can be saved as text. age will prompt for the passphrase when it reads it from standard input.
+
+```console
+$ age-keygen | age -p -a
+Enter passphrase (leave empty to autogenerate a secure one):
+Confirm passphrase:
+-----BEGIN AGE ENCRYPTED FILE-----
+[...]
+-----END AGE ENCRYPTED FILE-----
+$ op read "op://Personal/git-repo-secrets-age-identity/password" | age -d -i - secrets.txt.age
+Enter passphrase for identity file "-":
+```
+
+Tools that require an identity file path, such as [SOPS](https://github.com/getsops/sops), need the key to be materialized to a temporary file instead. The identity is then stored unencrypted on disk until the file is removed, so keep its lifetime as short as possible.
 
 ```console
 $ SOPS_AGE_KEY_FILE=$(mktemp) && trap 'rm -f "$SOPS_AGE_KEY_FILE"' EXIT
