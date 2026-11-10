@@ -112,8 +112,16 @@ func (r *ScryptRecipient) WrapWithLabels(fileKey []byte) (stanzas []*Stanza, lab
 }
 
 // ScryptIdentity is a password-based identity.
+//
+// Its use is not recommended for automated systems, which should prefer
+// [HybridIdentity] or [X25519Identity]. In particular, an attacker who can submit
+// files for decryption and observe whether they decrypt successfully can guess
+// passwords using the work factor in the file, which can be arbitrarily low.
+// [ScryptIdentity.SetMinWorkFactor] can reject files with low work factors, but
+// does not make online password-based decryption oracles safe.
 type ScryptIdentity struct {
 	password      []byte
+	minWorkFactor int
 	maxWorkFactor int
 }
 
@@ -126,9 +134,25 @@ func NewScryptIdentity(password string) (*ScryptIdentity, error) {
 	}
 	i := &ScryptIdentity{
 		password:      []byte(password),
+		minWorkFactor: 1,
 		maxWorkFactor: 22, // 15s on a modern machine
 	}
 	return i, nil
+}
+
+// SetMinWorkFactor sets the minimum accepted scrypt work factor to 2^logN.
+// It must be called before Unwrap.
+//
+// This prevents an attacker from choosing a lower work factor when submitting
+// files to an automated system for decryption. If SetMinWorkFactor is not called,
+// all valid work factors are accepted, subject to [ScryptIdentity.SetMaxWorkFactor].
+// Online password-based decryption oracles are not recommended, even with a
+// minimum work factor.
+func (i *ScryptIdentity) SetMinWorkFactor(logN int) {
+	if logN > 30 || logN < 1 {
+		panic("age: SetMinWorkFactor called with illegal value")
+	}
+	i.minWorkFactor = logN
 }
 
 // SetMaxWorkFactor sets the maximum accepted scrypt work factor to 2^logN.
@@ -184,6 +208,9 @@ func (i *ScryptIdentity) unwrap(block *Stanza) ([]byte, error) {
 	}
 	if logN > i.maxWorkFactor {
 		return nil, fmt.Errorf("scrypt work factor too large: %v", logN)
+	}
+	if logN < i.minWorkFactor {
+		return nil, fmt.Errorf("scrypt work factor too small: %v", logN)
 	}
 	if logN <= 0 { // unreachable
 		return nil, fmt.Errorf("invalid scrypt work factor: %v", logN)
