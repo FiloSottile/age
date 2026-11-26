@@ -146,6 +146,9 @@ func (h *Header) MarshalWithoutMAC(w io.Writer) error {
 	if len(h.Recipients) == 0 {
 		return errors.New("no recipient stanzas")
 	}
+	if len(h.Recipients) > maxRecipientStanzas {
+		return fmt.Errorf("too many recipient stanzas: maximum is %d", maxRecipientStanzas)
+	}
 	if _, err := io.WriteString(w, intro); err != nil {
 		return err
 	}

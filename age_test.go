@@ -778,3 +778,41 @@ func TestParseUnicode(t *testing.T) {
 		})
 	}
 }
+
+type manyStanzaRecipient struct{}
+
+func (manyStanzaRecipient) Wrap(fileKey []byte) ([]*age.Stanza, error) {
+	return []*age.Stanza{{Type: "test", Body: make([]byte, 16)}}, nil
+}
+
+func TestRecipientStanzaLimit(t *testing.T) {
+	t.Run("at limit", func(t *testing.T) {
+		recs := make([]age.Recipient, 1024)
+		for i := range recs {
+			recs[i] = manyStanzaRecipient{}
+		}
+		buf := new(bytes.Buffer)
+		w, err := age.Encrypt(buf, recs...)
+		if err != nil {
+			t.Fatalf("Encrypt rejected 1024 recipients: %v", err)
+		}
+		if err := w.Close(); err != nil {
+			t.Fatal(err)
+		}
+	})
+	t.Run("over limit", func(t *testing.T) {
+		recs := make([]age.Recipient, 1025)
+		for i := range recs {
+			recs[i] = manyStanzaRecipient{}
+		}
+		buf := new(bytes.Buffer)
+		if _, err := age.Encrypt(buf, recs...); err == nil {
+			t.Fatal("Encrypt accepted 1025 recipients")
+		} else if !strings.Contains(err.Error(), "too many recipient stanzas") {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if buf.Len() != 0 {
+			t.Errorf("Encrypt wrote %d bytes before failing", buf.Len())
+		}
+	})
+}

@@ -294,3 +294,18 @@ func TestParseIntroErrorShowsMangling(t *testing.T) {
 		})
 	}
 }
+
+func TestMarshalStanzaLimit(t *testing.T) {
+	h := &format.Header{}
+	for i := 0; i < 1025; i++ {
+		h.Recipients = append(h.Recipients, &format.Stanza{Type: "test"})
+	}
+	buf := new(bytes.Buffer)
+	err := h.Marshal(buf)
+	if err == nil || !strings.Contains(err.Error(), "too many recipient stanzas") {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if buf.Len() != 0 {
+		t.Errorf("Marshal wrote %d bytes before failing", buf.Len())
+	}
+}
