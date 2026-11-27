@@ -452,8 +452,6 @@ func openClientConnection(name, protocol string) (*clientConnection, error) {
 	}
 
 	if os.Getenv("AGEDEBUG") == "plugin" {
-		cc.Reader = io.TeeReader(cc.Reader, os.Stderr)
-		cc.Writer = io.MultiWriter(cc.Writer, os.Stderr)
 		cmd.Stderr = os.Stderr
 	}
 

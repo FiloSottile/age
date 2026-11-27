@@ -175,6 +175,56 @@ func TestLabels(t *testing.T) {
 	if _, err := age.Encrypt(io.Discard, testPlugin, testPluginPQC); err == nil {
 		t.Errorf("expected one pqc and one normal to fail")
 	}
+
+	t.Run("debug does not log protocol payloads", func(t *testing.T) {
+		t.Setenv("AGEDEBUG", "plugin")
+		stderrReader, stderrWriter, err := os.Pipe()
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer stderrReader.Close()
+		originalStderr := os.Stderr
+		os.Stderr = stderrWriter
+		defer func() { os.Stderr = originalStderr }()
+		defer stderrWriter.Close()
+
+		conn, err := openClientConnection("test", "recipient-v1")
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer func() {
+			if conn != nil {
+				conn.Close()
+			}
+		}()
+		secret := []byte("secret protocol payload")
+		recipient := EncodeRecipient("test", nil)
+		if err := writeStanza(conn, "add-recipient", recipient); err != nil {
+			t.Fatal(err)
+		}
+		identity := EncodeIdentity("test", []byte("secret identity payload"))
+		if err := writeStanza(conn, "add-identity", identity); err != nil {
+			t.Fatal(err)
+		}
+		if err := writeStanzaWithBody(conn, "wrap-file-key", secret); err != nil {
+			t.Fatal(err)
+		}
+		if err := writeStanza(conn, "done"); err != nil {
+			t.Fatal(err)
+		}
+		conn.Close()
+		conn = nil
+		stderrWriter.Close()
+		logged, err := io.ReadAll(stderrReader)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, secret := range []string{format.EncodeToString(secret), identity} {
+			if bytes.Contains(logged, []byte(secret)) {
+				t.Errorf("debug output contains secret protocol payload: %q", logged)
+			}
+		}
+	})
 }
 
 func TestNotFound(t *testing.T) {
